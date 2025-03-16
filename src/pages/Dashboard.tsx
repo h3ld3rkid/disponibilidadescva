@@ -183,6 +183,7 @@ const Dashboard = () => {
       <Routes>
         <Route path="/" element={<DashboardHome />} />
         <Route path="/users" element={<UserManagement />} />
+        <Route path="*" element={<div className="container mx-auto px-4 py-8">Page not found</div>} />
       </Routes>
     </div>
   );
