@@ -7,30 +7,29 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Database, LogOut, Users, Table2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
-interface ConnectionInfo {
-  username: string;
-  hostname: string;
-  database: string;
+interface UserInfo {
+  email: string;
+  isAdmin: boolean;
   isConnected: boolean;
 }
 
 const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [connectionInfo, setConnectionInfo] = useState<ConnectionInfo | null>(null);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Retrieve connection information from localStorage
-    const storedConnection = localStorage.getItem('mysqlConnection');
+    // Retrieve user information from localStorage
+    const storedUser = localStorage.getItem('mysqlConnection');
     
-    if (storedConnection) {
-      setConnectionInfo(JSON.parse(storedConnection));
+    if (storedUser) {
+      setUserInfo(JSON.parse(storedUser));
     } else {
       // Redirect to login if not connected
       toast({
-        title: "Not connected",
-        description: "Please log in to your database first",
+        title: "Not logged in",
+        description: "Please log in first",
         variant: "destructive",
       });
       navigate('/login');
@@ -42,8 +41,8 @@ const Dashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem('mysqlConnection');
     toast({
-      title: "Disconnected",
-      description: "Successfully disconnected from database",
+      title: "Logged out",
+      description: "Successfully logged out",
     });
     navigate('/login');
   };
@@ -65,7 +64,7 @@ const Dashboard = () => {
   ];
 
   const sampleUsers = [
-    { id: 1, username: "admin", email: "admin@example.com", created: "2023-01-15" },
+    { id: 1, username: "admin", email: "admin@gmail.com", created: "2023-01-15" },
     { id: 2, username: "john_doe", email: "john@example.com", created: "2023-03-22" },
     { id: 3, username: "jane_smith", email: "jane@example.com", created: "2023-05-17" },
     { id: 4, username: "robert_johnson", email: "robert@example.com", created: "2023-07-30" },
@@ -83,7 +82,7 @@ const Dashboard = () => {
           
           <div className="flex items-center space-x-2">
             <span className="text-sm text-gray-600">
-              Connected as <span className="font-medium">{connectionInfo?.username}</span>
+              Logged in as <span className="font-medium">{userInfo?.email}</span>
             </span>
             <Button 
               variant="outline" 
@@ -92,7 +91,7 @@ const Dashboard = () => {
               className="flex items-center gap-1"
             >
               <LogOut className="h-4 w-4" />
-              Disconnect
+              Logout
             </Button>
           </div>
         </div>
@@ -100,12 +99,12 @@ const Dashboard = () => {
 
       {/* Main content */}
       <main className="container mx-auto px-4 py-8">
-        {/* Connection summary */}
+        {/* Database summary */}
         <Card className="mb-8">
           <CardHeader className="pb-2">
-            <CardTitle>Database Overview</CardTitle>
+            <CardTitle>Dashboard Overview</CardTitle>
             <CardDescription>
-              Connected to <span className="font-medium">{connectionInfo?.database}</span> at <span className="font-medium">{connectionInfo?.hostname}</span>
+              Admin access for <span className="font-medium">{userInfo?.email}</span>
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -144,7 +143,7 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle>Tables</CardTitle>
               <CardDescription>
-                All tables in {connectionInfo?.database}
+                All tables in database
               </CardDescription>
             </CardHeader>
             <CardContent>
