@@ -1,15 +1,15 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Database, LogOut, Users, Table2 } from "lucide-react";
+import { Database, Table2, Users } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import Navbar from '@/components/Navbar';
 
 interface UserInfo {
   email: string;
-  isAdmin: boolean;
+  role: string;
   isConnected: boolean;
 }
 
@@ -38,21 +38,16 @@ const Dashboard = () => {
     setLoading(false);
   }, [navigate, toast]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('mysqlConnection');
-    toast({
-      title: "Logged out",
-      description: "Successfully logged out",
-    });
-    navigate('/login');
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-pulse text-lg text-gray-600">Loading...</div>
       </div>
     );
+  }
+
+  if (!userInfo) {
+    return null;
   }
 
   // Sample data for the dashboard
@@ -72,39 +67,17 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Database className="h-6 w-6 text-brand-indigo" />
-            <h1 className="text-xl font-semibold text-gray-900">MySQL Connect Portal</h1>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-600">
-              Logged in as <span className="font-medium">{userInfo?.email}</span>
-            </span>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleLogout}
-              className="flex items-center gap-1"
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
+      {/* Navbar */}
+      <Navbar email={userInfo.email} role={userInfo.role} />
 
       {/* Main content */}
       <main className="container mx-auto px-4 py-8">
-        {/* Database summary */}
+        {/* Dashboard summary */}
         <Card className="mb-8">
           <CardHeader className="pb-2">
             <CardTitle>Dashboard Overview</CardTitle>
             <CardDescription>
-              Admin access for <span className="font-medium">{userInfo?.email}</span>
+              {userInfo.role === 'admin' ? 'Admin access' : 'User access'} for <span className="font-medium">{userInfo.email}</span>
             </CardDescription>
           </CardHeader>
           <CardContent>

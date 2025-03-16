@@ -22,6 +22,12 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+// Sample user data - in a real app, this would come from a database
+const users = [
+  { email: "admin@gmail.com", password: "abcabc", role: "admin" },
+  { email: "user@example.com", password: "password", role: "user" }
+];
+
 const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -39,12 +45,14 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // Check for admin credentials
-      if (data.email === "admin@gmail.com" && data.password === "abcabc") {
+      // Find user in our sample data
+      const user = users.find(u => u.email === data.email && u.password === data.password);
+      
+      if (user) {
         // Store login info
         localStorage.setItem('mysqlConnection', JSON.stringify({
           email: data.email,
-          isAdmin: true,
+          role: user.role,
           isConnected: true
         }));
         
