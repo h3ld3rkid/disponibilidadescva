@@ -12,9 +12,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { 
   Database, LogOut, Users, CalendarPlus, 
-  ListChecks, UserCog 
+  ListChecks, UserCog, UserPlus, Pencil, Users as UsersIcon
 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface NavbarProps {
   email: string;
@@ -32,6 +32,10 @@ const Navbar = ({ email, role }: NavbarProps) => {
       description: "Successfully logged out",
     });
     navigate('/login');
+  };
+
+  const navigateToUserManagement = () => {
+    navigate('/dashboard/users');
   };
 
   return (
@@ -56,18 +60,33 @@ const Navbar = ({ email, role }: NavbarProps) => {
                       <div className="p-4 w-[220px]">
                         <ul className="space-y-2">
                           <li>
-                            <Button variant="ghost" className="w-full justify-start">
+                            <Button 
+                              variant="ghost" 
+                              className="w-full justify-start"
+                              onClick={navigateToUserManagement}
+                            >
+                              <UsersIcon className="h-4 w-4 mr-2" />
+                              Manage Users
+                            </Button>
+                          </li>
+                          <li>
+                            <Button 
+                              variant="ghost" 
+                              className="w-full justify-start"
+                              onClick={navigateToUserManagement}
+                            >
+                              <UserPlus className="h-4 w-4 mr-2" />
                               Create User
                             </Button>
                           </li>
                           <li>
-                            <Button variant="ghost" className="w-full justify-start">
-                              Edit User
-                            </Button>
-                          </li>
-                          <li>
-                            <Button variant="ghost" className="w-full justify-start">
-                              Manage Users
+                            <Button 
+                              variant="ghost" 
+                              className="w-full justify-start"
+                              onClick={navigateToUserManagement}
+                            >
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit Users
                             </Button>
                           </li>
                         </ul>
