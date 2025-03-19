@@ -277,8 +277,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                     </button>
                   ),
                 }}
-                styles={{
-                  caption: { display: 'none' }, // Hide the month name/navigation
+                classNames={{
+                  caption: 'hidden', // Hide the month name/navigation
                   table: 'w-full border-collapse',
                   head_cell: 'text-center font-semibold text-gray-700 px-1 py-2 bg-gray-200',
                   cell: 'text-center p-0 border border-gray-200 h-24',

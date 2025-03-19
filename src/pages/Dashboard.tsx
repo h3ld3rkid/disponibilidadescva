@@ -50,6 +50,8 @@ const Dashboard = () => {
     return null;
   }
 
+  const isAdmin = userInfo.role === 'admin';
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Navbar */}
@@ -57,7 +59,7 @@ const Dashboard = () => {
 
       {/* Main content with nested routes */}
       <Routes>
-        <Route path="/" element={<ScheduleCalendar userEmail={userInfo.email} />} />
+        <Route path="/" element={<ScheduleCalendar userEmail={userInfo.email} isAdmin={isAdmin} />} />
         <Route path="/users" element={<UserManagement />} />
         <Route path="/user-schedules" element={<UserSchedules />} />
         <Route path="/profile" element={<div className="container mx-auto px-4 py-8">Funcionalidade em desenvolvimento</div>} />
