@@ -9,12 +9,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface ScheduleCalendarProps {
   userEmail: string;
+  isAdmin?: boolean;
 }
 
 type ShiftType = 'manha' | 'tarde' | 'noite' | 'nenhum';
@@ -28,7 +28,7 @@ interface DaySchedule {
   };
 }
 
-const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
+const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin = false }) => {
   const [selectedMonth, setSelectedMonth] = useState<Date>(addMonths(new Date(), 1));
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [schedule, setSchedule] = useState<DaySchedule[]>([]);
@@ -45,7 +45,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
   
   const isPastDeadline = currentDay > 15;
   
-  const canEditNextMonthSchedule = !isPastDeadline && editCount < 2;
+  // Admin can bypass the day 15 restriction
+  const canEditNextMonthSchedule = isAdmin || (!isPastDeadline && editCount < 2);
 
   // Force the calendar to always show next month only
   useEffect(() => {
@@ -59,7 +60,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
     if (!canEditNextMonthSchedule) {
       toast({
         title: "Não é possível editar",
-        description: isPastDeadline
+        description: isPastDeadline && !isAdmin
           ? `Hoje é dia ${currentDay} e já não é permitido inserir a escala para o próximo mês.`
           : "Só é permitido editar a escala 2 vezes por mês.",
         variant: "destructive",
@@ -116,7 +117,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
   };
 
   const handleSaveSchedule = () => {
-    if (isPastDeadline) {
+    if (!isAdmin && isPastDeadline) {
       toast({
         title: "Não é possível salvar",
         description: `Hoje é dia ${currentDay} e já não é permitido inserir a escala para o próximo mês.`,
@@ -125,7 +126,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
       return;
     }
 
-    if (editCount >= 2) {
+    if (!isAdmin && editCount >= 2) {
       toast({
         title: "Limite de edições excedido",
         description: "Só é permitido editar a escala 2 vezes por mês.",
@@ -220,12 +221,22 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
 
   return (
     <div className="w-full px-2 py-4">
-      {isPastDeadline && (
+      {isPastDeadline && !isAdmin && (
         <Alert variant="destructive" className="mb-6">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Atenção</AlertTitle>
           <AlertDescription>
             Hoje é dia {currentDay} e como tal já não é permitido inserir a escala para o próximo mês.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {isAdmin && isPastDeadline && (
+        <Alert className="mb-6 border-yellow-500 bg-yellow-50">
+          <AlertTriangle className="h-4 w-4 text-yellow-500" />
+          <AlertTitle className="text-yellow-700">Modo Administrador</AlertTitle>
+          <AlertDescription className="text-yellow-600">
+            Você está no modo administrador e pode editar a escala mesmo após o dia 15.
           </AlertDescription>
         </Alert>
       )}
@@ -255,10 +266,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
                   Day: ({ date, ...props }) => (
                     <button
                       {...props}
-                      className={`h-full w-full p-2 flex items-center justify-center rounded-md hover:bg-gray-100 
+                      className={`h-full w-full p-2 flex items-center justify-center rounded-md 
                         ${selectedDates.some(d => format(d, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')) 
                           ? 'bg-[#6E59A5] text-white hover:bg-[#9b87f5]' 
-                          : ''}
+                          : 'hover:bg-gray-100'}
                         ${isSaturday(date) || isSunday(date) ? 'font-bold' : ''}
                       `}
                     >
@@ -267,9 +278,11 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
                   ),
                 }}
                 styles={{
-                  caption: { fontSize: '1.5rem', marginBottom: '1rem' },
-                  day: { fontSize: '1.2rem', margin: '0.25rem', height: '3.5rem', width: '3.5rem' },
-                  head_cell: { fontSize: '1.1rem', paddingBottom: '0.75rem', color: '#403E43' }
+                  caption: { display: 'none' }, // Hide the month name/navigation
+                  table: 'w-full border-collapse',
+                  head_cell: 'text-center font-semibold text-gray-700 px-1 py-2 bg-gray-200',
+                  cell: 'text-center p-0 border border-gray-200 h-24',
+                  day: 'h-full w-full',
                 }}
                 defaultMonth={nextMonth}
                 weekStartsOn={1} // Start from Monday
@@ -296,13 +309,13 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
                 <Button 
                   onClick={handleSaveSchedule} 
                   className="w-64 bg-[#6E59A5] hover:bg-[#9b87f5] text-lg py-6"
-                  disabled={!canEditNextMonthSchedule || savedSchedule || selectedDates.length === 0}
+                  disabled={(!canEditNextMonthSchedule || savedSchedule || selectedDates.length === 0) && !isAdmin}
                 >
                   Guardar Escala
                 </Button>
               </div>
               
-              {editCount > 0 && (
+              {editCount > 0 && !isAdmin && (
                 <p className="text-sm text-gray-500 mt-4 text-center">
                   Edições realizadas: {editCount}/2
                 </p>
