@@ -7,7 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Check } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface ScheduleCalendarProps {
   userEmail: string;
@@ -15,24 +19,19 @@ interface ScheduleCalendarProps {
 
 type ShiftType = 'manha' | 'tarde' | 'noite' | 'nenhum';
 
-interface ScheduleData {
+interface DaySchedule {
   date: Date;
   shifts: {
-    manha?: boolean;
-    tarde?: boolean;
-    noite?: boolean;
+    manha: boolean;
+    tarde: boolean;
+    noite: boolean;
   };
 }
 
 const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
   const [selectedMonth, setSelectedMonth] = useState<Date>(addMonths(new Date(), 1));
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [schedule, setSchedule] = useState<ScheduleData[]>([]);
-  const [currentShifts, setCurrentShifts] = useState<{ manha: boolean; tarde: boolean; noite: boolean }>({
-    manha: false,
-    tarde: false,
-    noite: false
-  });
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [schedule, setSchedule] = useState<DaySchedule[]>([]);
   const [editCount, setEditCount] = useState<number>(0);
   const [savedSchedule, setSavedSchedule] = useState<boolean>(false);
   const { toast } = useToast();
@@ -53,42 +52,63 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
     setSelectedMonth(nextMonth);
   }, []);
 
-  useEffect(() => {
-    if (selectedDate) {
-      const existingSchedule = schedule.find(item => 
-        format(item.date, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd')
-      );
-
-      if (existingSchedule) {
-        setCurrentShifts({
-          manha: existingSchedule.shifts.manha || false,
-          tarde: existingSchedule.shifts.tarde || false,
-          noite: existingSchedule.shifts.noite || false
-        });
-      } else {
-        setCurrentShifts({ manha: false, tarde: false, noite: false });
-      }
-    }
-  }, [selectedDate, schedule]);
-
-  const handleShiftChange = (shift: keyof typeof currentShifts, value: boolean) => {
-    setCurrentShifts(prev => ({ ...prev, [shift]: value }));
+  const handleDateSelect = (date: Date | undefined) => {
+    if (!date) return;
     
-    const updatedSchedule = [...schedule];
-    const scheduleIndex = updatedSchedule.findIndex(item => 
-      format(item.date, 'yyyy-MM-dd') === format(selectedDate!, 'yyyy-MM-dd')
-    );
-
-    if (scheduleIndex >= 0) {
-      updatedSchedule[scheduleIndex].shifts[shift] = value;
-    } else {
-      updatedSchedule.push({
-        date: selectedDate!,
-        shifts: { ...{ manha: false, tarde: false, noite: false }, [shift]: value }
+    if (!canEditNextMonthSchedule) {
+      toast({
+        title: "Não é possível editar",
+        description: isPastDeadline
+          ? `Hoje é dia ${currentDay} e já não é permitido inserir a escala para o próximo mês.`
+          : "Só é permitido editar a escala 2 vezes por mês.",
+        variant: "destructive",
       });
+      return;
     }
+    
+    const dateString = format(date, 'yyyy-MM-dd');
+    const isSelected = selectedDates.some(d => format(d, 'yyyy-MM-dd') === dateString);
+    
+    if (isSelected) {
+      // Remove the date if already selected
+      setSelectedDates(prev => prev.filter(d => format(d, 'yyyy-MM-dd') !== dateString));
+      
+      // Remove the shifts for this date
+      setSchedule(prev => prev.filter(item => format(item.date, 'yyyy-MM-dd') !== dateString));
+    } else {
+      // Add the date if not selected
+      setSelectedDates(prev => [...prev, date]);
+      
+      // Initialize with default shifts based on the day of the week
+      const isSat = isSaturday(date);
+      const isSun = isSunday(date);
+      
+      // Add default schedule for the day
+      setSchedule(prev => [
+        ...prev,
+        {
+          date,
+          shifts: {
+            manha: true, // Default to morning shift
+            tarde: isSat, // Afternoon only for Saturday
+            noite: isSat || isSun // Night for Saturday and Sunday
+          }
+        }
+      ]);
+    }
+  };
 
-    setSchedule(updatedSchedule);
+  const handleShiftChange = (date: Date, shift: keyof DaySchedule['shifts'], checked: boolean) => {
+    setSchedule(prev => {
+      const newSchedule = [...prev];
+      const dayIndex = newSchedule.findIndex(d => format(d.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd'));
+      
+      if (dayIndex >= 0) {
+        newSchedule[dayIndex].shifts[shift] = checked;
+      }
+      
+      return newSchedule;
+    });
   };
 
   const handleSaveSchedule = () => {
@@ -121,17 +141,77 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
     });
   };
 
-  const renderDateContent = (date: Date) => {
-    const dateKey = format(date, 'yyyy-MM-dd');
-    const dateSchedule = schedule.find(item => format(item.date, 'yyyy-MM-dd') === dateKey);
+  const renderDayContent = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const isSelected = selectedDates.some(d => format(d, 'yyyy-MM-dd') === dateStr);
+    const daySchedule = schedule.find(d => format(d.date, 'yyyy-MM-dd') === dateStr);
     
-    const hasShift = dateSchedule && (dateSchedule.shifts.manha || dateSchedule.shifts.tarde || dateSchedule.shifts.noite);
+    // Special handling for Saturday and Sunday
+    if ((isSaturday(date) || isSunday(date)) && isSelected) {
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <div className={`w-full h-full flex items-center justify-center relative ${isSelected ? 'cursor-pointer' : ''}`}>
+              <div className="absolute top-0 right-1 flex flex-col gap-1">
+                {daySchedule?.shifts.manha && <div className="w-2 h-2 bg-green-500 rounded-full"></div>}
+                {daySchedule?.shifts.tarde && isSaturday(date) && <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>}
+                {daySchedule?.shifts.noite && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
+              </div>
+              {date.getDate()}
+            </div>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-3" align="center">
+            <div className="space-y-2">
+              <h4 className="font-medium text-center mb-2">Turnos para {format(date, "EEEE, d", { locale: pt })}</h4>
+              
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`manha-${dateStr}`} 
+                    checked={daySchedule?.shifts.manha}
+                    onCheckedChange={(checked) => handleShiftChange(date, 'manha', checked === true)}
+                    disabled={!canEditNextMonthSchedule}
+                  />
+                  <Label htmlFor={`manha-${dateStr}`}>Manhã</Label>
+                </div>
+                
+                {isSaturday(date) && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={`tarde-${dateStr}`} 
+                      checked={daySchedule?.shifts.tarde}
+                      onCheckedChange={(checked) => handleShiftChange(date, 'tarde', checked === true)}
+                      disabled={!canEditNextMonthSchedule}
+                    />
+                    <Label htmlFor={`tarde-${dateStr}`}>Tarde</Label>
+                  </div>
+                )}
+                
+                {(isSaturday(date) || isSunday(date)) && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={`noite-${dateStr}`} 
+                      checked={daySchedule?.shifts.noite}
+                      onCheckedChange={(checked) => handleShiftChange(date, 'noite', checked === true)}
+                      disabled={!canEditNextMonthSchedule}
+                    />
+                    <Label htmlFor={`noite-${dateStr}`}>Noite</Label>
+                  </div>
+                )}
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      );
+    }
     
-    return hasShift ? (
-      <div className="relative w-full h-full">
-        <div className="absolute top-0 right-0 w-2 h-2 bg-green-500 rounded-full"></div>
+    // For regular days just show a dot if selected
+    return (
+      <div className="w-full h-full flex items-center justify-center relative">
+        {isSelected && <div className="absolute top-0 right-1 w-2 h-2 bg-green-500 rounded-full"></div>}
+        {date.getDate()}
       </div>
-    ) : null;
+    );
   };
 
   return (
@@ -146,141 +226,84 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <Card className="lg:col-span-3">
+      <div className="w-full">
+        <Card className="w-full">
           <CardHeader className="pb-2">
             <CardTitle>Calendário de Escalas</CardTitle>
             <CardDescription>Selecione os dias que pretende trabalhar</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex justify-center">
+            <div className="flex flex-col w-full">
               <Calendar
-                mode="single"
+                mode="multiple"
                 month={nextMonth}
-                onMonthChange={() => {}} // Disabled month change to keep only next month
-                selected={selectedDate}
-                onSelect={setSelectedDate}
+                onMonthChange={() => {}}
+                selected={selectedDates}
+                onSelect={handleDateSelect}
                 locale={pt}
                 disabled={(date) => {
                   // Only allow dates in the next month
                   return !isAfter(date, endOfMonth(today)) || 
                          !isBefore(date, startOfMonth(addMonths(nextMonth, 1)));
                 }}
-                className="w-full max-w-[800px] mx-auto rounded-lg pointer-events-auto"
-                modifiersStyles={{
-                  selected: { 
-                    backgroundColor: '#6E59A5',
-                    color: 'white',
-                    fontWeight: 'bold'
-                  }
+                className="w-full mx-auto rounded-lg pointer-events-auto"
+                components={{
+                  Day: ({ date, ...props }) => (
+                    <button
+                      {...props}
+                      className={`h-full w-full p-2 flex items-center justify-center rounded-md hover:bg-gray-100 
+                        ${selectedDates.some(d => format(d, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')) 
+                          ? 'bg-[#6E59A5] text-white hover:bg-[#9b87f5]' 
+                          : ''}
+                        ${isSaturday(date) || isSunday(date) ? 'font-bold' : ''}
+                      `}
+                    >
+                      {renderDayContent(date)}
+                    </button>
+                  ),
                 }}
                 styles={{
-                  caption: { fontSize: '1.25rem', marginBottom: '1rem' },
-                  day: { fontSize: '1.1rem', margin: '0.15rem', height: '2.75rem', width: '2.75rem' },
-                  head_cell: { fontSize: '1rem', paddingBottom: '0.75rem', color: '#403E43' }
+                  caption: { fontSize: '1.5rem', marginBottom: '1rem' },
+                  day: { fontSize: '1.2rem', margin: '0.25rem', height: '3.5rem', width: '3.5rem' },
+                  head_cell: { fontSize: '1.1rem', paddingBottom: '0.75rem', color: '#403E43' }
                 }}
                 defaultMonth={nextMonth}
                 weekStartsOn={1} // Start from Monday
               />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Detalhes do Turno</CardTitle>
-            <CardDescription>
-              {selectedDate ? format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: pt }) : "Selecione uma data"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {selectedDate ? (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-medium mb-3">Turnos disponíveis:</h3>
-                  
-                  <div className="mb-4">
-                    <label className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="rounded border-gray-300 w-5 h-5"
-                        checked={currentShifts.manha}
-                        onChange={(e) => handleShiftChange('manha', e.target.checked)}
-                        disabled={!canEditNextMonthSchedule}
-                      />
-                      <span className="text-base">Manhã (08:00 - 16:00)</span>
-                    </label>
+              
+              <div className="mt-8 w-full flex justify-center">
+                <div className="flex gap-4 items-center mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span>Manhã</span>
                   </div>
-
-                  {/* For Saturday, show all three shifts */}
-                  {isSaturday(selectedDate) && (
-                    <>
-                      <div className="mb-4">
-                        <label className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            className="rounded border-gray-300 w-5 h-5"
-                            checked={currentShifts.tarde}
-                            onChange={(e) => handleShiftChange('tarde', e.target.checked)}
-                            disabled={!canEditNextMonthSchedule}
-                          />
-                          <span className="text-base">Tarde (16:00 - 00:00)</span>
-                        </label>
-                      </div>
-                      <div className="mb-4">
-                        <label className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            className="rounded border-gray-300 w-5 h-5"
-                            checked={currentShifts.noite}
-                            onChange={(e) => handleShiftChange('noite', e.target.checked)}
-                            disabled={!canEditNextMonthSchedule}
-                          />
-                          <span className="text-base">Noite (00:00 - 08:00)</span>
-                        </label>
-                      </div>
-                    </>
-                  )}
-
-                  {/* For Sunday, show morning and night shifts */}
-                  {isSunday(selectedDate) && (
-                    <>
-                      <div className="mb-4">
-                        <label className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded cursor-pointer">
-                          <input 
-                            type="checkbox" 
-                            className="rounded border-gray-300 w-5 h-5"
-                            checked={currentShifts.noite}
-                            onChange={(e) => handleShiftChange('noite', e.target.checked)}
-                            disabled={!canEditNextMonthSchedule}
-                          />
-                          <span className="text-base">Noite (00:00 - 08:00)</span>
-                        </label>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <div className="pt-4">
-                  <Button 
-                    onClick={handleSaveSchedule} 
-                    className="w-full bg-[#6E59A5] hover:bg-[#9b87f5] text-lg py-6"
-                    disabled={!canEditNextMonthSchedule || savedSchedule}
-                  >
-                    Guardar Escala
-                  </Button>
-                  {editCount > 0 && (
-                    <p className="text-sm text-gray-500 mt-2 text-center">
-                      Edições realizadas: {editCount}/2
-                    </p>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <span>Tarde (Sábado)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <span>Noite (Sábado e Domingo)</span>
+                  </div>
                 </div>
               </div>
-            ) : (
-              <p className="text-center text-gray-500">
-                Selecione uma data no calendário para ver os turnos disponíveis
-              </p>
-            )}
+              
+              <div className="mt-8 flex justify-center">
+                <Button 
+                  onClick={handleSaveSchedule} 
+                  className="w-64 bg-[#6E59A5] hover:bg-[#9b87f5] text-lg py-6"
+                  disabled={!canEditNextMonthSchedule || savedSchedule || selectedDates.length === 0}
+                >
+                  Guardar Escala
+                </Button>
+              </div>
+              
+              {editCount > 0 && (
+                <p className="text-sm text-gray-500 mt-4 text-center">
+                  Edições realizadas: {editCount}/2
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
