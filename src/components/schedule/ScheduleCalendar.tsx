@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Calendar } from "@/components/ui/calendar";
 import { format, isSaturday, isSunday, isAfter, isBefore, startOfMonth, endOfMonth, addMonths, getDate, getMonth, getYear } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
@@ -47,6 +47,11 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
   const isPastDeadline = currentDay > 15;
   
   const canEditNextMonthSchedule = !isPastDeadline && editCount < 2;
+
+  // Force the calendar to always show next month only
+  useEffect(() => {
+    setSelectedMonth(nextMonth);
+  }, []);
 
   useEffect(() => {
     if (selectedDate) {
@@ -130,7 +135,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="w-full px-2 py-4">
       {isPastDeadline && (
         <Alert variant="destructive" className="mb-6">
           <AlertTriangle className="h-4 w-4" />
@@ -141,26 +146,41 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <Card className="md:col-span-2">
-          <CardHeader>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <Card className="lg:col-span-3">
+          <CardHeader className="pb-2">
             <CardTitle>Calendário de Escalas</CardTitle>
             <CardDescription>Selecione os dias que pretende trabalhar</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center">
+            <div className="flex justify-center">
               <Calendar
                 mode="single"
-                month={selectedMonth}
-                onMonthChange={setSelectedMonth}
+                month={nextMonth}
+                onMonthChange={() => {}} // Disabled month change to keep only next month
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 locale={pt}
                 disabled={(date) => {
-                  return !isBefore(date, startOfMonth(addMonths(new Date(), 2))) || 
-                         !isAfter(date, endOfMonth(today));
+                  // Only allow dates in the next month
+                  return !isAfter(date, endOfMonth(today)) || 
+                         !isBefore(date, startOfMonth(addMonths(nextMonth, 1)));
                 }}
-                className="pointer-events-auto"
+                className="w-full max-w-[800px] mx-auto rounded-lg pointer-events-auto"
+                modifiersStyles={{
+                  selected: { 
+                    backgroundColor: '#6E59A5',
+                    color: 'white',
+                    fontWeight: 'bold'
+                  }
+                }}
+                styles={{
+                  caption: { fontSize: '1.25rem', marginBottom: '1rem' },
+                  day: { fontSize: '1.1rem', margin: '0.15rem', height: '2.75rem', width: '2.75rem' },
+                  head_cell: { fontSize: '1rem', paddingBottom: '0.75rem', color: '#403E43' }
+                }}
+                defaultMonth={nextMonth}
+                weekStartsOn={1} // Start from Monday
               />
             </div>
           </CardContent>
@@ -177,56 +197,74 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
             {selectedDate ? (
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-medium mb-2">Turnos disponíveis:</h3>
+                  <h3 className="font-medium mb-3">Turnos disponíveis:</h3>
                   
-                  <div className="mb-2">
-                    <label className="flex items-center space-x-2">
+                  <div className="mb-4">
+                    <label className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded cursor-pointer">
                       <input 
                         type="checkbox" 
-                        className="rounded border-gray-300"
+                        className="rounded border-gray-300 w-5 h-5"
                         checked={currentShifts.manha}
                         onChange={(e) => handleShiftChange('manha', e.target.checked)}
                         disabled={!canEditNextMonthSchedule}
                       />
-                      <span>Manhã (08:00 - 16:00)</span>
+                      <span className="text-base">Manhã (08:00 - 16:00)</span>
                     </label>
                   </div>
 
+                  {/* For Saturday, show all three shifts */}
                   {isSaturday(selectedDate) && (
-                    <div className="mb-2">
-                      <label className="flex items-center space-x-2">
-                        <input 
-                          type="checkbox" 
-                          className="rounded border-gray-300"
-                          checked={currentShifts.tarde}
-                          onChange={(e) => handleShiftChange('tarde', e.target.checked)}
-                          disabled={!canEditNextMonthSchedule}
-                        />
-                        <span>Tarde (16:00 - 00:00)</span>
-                      </label>
-                    </div>
+                    <>
+                      <div className="mb-4">
+                        <label className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            className="rounded border-gray-300 w-5 h-5"
+                            checked={currentShifts.tarde}
+                            onChange={(e) => handleShiftChange('tarde', e.target.checked)}
+                            disabled={!canEditNextMonthSchedule}
+                          />
+                          <span className="text-base">Tarde (16:00 - 00:00)</span>
+                        </label>
+                      </div>
+                      <div className="mb-4">
+                        <label className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            className="rounded border-gray-300 w-5 h-5"
+                            checked={currentShifts.noite}
+                            onChange={(e) => handleShiftChange('noite', e.target.checked)}
+                            disabled={!canEditNextMonthSchedule}
+                          />
+                          <span className="text-base">Noite (00:00 - 08:00)</span>
+                        </label>
+                      </div>
+                    </>
                   )}
 
-                  {(isSaturday(selectedDate) || isSunday(selectedDate)) && (
-                    <div className="mb-2">
-                      <label className="flex items-center space-x-2">
-                        <input 
-                          type="checkbox" 
-                          className="rounded border-gray-300"
-                          checked={currentShifts.noite}
-                          onChange={(e) => handleShiftChange('noite', e.target.checked)}
-                          disabled={!canEditNextMonthSchedule}
-                        />
-                        <span>Noite (00:00 - 08:00)</span>
-                      </label>
-                    </div>
+                  {/* For Sunday, show morning and night shifts */}
+                  {isSunday(selectedDate) && (
+                    <>
+                      <div className="mb-4">
+                        <label className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            className="rounded border-gray-300 w-5 h-5"
+                            checked={currentShifts.noite}
+                            onChange={(e) => handleShiftChange('noite', e.target.checked)}
+                            disabled={!canEditNextMonthSchedule}
+                          />
+                          <span className="text-base">Noite (00:00 - 08:00)</span>
+                        </label>
+                      </div>
+                    </>
                   )}
                 </div>
 
                 <div className="pt-4">
                   <Button 
                     onClick={handleSaveSchedule} 
-                    className="w-full"
+                    className="w-full bg-[#6E59A5] hover:bg-[#9b87f5] text-lg py-6"
                     disabled={!canEditNextMonthSchedule || savedSchedule}
                   >
                     Guardar Escala
