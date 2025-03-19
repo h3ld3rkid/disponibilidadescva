@@ -42,7 +42,7 @@ const userFormSchema = z.object({
 type UserFormValues = z.infer<typeof userFormSchema>;
 
 interface UserFormProps {
-  onSubmit: (data: UserFormValues) => boolean;
+  onSubmit: (data: UserFormValues) => Promise<boolean>;
   defaultValues?: Partial<UserFormValues>;
   isEdit?: boolean;
 }
@@ -71,7 +71,7 @@ const UserForm = ({ onSubmit, defaultValues, isEdit = false }: UserFormProps) =>
     setIsSubmitting(true);
     
     try {
-      const success = onSubmit(data);
+      const success = await onSubmit(data);
       if (success) {
         form.reset();
       }

@@ -21,10 +21,10 @@ import { mysqlService } from "../../services/mysqlService";
 
 // Define proper type for the onSubmit function
 type UserFormSubmitFunction = (data: { 
-  name?: string; 
-  email?: string; 
+  name: string; 
+  email: string; 
   password?: string; 
-  role?: "admin" | "user";
+  role: "admin" | "user";
 }) => Promise<boolean>;
 
 const UserManagement = () => {

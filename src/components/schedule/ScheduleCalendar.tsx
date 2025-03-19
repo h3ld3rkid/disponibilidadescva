@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar } from "@/components/ui/calendar";
 import { format, isSaturday, isSunday, isAfter, isBefore, startOfMonth, endOfMonth, addMonths, getDate, getMonth, getYear } from "date-fns";
-import { ptPT } from "date-fns/locale";
+import { pt } from "date-fns/locale";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -45,10 +44,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
   
   const nextMonth = addMonths(new Date(currentYear, currentMonth, 1), 1);
   
-  // Check if it's past the 15th of the current month
   const isPastDeadline = currentDay > 15;
   
-  // Can only edit schedule for next month before the 15th of current month
   const canEditNextMonthSchedule = !isPastDeadline && editCount < 2;
 
   useEffect(() => {
@@ -108,7 +105,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
       return;
     }
 
-    // In a real implementation, this would save to a database
     console.log('Saving schedule:', schedule);
     
     setEditCount(prev => prev + 1);
@@ -159,9 +155,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
                 onMonthChange={setSelectedMonth}
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                locale={ptPT}
+                locale={pt}
                 disabled={(date) => {
-                  // Only allow selecting dates from the next month
                   return !isBefore(date, startOfMonth(addMonths(new Date(), 2))) || 
                          !isAfter(date, endOfMonth(today));
                 }}
@@ -175,7 +170,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
           <CardHeader>
             <CardTitle>Detalhes do Turno</CardTitle>
             <CardDescription>
-              {selectedDate ? format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptPT }) : "Selecione uma data"}
+              {selectedDate ? format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: pt }) : "Selecione uma data"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -184,7 +179,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
                 <div>
                   <h3 className="font-medium mb-2">Turnos disponíveis:</h3>
                   
-                  {/* Morning shift */}
                   <div className="mb-2">
                     <label className="flex items-center space-x-2">
                       <input 
@@ -198,7 +192,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
                     </label>
                   </div>
 
-                  {/* Afternoon shift - Only available on Saturdays */}
                   {isSaturday(selectedDate) && (
                     <div className="mb-2">
                       <label className="flex items-center space-x-2">
@@ -214,7 +207,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
                     </div>
                   )}
 
-                  {/* Night shift - Available on Saturday and Sunday */}
                   {(isSaturday(selectedDate) || isSunday(selectedDate)) && (
                     <div className="mb-2">
                       <label className="flex items-center space-x-2">

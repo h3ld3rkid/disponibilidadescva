@@ -6,7 +6,7 @@ import {
   TableHeader, TableRow 
 } from "@/components/ui/table";
 import { format, addMonths } from "date-fns";
-import { ptPT } from "date-fns/locale";
+import { pt } from "date-fns/locale";
 
 const UserSchedules = () => {
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -80,7 +80,7 @@ const UserSchedules = () => {
                           <TableCell rowSpan={schedule.dates.length}>{schedule.email}</TableCell>
                         </>
                       ) : null}
-                      <TableCell>{format(new Date(dateInfo.date), "d 'de' MMMM 'de' yyyy", { locale: ptPT })}</TableCell>
+                      <TableCell>{format(new Date(dateInfo.date), "d 'de' MMMM 'de' yyyy", { locale: pt })}</TableCell>
                       <TableCell>
                         {dateInfo.shifts.map((shift: string) => (
                           <span key={shift} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-1">
