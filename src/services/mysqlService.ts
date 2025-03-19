@@ -34,8 +34,8 @@ class MySQLService {
     // For now, we'll simulate a successful update
     return {
       id: userId,
-      name: userData.name || 'Unknown',
-      email: userData.email || 'unknown@example.com',
+      name: userData.name || 'Desconhecido',
+      email: userData.email || 'desconhecido@exemplo.com',
       role: userData.role || 'user',
       active: userData.active !== undefined ? userData.active : true
     };
@@ -62,11 +62,28 @@ class MySQLService {
     // In a real implementation, this would execute an SQL SELECT statement
     // For now, we'll return mock data
     return [
-      { id: 1, name: "Administrator", email: "admin@gmail.com", role: 'admin', active: true },
-      { id: 2, name: "John Doe", email: "john@example.com", role: 'user', active: true },
-      { id: 3, name: "Jane Smith", email: "jane@example.com", role: 'user', active: true },
-      { id: 4, name: "Robert Johnson", email: "robert@example.com", role: 'user', active: false },
+      { id: 1, name: "Administrador", email: "admin@gmail.com", role: 'admin', active: true },
+      { id: 2, name: "João Silva", email: "joao@exemplo.com", role: 'user', active: true },
+      { id: 3, name: "Maria Oliveira", email: "maria@exemplo.com", role: 'user', active: true },
+      { id: 4, name: "António Rodrigues", email: "antonio@exemplo.com", role: 'user', active: false },
     ];
+  }
+
+  // Mock function to save user schedule
+  async saveUserSchedule(userEmail: string, scheduleData: any): Promise<{ success: boolean }> {
+    console.log('MySQL: Saving schedule for user', userEmail, scheduleData);
+    
+    // In a real implementation, this would execute SQL statements
+    return { success: true };
+  }
+
+  // Mock function to get user schedules
+  async getUserSchedules(): Promise<any[]> {
+    console.log('MySQL: Getting all user schedules');
+    
+    // In a real implementation, this would execute SQL statements
+    // For now, we'll return empty data
+    return [];
   }
 }
 

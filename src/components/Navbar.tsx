@@ -5,13 +5,12 @@ import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
-  NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import { Button } from "@/components/ui/button";
 import { 
-  Database, LogOut, Users, CalendarPlus, 
+  Database, LogOut, Users, Calendar, 
   ListChecks, UserCog, UserPlus, Pencil, Users as UsersIcon
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -28,8 +27,8 @@ const Navbar = ({ email, role }: NavbarProps) => {
   const handleLogout = () => {
     localStorage.removeItem('mysqlConnection');
     toast({
-      title: "Logged out",
-      description: "Successfully logged out",
+      title: "Sessão terminada",
+      description: "Terminou a sessão com sucesso",
     });
     navigate('/login');
   };
@@ -38,13 +37,29 @@ const Navbar = ({ email, role }: NavbarProps) => {
     navigate('/dashboard/users');
   };
 
+  const navigateToCalendar = () => {
+    navigate('/dashboard');
+  };
+
+  const navigateToUserSchedules = () => {
+    navigate('/dashboard/user-schedules');
+  };
+
+  const navigateToProfile = () => {
+    navigate('/dashboard/profile');
+    toast({
+      title: "Em desenvolvimento",
+      description: "Esta funcionalidade está a ser implementada",
+    });
+  };
+
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Database className="h-6 w-6 text-brand-indigo" />
-            <h1 className="text-xl font-semibold text-gray-900">MySQL Connect Portal</h1>
+            <h1 className="text-xl font-semibold text-gray-900">Escalas Cruz Vermelha Amares</h1>
           </div>
           
           <div className="flex items-center space-x-6">
@@ -54,7 +69,7 @@ const Navbar = ({ email, role }: NavbarProps) => {
                   <NavigationMenuItem>
                     <NavigationMenuTrigger>
                       <Users className="h-4 w-4 mr-2" />
-                      Users
+                      Utilizadores
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
                       <div className="p-4 w-[220px]">
@@ -66,7 +81,7 @@ const Navbar = ({ email, role }: NavbarProps) => {
                               onClick={navigateToUserManagement}
                             >
                               <UsersIcon className="h-4 w-4 mr-2" />
-                              Manage Users
+                              Gerir Utilizadores
                             </Button>
                           </li>
                           <li>
@@ -76,7 +91,7 @@ const Navbar = ({ email, role }: NavbarProps) => {
                               onClick={navigateToUserManagement}
                             >
                               <UserPlus className="h-4 w-4 mr-2" />
-                              Create User
+                              Criar Utilizador
                             </Button>
                           </li>
                           <li>
@@ -86,7 +101,7 @@ const Navbar = ({ email, role }: NavbarProps) => {
                               onClick={navigateToUserManagement}
                             >
                               <Pencil className="h-4 w-4 mr-2" />
-                              Edit Users
+                              Editar Utilizadores
                             </Button>
                           </li>
                         </ul>
@@ -95,16 +110,24 @@ const Navbar = ({ email, role }: NavbarProps) => {
                   </NavigationMenuItem>
                   
                   <NavigationMenuItem>
-                    <Button variant="ghost" className="flex items-center">
-                      <CalendarPlus className="h-4 w-4 mr-2" />
-                      Inserir Escala
+                    <Button 
+                      variant="ghost" 
+                      className="flex items-center"
+                      onClick={navigateToCalendar}
+                    >
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Escalas Anteriores
                     </Button>
                   </NavigationMenuItem>
                   
                   <NavigationMenuItem>
-                    <Button variant="ghost" className="flex items-center">
+                    <Button 
+                      variant="ghost" 
+                      className="flex items-center"
+                      onClick={navigateToUserSchedules}
+                    >
                       <ListChecks className="h-4 w-4 mr-2" />
-                      Escalas dos users
+                      Escalas dos Utilizadores
                     </Button>
                   </NavigationMenuItem>
                   
@@ -117,13 +140,21 @@ const Navbar = ({ email, role }: NavbarProps) => {
                       <div className="p-4 w-[200px]">
                         <ul className="space-y-2">
                           <li>
-                            <Button variant="ghost" className="w-full justify-start">
-                              My Profile
+                            <Button 
+                              variant="ghost" 
+                              className="w-full justify-start"
+                              onClick={navigateToProfile}
+                            >
+                              O Meu Perfil
                             </Button>
                           </li>
                           <li>
-                            <Button variant="ghost" className="w-full justify-start">
-                              Settings
+                            <Button 
+                              variant="ghost" 
+                              className="w-full justify-start"
+                              onClick={navigateToProfile}
+                            >
+                              Definições
                             </Button>
                           </li>
                         </ul>
@@ -136,7 +167,7 @@ const Navbar = ({ email, role }: NavbarProps) => {
             
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600 hidden md:inline">
-                Logged in as <span className="font-medium">{email}</span>
+                Sessão iniciada como <span className="font-medium">{email}</span>
                 {role === 'admin' && <span className="ml-1 text-brand-indigo">(Admin)</span>}
               </span>
               <Button 
@@ -146,7 +177,7 @@ const Navbar = ({ email, role }: NavbarProps) => {
                 className="flex items-center gap-1"
               >
                 <LogOut className="h-4 w-4" />
-                Logout
+                Sair
               </Button>
             </div>
           </div>

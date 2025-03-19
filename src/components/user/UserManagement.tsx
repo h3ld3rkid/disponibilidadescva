@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -18,6 +19,14 @@ import { useToast } from "@/hooks/use-toast";
 import UserForm from "./UserForm";
 import { mysqlService } from "../../services/mysqlService";
 
+// Define proper type for the onSubmit function
+type UserFormSubmitFunction = (data: { 
+  name?: string; 
+  email?: string; 
+  password?: string; 
+  role?: "admin" | "user";
+}) => Promise<boolean>;
+
 const UserManagement = () => {
   const { toast } = useToast();
   const [users, setUsers] = useState<any[]>([]);
@@ -33,8 +42,8 @@ const UserManagement = () => {
       } catch (error) {
         console.error("Error fetching users:", error);
         toast({
-          title: "Failed to fetch users",
-          description: "There was an error loading the user list",
+          title: "Falha ao obter utilizadores",
+          description: "Ocorreu um erro ao carregar a lista de utilizadores",
           variant: "destructive",
         });
       } finally {
@@ -45,7 +54,7 @@ const UserManagement = () => {
     fetchUsers();
   }, [toast]);
 
-  const handleCreateUser = async (userData: any) => {
+  const handleCreateUser: UserFormSubmitFunction = async (userData) => {
     try {
       setIsLoading(true);
       const newUser = await mysqlService.createUser(userData);
@@ -53,16 +62,16 @@ const UserManagement = () => {
       setUsers([...users, newUser]);
       
       toast({
-        title: "User created",
-        description: `User ${userData.name} was successfully created`,
+        title: "Utilizador criado",
+        description: `Utilizador ${userData.name} foi criado com sucesso`,
       });
       
       return true; // Success
     } catch (error) {
       console.error("Error creating user:", error);
       toast({
-        title: "Failed to create user",
-        description: "There was an error creating the user",
+        title: "Falha ao criar utilizador",
+        description: "Ocorreu um erro ao criar o utilizador",
         variant: "destructive",
       });
       
@@ -72,7 +81,7 @@ const UserManagement = () => {
     }
   };
 
-  const handleEditUser = async (userData: any) => {
+  const handleEditUser: UserFormSubmitFunction = async (userData) => {
     try {
       setIsLoading(true);
       const updatedUser = await mysqlService.updateUser(selectedUser.id, userData);
@@ -85,16 +94,16 @@ const UserManagement = () => {
       setIsEditSheetOpen(false);
       
       toast({
-        title: "User updated",
-        description: `User ${userData.name} was successfully updated`,
+        title: "Utilizador atualizado",
+        description: `Utilizador ${userData.name} foi atualizado com sucesso`,
       });
       
       return true; // Success
     } catch (error) {
       console.error("Error updating user:", error);
       toast({
-        title: "Failed to update user",
-        description: "There was an error updating the user",
+        title: "Falha ao atualizar utilizador",
+        description: "Ocorreu um erro ao atualizar o utilizador",
         variant: "destructive",
       });
       
@@ -119,15 +128,15 @@ const UserManagement = () => {
         setUsers(updatedUsers);
         
         toast({
-          title: result.active ? "User activated" : "User deactivated",
-          description: `User was successfully ${result.active ? 'activated' : 'deactivated'}`,
+          title: result.active ? "Utilizador ativado" : "Utilizador desativado",
+          description: `Utilizador foi ${result.active ? 'ativado' : 'desativado'} com sucesso`,
         });
       }
     } catch (error) {
       console.error("Error toggling user status:", error);
       toast({
-        title: "Failed to update user status",
-        description: "There was an error updating the user status",
+        title: "Falha ao alterar estado do utilizador",
+        description: "Ocorreu um erro ao alterar o estado do utilizador",
         variant: "destructive",
       });
     } finally {
@@ -140,22 +149,22 @@ const UserManagement = () => {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>User Management</CardTitle>
-            <CardDescription>Create, edit, and manage system users</CardDescription>
+            <CardTitle>Gestão de Utilizadores</CardTitle>
+            <CardDescription>Criar, editar e gerir utilizadores do sistema</CardDescription>
           </div>
           
           <Dialog>
             <DialogTrigger asChild>
               <Button className="bg-brand-indigo hover:bg-brand-darkblue">
                 <UserPlus className="mr-2 h-4 w-4" />
-                Create User
+                Criar Utilizador
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>Create New User</DialogTitle>
+                <DialogTitle>Criar Novo Utilizador</DialogTitle>
                 <DialogDescription>
-                  Fill in the details to create a new user account
+                  Preencha os detalhes para criar uma nova conta de utilizador
                 </DialogDescription>
               </DialogHeader>
               <UserForm onSubmit={handleCreateUser} />
@@ -166,17 +175,17 @@ const UserManagement = () => {
         <CardContent>
           {isLoading ? (
             <div className="py-10 text-center">
-              <div className="animate-pulse text-gray-500">Loading users...</div>
+              <div className="animate-pulse text-gray-500">A carregar utilizadores...</div>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
+                  <TableHead>Nome</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>Função</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -186,17 +195,17 @@ const UserManagement = () => {
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
                       <span className={user.role === 'admin' ? 'text-brand-indigo font-medium' : ''}>
-                        {user.role}
+                        {user.role === 'admin' ? 'Administrador' : 'Utilizador'}
                       </span>
                     </TableCell>
                     <TableCell>
                       {user.active ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Active
+                          Ativo
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          Inactive
+                          Inativo
                         </span>
                       )}
                     </TableCell>
@@ -218,9 +227,9 @@ const UserManagement = () => {
                           </SheetTrigger>
                           <SheetContent>
                             <SheetHeader>
-                              <SheetTitle>Edit User</SheetTitle>
+                              <SheetTitle>Editar Utilizador</SheetTitle>
                               <SheetDescription>
-                                Update user information
+                                Atualizar informações do utilizador
                               </SheetDescription>
                             </SheetHeader>
                             {selectedUser && (
