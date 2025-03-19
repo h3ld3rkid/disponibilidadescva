@@ -52,8 +52,9 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
     setSelectedMonth(nextMonth);
   }, []);
 
-  const handleDateSelect = (date: Date | undefined) => {
-    if (!date) return;
+  // Updated to handle Date[] parameter instead of single Date
+  const handleDateSelect = (days: Date[] | undefined) => {
+    if (!days) return;
     
     if (!canEditNextMonthSchedule) {
       toast({
@@ -66,36 +67,39 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail }) => {
       return;
     }
     
-    const dateString = format(date, 'yyyy-MM-dd');
-    const isSelected = selectedDates.some(d => format(d, 'yyyy-MM-dd') === dateString);
+    // Find the most recently selected date (the difference between current days and previous selectedDates)
+    const previousDateStrings = selectedDates.map(d => format(d, 'yyyy-MM-dd'));
+    const newDates = days.filter(day => !previousDateStrings.includes(format(day, 'yyyy-MM-dd')));
+    const removedDates = selectedDates.filter(day => !days.some(d => format(d, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd')));
     
-    if (isSelected) {
-      // Remove the date if already selected
-      setSelectedDates(prev => prev.filter(d => format(d, 'yyyy-MM-dd') !== dateString));
-      
-      // Remove the shifts for this date
-      setSchedule(prev => prev.filter(item => format(item.date, 'yyyy-MM-dd') !== dateString));
-    } else {
-      // Add the date if not selected
-      setSelectedDates(prev => [...prev, date]);
-      
-      // Initialize with default shifts based on the day of the week
-      const isSat = isSaturday(date);
-      const isSun = isSunday(date);
-      
-      // Add default schedule for the day
-      setSchedule(prev => [
-        ...prev,
-        {
+    // If a date was removed, update the schedule
+    if (removedDates.length > 0) {
+      setSchedule(prev => prev.filter(item => 
+        !removedDates.some(d => format(d, 'yyyy-MM-dd') === format(item.date, 'yyyy-MM-dd'))
+      ));
+    }
+    
+    // If new dates were added, add them to the schedule
+    if (newDates.length > 0) {
+      const newScheduleItems = newDates.map(date => {
+        const isSat = isSaturday(date);
+        const isSun = isSunday(date);
+        
+        return {
           date,
           shifts: {
             manha: true, // Default to morning shift
             tarde: isSat, // Afternoon only for Saturday
             noite: isSat || isSun // Night for Saturday and Sunday
           }
-        }
-      ]);
+        };
+      });
+      
+      setSchedule(prev => [...prev, ...newScheduleItems]);
     }
+    
+    // Update the selectedDates state with the complete new selection
+    setSelectedDates(days);
   };
 
   const handleShiftChange = (date: Date, shift: keyof DaySchedule['shifts'], checked: boolean) => {
