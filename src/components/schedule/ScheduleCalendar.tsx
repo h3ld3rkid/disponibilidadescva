@@ -233,7 +233,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       return (
         <Popover>
           <PopoverTrigger asChild>
-            <div className="w-full h-full flex items-center justify-center relative cursor-pointer">
+            <div className="w-full h-full flex items-center justify-center relative cursor-pointer bg-[#6E59A5] text-white">
               {date.getDate()}
               <div className="absolute top-1 right-1 flex flex-col gap-1">
                 {daySchedule?.shifts.manha && <div className="w-2 h-2 bg-green-500 rounded-full"></div>}
@@ -242,11 +242,11 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
               </div>
             </div>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-3 pointer-events-auto" align="center">
-            <div className="space-y-2">
+          <PopoverContent className="w-auto p-4 pointer-events-auto z-50" align="center">
+            <div className="space-y-3">
               <h4 className="font-medium text-center mb-2">Turnos para {format(date, "EEEE, d", { locale: pt })}</h4>
               
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id={`manha-${dateStr}`} 
