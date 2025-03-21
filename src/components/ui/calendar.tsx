@@ -19,7 +19,7 @@ function Calendar({
       showOutsideDays={showOutsideDays}
       className={cn("p-3 pointer-events-auto", className)}
       classNames={{
-        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0 w-full",
         month: "space-y-4 w-full",
         caption: "flex justify-center pt-1 relative items-center",
         caption_label: "text-sm font-medium",
@@ -33,9 +33,9 @@ function Calendar({
         table: "w-full border-collapse border border-gray-200",
         head_row: "flex w-full",
         head_cell:
-          "text-muted-foreground rounded-md w-9 font-semibold text-center text-gray-700 p-2 bg-gray-200 flex-1",
+          "text-muted-foreground rounded-md font-semibold text-center text-gray-700 p-2 bg-gray-200 flex-1",
         row: "flex w-full mt-0",
-        cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 border border-gray-200 flex-1 h-24",
+        cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 border border-gray-200 flex-1 aspect-square h-12 w-12 md:h-14 md:w-14 lg:h-16 lg:w-16",
         day: cn(
           "h-full w-full p-0 font-normal aria-selected:opacity-100"
         ),

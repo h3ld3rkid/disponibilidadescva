@@ -60,15 +60,17 @@ const Dashboard = () => {
       <Navbar email={userInfo.email} role={userInfo.role} />
 
       {/* Main content with nested routes */}
-      <Routes>
-        <Route path="/" element={<Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
-        <Route path="/schedule" element={<ScheduleCalendar userEmail={userInfo.email} isAdmin={isAdmin} />} />
-        <Route path="/users" element={<UserManagement />} />
-        <Route path="/user-schedules" element={<UserSchedules />} />
-        <Route path="/announcements" element={isAdmin ? <Announcements /> : <Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
-        <Route path="/profile" element={<div className="container mx-auto px-4 py-8">Funcionalidade em desenvolvimento</div>} />
-        <Route path="*" element={<div className="container mx-auto px-4 py-8">Página não encontrada</div>} />
-      </Routes>
+      <div className="w-full max-w-[1440px] mx-auto">
+        <Routes>
+          <Route path="/" element={<Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
+          <Route path="/schedule" element={<ScheduleCalendar userEmail={userInfo.email} isAdmin={isAdmin} />} />
+          <Route path="/users" element={<UserManagement />} />
+          <Route path="/user-schedules" element={<UserSchedules />} />
+          <Route path="/announcements" element={isAdmin ? <Announcements /> : <Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
+          <Route path="/profile" element={<div className="container mx-auto px-4 py-8">Funcionalidade em desenvolvimento</div>} />
+          <Route path="*" element={<div className="container mx-auto px-4 py-8">Página não encontrada</div>} />
+        </Routes>
+      </div>
     </div>
   );
 };

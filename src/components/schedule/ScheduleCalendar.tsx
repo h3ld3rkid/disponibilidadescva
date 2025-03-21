@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { mysqlService } from "@/services/mysqlService";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ScheduleCalendarProps {
   userEmail: string;
@@ -36,6 +37,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const [editCount, setEditCount] = useState<number>(0);
   const [savedSchedule, setSavedSchedule] = useState<boolean>(false);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const today = new Date();
   const currentMonth = getMonth(today);
@@ -52,7 +54,43 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   // Force the calendar to always show next month only
   useEffect(() => {
     setSelectedMonth(nextMonth);
-  }, []);
+    
+    // Load existing schedule if it exists
+    const storedSchedules = localStorage.getItem('userSchedules');
+    if (storedSchedules) {
+      try {
+        const parsedSchedules = JSON.parse(storedSchedules);
+        const userSchedule = parsedSchedules.find((s: any) => 
+          s.email === userEmail && s.month === format(nextMonth, 'MMMM yyyy', { locale: pt })
+        );
+        
+        if (userSchedule) {
+          const dates: Date[] = [];
+          const scheduleItems: DaySchedule[] = [];
+          
+          userSchedule.dates.forEach((item: any) => {
+            const date = new Date(item.date);
+            dates.push(date);
+            
+            scheduleItems.push({
+              date,
+              shifts: {
+                manha: item.shifts.includes('manha'),
+                tarde: item.shifts.includes('tarde'),
+                noite: item.shifts.includes('noite')
+              }
+            });
+          });
+          
+          setSelectedDates(dates);
+          setSchedule(scheduleItems);
+          setSavedSchedule(true);
+        }
+      } catch (error) {
+        console.error('Error loading schedule:', error);
+      }
+    }
+  }, [nextMonth, userEmail]);
 
   // Handle date selection changes
   const handleDateSelect = (days: Date[] | undefined) => {
@@ -102,6 +140,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     
     // Update the selectedDates state with the complete new selection
     setSelectedDates(days);
+    setSavedSchedule(false);
   };
 
   const handleShiftChange = (date: Date, shift: keyof DaySchedule['shifts'], checked: boolean) => {
@@ -198,15 +237,15 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         <Popover>
           <PopoverTrigger asChild>
             <div className="w-full h-full flex items-center justify-center relative cursor-pointer">
+              {date.getDate()}
               <div className="absolute top-1 right-1 flex flex-col gap-1">
                 {daySchedule?.shifts.manha && <div className="w-2 h-2 bg-green-500 rounded-full"></div>}
                 {daySchedule?.shifts.tarde && <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>}
                 {daySchedule?.shifts.noite && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
               </div>
-              {date.getDate()}
             </div>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-3" align="center">
+          <PopoverContent className="w-auto p-3 pointer-events-auto" align="center">
             <div className="space-y-2">
               <h4 className="font-medium text-center mb-2">Turnos para {format(date, "EEEE, d", { locale: pt })}</h4>
               
@@ -321,17 +360,19 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                   caption: 'hidden', // Hide the month name/navigation
                   table: 'w-full border-collapse',
                   head_cell: 'text-center font-semibold text-gray-700 px-1 py-2 bg-gray-200',
-                  cell: 'text-center p-0 relative border border-gray-200 h-24',
+                  cell: 'text-center p-0 relative border border-gray-200 h-12 w-12 md:h-14 md:w-14 lg:h-16 lg:w-16 aspect-square',
                   day: 'h-full w-full',
                   row: 'flex w-full mt-0',
                   head_row: 'flex w-full',
+                  month: 'w-full max-w-full',
+                  months: 'w-full max-w-full',
                 }}
                 defaultMonth={nextMonth}
                 weekStartsOn={1} // Start from Monday
               />
               
               <div className="mt-8 w-full flex justify-center">
-                <div className="flex gap-4 items-center mb-4">
+                <div className="flex flex-wrap gap-4 items-center mb-4 justify-center">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                     <span>Manhã</span>
