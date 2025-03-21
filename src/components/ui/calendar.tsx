@@ -37,7 +37,7 @@ function Calendar({
         row: "flex w-full mt-0",
         cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 border border-gray-200 flex-1 aspect-square h-12 w-12 md:h-14 md:w-14 lg:h-16 lg:w-16",
         day: cn(
-          "h-full w-full p-0 font-normal aria-selected:opacity-100"
+          "h-full w-full p-0 font-normal aria-selected:opacity-100 cursor-pointer"
         ),
         day_range_end: "day-range-end",
         day_selected:

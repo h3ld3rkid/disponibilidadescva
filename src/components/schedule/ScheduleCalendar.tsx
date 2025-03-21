@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar } from "@/components/ui/calendar";
 import { format, isSaturday, isSunday, isAfter, isBefore, startOfMonth, endOfMonth, addMonths, getDate, getMonth, getYear } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -51,11 +51,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   // Admin can bypass the day 15 restriction
   const canEditNextMonthSchedule = isAdmin || (!isPastDeadline && editCount < 2);
 
-  // Force the calendar to always show next month only
+  // Load existing schedule if it exists
   useEffect(() => {
-    setSelectedMonth(nextMonth);
-    
-    // Load existing schedule if it exists
     const storedSchedules = localStorage.getItem('userSchedules');
     if (storedSchedules) {
       try {
@@ -90,10 +87,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         console.error('Error loading schedule:', error);
       }
     }
-  }, [nextMonth, userEmail]);
+  }, [userEmail, nextMonth]);
 
   // Handle date selection changes
-  const handleDateSelect = (days: Date[] | undefined) => {
+  const handleDateSelect = useCallback((days: Date[] | undefined) => {
     if (!days) return;
     
     if (!canEditNextMonthSchedule) {
@@ -141,7 +138,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     // Update the selectedDates state with the complete new selection
     setSelectedDates(days);
     setSavedSchedule(false);
-  };
+  }, [selectedDates, canEditNextMonthSchedule, isPastDeadline, isAdmin, currentDay, toast]);
 
   const handleShiftChange = (date: Date, shift: keyof DaySchedule['shifts'], checked: boolean) => {
     setSchedule(prev => {
