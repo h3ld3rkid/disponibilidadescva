@@ -11,6 +11,7 @@ import { AlertTriangle, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { mysqlService } from "@/services/mysqlService";
 
 interface ScheduleCalendarProps {
   userEmail: string;
@@ -53,7 +54,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     setSelectedMonth(nextMonth);
   }, []);
 
-  // Updated to handle Date[] parameter instead of single Date
+  // Handle date selection changes
   const handleDateSelect = (days: Date[] | undefined) => {
     if (!days) return;
     
@@ -90,8 +91,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
           date,
           shifts: {
             manha: true, // Default to morning shift
-            tarde: isSat, // Afternoon only for Saturday
-            noite: isSat || isSun // Night for Saturday and Sunday
+            tarde: isSat || isSun, // Afternoon for Saturday and Sunday
+            noite: isSat // Night for Saturday only
           }
         };
       });
@@ -114,9 +115,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       
       return newSchedule;
     });
+    setSavedSchedule(false);
   };
 
-  const handleSaveSchedule = () => {
+  const handleSaveSchedule = async () => {
     if (!isAdmin && isPastDeadline) {
       toast({
         title: "Não é possível salvar",
@@ -135,15 +137,55 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       return;
     }
 
-    console.log('Saving schedule:', schedule);
-    
-    setEditCount(prev => prev + 1);
-    setSavedSchedule(true);
-    
-    toast({
-      title: "Escala guardada",
-      description: "A sua escala foi guardada com sucesso.",
-    });
+    try {
+      // In a real app, this would save to a database
+      // For now, we'll just store in local storage to persist the data
+      const existingSchedules = localStorage.getItem('userSchedules') ? 
+        JSON.parse(localStorage.getItem('userSchedules') || '[]') : [];
+      
+      const userScheduleData = {
+        user: userEmail,
+        email: userEmail,
+        month: format(nextMonth, 'MMMM yyyy', { locale: pt }),
+        dates: schedule.map(item => ({
+          date: item.date,
+          shifts: Object.entries(item.shifts)
+            .filter(([_, isSelected]) => isSelected)
+            .map(([shiftName]) => shiftName)
+        }))
+      };
+      
+      // Check if the user already has a schedule for this month
+      const userIndex = existingSchedules.findIndex((s: any) => 
+        s.email === userEmail && s.month === format(nextMonth, 'MMMM yyyy', { locale: pt })
+      );
+      
+      if (userIndex >= 0) {
+        existingSchedules[userIndex] = userScheduleData;
+      } else {
+        existingSchedules.push(userScheduleData);
+      }
+      
+      localStorage.setItem('userSchedules', JSON.stringify(existingSchedules));
+      
+      // In a real app, we would call the API
+      // await mysqlService.saveUserSchedule(userEmail, userScheduleData);
+      
+      setEditCount(prev => prev + 1);
+      setSavedSchedule(true);
+      
+      toast({
+        title: "Escala guardada",
+        description: "A sua escala foi guardada com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error saving schedule:', error);
+      toast({
+        title: "Erro ao guardar",
+        description: "Ocorreu um erro ao guardar a escala.",
+        variant: "destructive",
+      });
+    }
   };
 
   const renderDayContent = (date: Date) => {
@@ -151,15 +193,14 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     const isSelected = selectedDates.some(d => format(d, 'yyyy-MM-dd') === dateStr);
     const daySchedule = schedule.find(d => format(d.date, 'yyyy-MM-dd') === dateStr);
     
-    // Special handling for Saturday and Sunday
-    if ((isSaturday(date) || isSunday(date)) && isSelected) {
+    if (isSelected) {
       return (
         <Popover>
           <PopoverTrigger asChild>
-            <div className={`w-full h-full flex items-center justify-center relative ${isSelected ? 'cursor-pointer' : ''}`}>
-              <div className="absolute top-0 right-1 flex flex-col gap-1">
+            <div className="w-full h-full flex items-center justify-center relative cursor-pointer">
+              <div className="absolute top-1 right-1 flex flex-col gap-1">
                 {daySchedule?.shifts.manha && <div className="w-2 h-2 bg-green-500 rounded-full"></div>}
-                {daySchedule?.shifts.tarde && isSaturday(date) && <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>}
+                {daySchedule?.shifts.tarde && <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>}
                 {daySchedule?.shifts.noite && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
               </div>
               {date.getDate()}
@@ -180,29 +221,29 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                   <Label htmlFor={`manha-${dateStr}`}>Manhã</Label>
                 </div>
                 
-                {isSaturday(date) && (
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`tarde-${dateStr}`} 
-                      checked={daySchedule?.shifts.tarde}
-                      onCheckedChange={(checked) => handleShiftChange(date, 'tarde', checked === true)}
-                      disabled={!canEditNextMonthSchedule}
-                    />
-                    <Label htmlFor={`tarde-${dateStr}`}>Tarde</Label>
-                  </div>
-                )}
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`tarde-${dateStr}`} 
+                    checked={daySchedule?.shifts.tarde}
+                    onCheckedChange={(checked) => handleShiftChange(date, 'tarde', checked === true)}
+                    disabled={!canEditNextMonthSchedule || (!isSaturday(date) && !isSunday(date))}
+                  />
+                  <Label htmlFor={`tarde-${dateStr}`} className={(!isSaturday(date) && !isSunday(date)) ? "text-gray-400" : ""}>
+                    Tarde {(!isSaturday(date) && !isSunday(date)) && "(Apenas Sábado e Domingo)"}
+                  </Label>
+                </div>
                 
-                {(isSaturday(date) || isSunday(date)) && (
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`noite-${dateStr}`} 
-                      checked={daySchedule?.shifts.noite}
-                      onCheckedChange={(checked) => handleShiftChange(date, 'noite', checked === true)}
-                      disabled={!canEditNextMonthSchedule}
-                    />
-                    <Label htmlFor={`noite-${dateStr}`}>Noite</Label>
-                  </div>
-                )}
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`noite-${dateStr}`} 
+                    checked={daySchedule?.shifts.noite}
+                    onCheckedChange={(checked) => handleShiftChange(date, 'noite', checked === true)}
+                    disabled={!canEditNextMonthSchedule || !isSaturday(date)}
+                  />
+                  <Label htmlFor={`noite-${dateStr}`} className={!isSaturday(date) ? "text-gray-400" : ""}>
+                    Noite {!isSaturday(date) && "(Apenas Sábado)"}
+                  </Label>
+                </div>
               </div>
             </div>
           </PopoverContent>
@@ -210,17 +251,16 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       );
     }
     
-    // For regular days just show a dot if selected
+    // For regular days just show the date number
     return (
-      <div className="w-full h-full flex items-center justify-center relative">
-        {isSelected && <div className="absolute top-0 right-1 w-2 h-2 bg-green-500 rounded-full"></div>}
+      <div className="w-full h-full flex items-center justify-center">
         {date.getDate()}
       </div>
     );
   };
 
   return (
-    <div className="w-full px-2 py-4">
+    <div className="w-full px-4 py-6">
       {isPastDeadline && !isAdmin && (
         <Alert variant="destructive" className="mb-6">
           <AlertTriangle className="h-4 w-4" />
@@ -261,12 +301,12 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                   return !isAfter(date, endOfMonth(today)) || 
                          !isBefore(date, startOfMonth(addMonths(nextMonth, 1)));
                 }}
-                className="w-full mx-auto rounded-lg pointer-events-auto"
+                className="w-full mx-auto rounded-lg"
                 components={{
                   Day: ({ date, ...props }) => (
                     <button
                       {...props}
-                      className={`h-full w-full p-2 flex items-center justify-center rounded-md 
+                      className={`h-full w-full flex items-center justify-center rounded-md 
                         ${selectedDates.some(d => format(d, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')) 
                           ? 'bg-[#6E59A5] text-white hover:bg-[#9b87f5]' 
                           : 'hover:bg-gray-100'}
@@ -281,8 +321,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                   caption: 'hidden', // Hide the month name/navigation
                   table: 'w-full border-collapse',
                   head_cell: 'text-center font-semibold text-gray-700 px-1 py-2 bg-gray-200',
-                  cell: 'text-center p-0 border border-gray-200 h-24',
+                  cell: 'text-center p-0 relative border border-gray-200 h-24',
                   day: 'h-full w-full',
+                  row: 'flex w-full mt-0',
+                  head_row: 'flex w-full',
                 }}
                 defaultMonth={nextMonth}
                 weekStartsOn={1} // Start from Monday
@@ -296,11 +338,11 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                    <span>Tarde (Sábado)</span>
+                    <span>Tarde (Sábado/Domingo)</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    <span>Noite (Sábado e Domingo)</span>
+                    <span>Noite (Sábado)</span>
                   </div>
                 </div>
               </div>
@@ -309,7 +351,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                 <Button 
                   onClick={handleSaveSchedule} 
                   className="w-64 bg-[#6E59A5] hover:bg-[#9b87f5] text-lg py-6"
-                  disabled={(!canEditNextMonthSchedule || savedSchedule || selectedDates.length === 0) && !isAdmin}
+                  disabled={(!canEditNextMonthSchedule || selectedDates.length === 0) && !isAdmin}
                 >
                   Guardar Escala
                 </Button>

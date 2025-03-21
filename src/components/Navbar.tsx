@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/navigation-menu";
 import { Button } from "@/components/ui/button";
 import { 
-  Database, LogOut, Users, Calendar, 
-  ListChecks, UserCog, UserPlus, Pencil, Users as UsersIcon
+  Database, LogOut, Users, Calendar, Home,
+  ListChecks, UserCog, UserPlus, Pencil, Users as UsersIcon,
+  BellRing, Edit, Plus
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,8 +38,12 @@ const Navbar = ({ email, role }: NavbarProps) => {
     navigate('/dashboard/users');
   };
 
-  const navigateToCalendar = () => {
+  const navigateToHome = () => {
     navigate('/dashboard');
+  };
+
+  const navigateToCalendar = () => {
+    navigate('/dashboard/schedule');
   };
 
   const navigateToUserSchedules = () => {
@@ -53,6 +58,10 @@ const Navbar = ({ email, role }: NavbarProps) => {
     });
   };
 
+  const navigateToAnnouncements = () => {
+    navigate('/dashboard/announcements');
+  };
+
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
       <div className="container mx-auto px-4 py-3">
@@ -63,6 +72,15 @@ const Navbar = ({ email, role }: NavbarProps) => {
           </div>
           
           <div className="flex items-center space-x-6">
+            <Button 
+              variant="ghost" 
+              className="flex items-center"
+              onClick={navigateToHome}
+            >
+              <Home className="h-4 w-4 mr-2" />
+              Home
+            </Button>
+
             {role === 'admin' && (
               <NavigationMenu>
                 <NavigationMenuList>
@@ -128,6 +146,17 @@ const Navbar = ({ email, role }: NavbarProps) => {
                     >
                       <ListChecks className="h-4 w-4 mr-2" />
                       Escalas dos Utilizadores
+                    </Button>
+                  </NavigationMenuItem>
+
+                  <NavigationMenuItem>
+                    <Button 
+                      variant="ghost" 
+                      className="flex items-center"
+                      onClick={navigateToAnnouncements}
+                    >
+                      <BellRing className="h-4 w-4 mr-2" />
+                      AVISOS
                     </Button>
                   </NavigationMenuItem>
                   
