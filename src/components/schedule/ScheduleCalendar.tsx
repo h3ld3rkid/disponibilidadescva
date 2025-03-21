@@ -7,11 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle, Check } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { mysqlService } from "@/services/mysqlService";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ScheduleCalendarProps {
@@ -31,7 +30,7 @@ interface DaySchedule {
 }
 
 const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin = false }) => {
-  const [selectedMonth, setSelectedMonth] = useState<Date>(addMonths(new Date(), 1));
+  const [selectedMonth] = useState<Date>(addMonths(new Date(), 1));
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [schedule, setSchedule] = useState<DaySchedule[]>([]);
   const [editCount, setEditCount] = useState<number>(0);
@@ -54,38 +53,38 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   // Load existing schedule if it exists
   useEffect(() => {
     const storedSchedules = localStorage.getItem('userSchedules');
-    if (storedSchedules) {
-      try {
-        const parsedSchedules = JSON.parse(storedSchedules);
-        const userSchedule = parsedSchedules.find((s: any) => 
-          s.email === userEmail && s.month === format(nextMonth, 'MMMM yyyy', { locale: pt })
-        );
+    if (!storedSchedules) return;
+    
+    try {
+      const parsedSchedules = JSON.parse(storedSchedules);
+      const userSchedule = parsedSchedules.find((s: any) => 
+        s.email === userEmail && s.month === format(nextMonth, 'MMMM yyyy', { locale: pt })
+      );
+      
+      if (userSchedule) {
+        const dates: Date[] = [];
+        const scheduleItems: DaySchedule[] = [];
         
-        if (userSchedule) {
-          const dates: Date[] = [];
-          const scheduleItems: DaySchedule[] = [];
+        userSchedule.dates.forEach((item: any) => {
+          const date = new Date(item.date);
+          dates.push(date);
           
-          userSchedule.dates.forEach((item: any) => {
-            const date = new Date(item.date);
-            dates.push(date);
-            
-            scheduleItems.push({
-              date,
-              shifts: {
-                manha: item.shifts.includes('manha'),
-                tarde: item.shifts.includes('tarde'),
-                noite: item.shifts.includes('noite')
-              }
-            });
+          scheduleItems.push({
+            date,
+            shifts: {
+              manha: item.shifts.includes('manha'),
+              tarde: item.shifts.includes('tarde'),
+              noite: item.shifts.includes('noite')
+            }
           });
-          
-          setSelectedDates(dates);
-          setSchedule(scheduleItems);
-          setSavedSchedule(true);
-        }
-      } catch (error) {
-        console.error('Error loading schedule:', error);
+        });
+        
+        setSelectedDates(dates);
+        setSchedule(scheduleItems);
+        setSavedSchedule(true);
       }
+    } catch (error) {
+      console.error('Error loading schedule:', error);
     }
   }, [userEmail, nextMonth]);
 
