@@ -30,14 +30,14 @@ function Calendar({
         ),
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
-        table: "w-full border-collapse border border-gray-200 rounded-md overflow-hidden",
+        table: "w-full border-collapse border-spacing-0 border border-gray-200 rounded-md overflow-hidden",
         head_row: "flex w-full bg-gray-200",
         head_cell:
-          "text-muted-foreground rounded-md font-semibold text-center text-gray-700 p-3 bg-gray-200 flex-1",
+          "text-muted-foreground rounded-none font-medium text-center text-gray-700 p-2 bg-gray-200 flex-1 text-xs md:text-sm lg:text-base border-b border-gray-300",
         row: "flex w-full mt-0",
-        cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 border border-gray-200 flex-1 aspect-square h-12 w-12 md:h-14 md:w-14 lg:h-16 lg:w-16", // Reduced dimensions
+        cell: "relative p-0 text-center focus-within:relative focus-within:z-20 border border-gray-200 flex-1 aspect-square h-10 w-10 md:h-12 md:w-12 lg:h-14 lg:w-14", // Smaller dimensions for better alignment
         day: cn(
-          "h-full w-full p-0 font-normal aria-selected:opacity-100 cursor-pointer"
+          "h-full w-full p-0 font-normal aria-selected:opacity-100 cursor-pointer flex items-center justify-center text-xs md:text-sm"
         ),
         day_range_end: "day-range-end",
         day_selected:
@@ -52,8 +52,8 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: ({ ...props }) => <ChevronLeft className="h-5 w-5" />,
-        IconRight: ({ ...props }) => <ChevronRight className="h-5 w-5" />,
+        IconLeft: ({ ...props }) => <ChevronLeft className="h-4 w-4" />,
+        IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
       }}
       weekStartsOn={1} // Start week on Monday (1) instead of Sunday (0)
       {...props}
