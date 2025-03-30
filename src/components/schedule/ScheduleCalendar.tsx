@@ -325,11 +325,11 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                 }}
                 className="w-full mx-auto rounded-lg"
                 components={{
-                  Day: ({ date, ...props }) => (
+                  Day: ({ date, dayProps }) => (
                     <button
-                      {...props}
+                      {...dayProps}
                       onClick={(e) => {
-                        props.onClick?.(e);
+                        dayProps.onClick?.(e);
                         handleDayClick(date);
                       }}
                       className={`h-full w-full flex items-center justify-center rounded-md 
@@ -463,3 +463,4 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
 };
 
 export default ScheduleCalendar;
+

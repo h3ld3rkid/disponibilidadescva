@@ -54,6 +54,26 @@ function Calendar({
       components={{
         IconLeft: ({ ...props }) => <ChevronLeft className="h-5 w-5" />,
         IconRight: ({ ...props }) => <ChevronRight className="h-5 w-5" />,
+        // Fix to ensure custom Day component receives proper props
+        Day: (props) => {
+          // Extract only the necessary props
+          const { date, displayMonth } = props;
+          // Create a dayProps object that includes onClick if it exists
+          const dayProps = {
+            onClick: props.onClick,
+            disabled: props.disabled,
+            selected: props.selected,
+            today: props.today,
+            outside: props.outside,
+            children: props.children,
+          };
+          
+          // Now pass both date and dayProps to custom Day component
+          if (props.component) {
+            return props.component({ date, dayProps });
+          }
+          return props.children;
+        },
       }}
       {...props}
     />
