@@ -250,7 +250,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
             }
           }}
         >
-          <span className="text-lg">{date.getDate()}</span>
+          <span className="text-sm md:text-base">{date.getDate()}</span>
           <div className="absolute top-1 right-1 flex flex-col gap-1">
             {daySchedule?.shifts.manha && <div className="w-2 h-2 bg-green-500 rounded-full"></div>}
             {daySchedule?.shifts.tarde && <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>}
@@ -263,7 +263,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     // For regular days just show the date number
     return (
       <div className="w-full h-full flex items-center justify-center">
-        <span className="text-lg">{date.getDate()}</span>
+        <span className="text-sm md:text-base">{date.getDate()}</span>
       </div>
     );
   };
@@ -324,8 +324,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                 classNames={{
                   caption: 'hidden', // Hide the month name/navigation
                   table: 'w-full border-collapse',
-                  head_cell: 'text-center font-semibold text-gray-700 px-1 py-3 bg-gray-200 text-base',
-                  cell: 'text-center p-0 relative border border-gray-200 h-16 w-16 md:h-20 md:w-20 lg:h-24 lg:w-24 aspect-square',
+                  head_cell: 'text-center font-semibold text-gray-700 px-1 py-2 bg-gray-200 text-xs md:text-sm lg:text-base',
+                  cell: 'text-center p-0 relative border border-gray-200 h-12 w-12 md:h-14 md:w-14 lg:h-16 lg:w-16 aspect-square',
                   day: 'h-full w-full',
                   row: 'flex w-full mt-0',
                   head_row: 'flex w-full',
@@ -333,7 +333,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                   months: 'w-full max-w-full',
                 }}
                 defaultMonth={nextMonth}
-                weekStartsOn={1} // Start from Monday
+                weekStartsOn={1} // Start week on Monday (1) instead of Sunday (0)
               />
               
               <div className="mt-8 w-full flex justify-center">

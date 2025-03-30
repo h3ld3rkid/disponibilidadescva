@@ -35,7 +35,7 @@ function Calendar({
         head_cell:
           "text-muted-foreground rounded-md font-semibold text-center text-gray-700 p-3 bg-gray-200 flex-1",
         row: "flex w-full mt-0",
-        cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 border border-gray-200 flex-1 aspect-square h-16 w-16 md:h-20 md:w-20 lg:h-24 lg:w-24",
+        cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 border border-gray-200 flex-1 aspect-square h-12 w-12 md:h-14 md:w-14 lg:h-16 lg:w-16", // Reduced dimensions
         day: cn(
           "h-full w-full p-0 font-normal aria-selected:opacity-100 cursor-pointer"
         ),
@@ -55,6 +55,7 @@ function Calendar({
         IconLeft: ({ ...props }) => <ChevronLeft className="h-5 w-5" />,
         IconRight: ({ ...props }) => <ChevronRight className="h-5 w-5" />,
       }}
+      weekStartsOn={1} // Start week on Monday (1) instead of Sunday (0)
       {...props}
     />
   );
