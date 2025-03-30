@@ -22,7 +22,7 @@ function Calendar({
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0 w-full",
         month: "space-y-4 w-full",
         caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-sm font-medium",
+        caption_label: "text-md font-semibold",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
           buttonVariants({ variant: "outline" }),
@@ -30,12 +30,12 @@ function Calendar({
         ),
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
-        table: "w-full border-collapse border border-gray-200",
-        head_row: "flex w-full",
+        table: "w-full border-collapse border border-gray-200 rounded-md overflow-hidden",
+        head_row: "flex w-full bg-gray-100",
         head_cell:
-          "text-muted-foreground rounded-md font-semibold text-center text-gray-700 p-2 bg-gray-200 flex-1",
+          "text-muted-foreground rounded-md font-semibold text-center text-gray-700 p-3 bg-gray-200 flex-1",
         row: "flex w-full mt-0",
-        cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 border border-gray-200 flex-1 aspect-square h-12 w-12 md:h-14 md:w-14 lg:h-16 lg:w-16",
+        cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 border border-gray-200 flex-1 aspect-square h-14 w-14 md:h-16 md:w-16 lg:h-20 lg:w-20",
         day: cn(
           "h-full w-full p-0 font-normal aria-selected:opacity-100 cursor-pointer"
         ),
@@ -52,8 +52,8 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
-        IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
+        IconLeft: ({ ..._props }) => <ChevronLeft className="h-5 w-5" />,
+        IconRight: ({ ..._props }) => <ChevronRight className="h-5 w-5" />,
       }}
       {...props}
     />

@@ -35,6 +35,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const [schedule, setSchedule] = useState<DaySchedule[]>([]);
   const [editCount, setEditCount] = useState<number>(0);
   const [savedSchedule, setSavedSchedule] = useState<boolean>(false);
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -49,6 +50,14 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   
   // Admin can bypass the day 15 restriction
   const canEditNextMonthSchedule = isAdmin || (!isPastDeadline && editCount < 2);
+
+  // Reset localStorage on component mount (to remove test data)
+  useEffect(() => {
+    if (!localStorage.getItem('userSchedulesReset')) {
+      localStorage.removeItem('userSchedules');
+      localStorage.setItem('userSchedulesReset', 'true');
+    }
+  }, []);
 
   // Load existing schedule if it exists
   useEffect(() => {
@@ -132,6 +141,11 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       });
       
       setSchedule(prev => [...prev, ...newScheduleItems]);
+      
+      // If only one new date and it's a weekend, open the shift selector
+      if (newDates.length === 1 && (isSaturday(newDates[0]) || isSunday(newDates[0]))) {
+        setSelectedDay(newDates[0]);
+      }
     }
     
     // Update the selectedDates state with the complete new selection
@@ -203,9 +217,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       
       localStorage.setItem('userSchedules', JSON.stringify(existingSchedules));
       
-      // In a real app, we would call the API
-      // await mysqlService.saveUserSchedule(userEmail, userScheduleData);
-      
       setEditCount(prev => prev + 1);
       setSavedSchedule(true);
       
@@ -230,66 +241,24 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     
     if (isSelected) {
       return (
-        <Popover>
-          <PopoverTrigger asChild>
-            <div className="w-full h-full flex items-center justify-center relative cursor-pointer bg-[#6E59A5] text-white">
-              {date.getDate()}
-              <div className="absolute top-1 right-1 flex flex-col gap-1">
-                {daySchedule?.shifts.manha && <div className="w-2 h-2 bg-green-500 rounded-full"></div>}
-                {daySchedule?.shifts.tarde && <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>}
-                {daySchedule?.shifts.noite && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
-              </div>
-            </div>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-4 pointer-events-auto z-50" align="center">
-            <div className="space-y-3">
-              <h4 className="font-medium text-center mb-2">Turnos para {format(date, "EEEE, d", { locale: pt })}</h4>
-              
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={`manha-${dateStr}`} 
-                    checked={daySchedule?.shifts.manha}
-                    onCheckedChange={(checked) => handleShiftChange(date, 'manha', checked === true)}
-                    disabled={!canEditNextMonthSchedule}
-                  />
-                  <Label htmlFor={`manha-${dateStr}`}>Manhã</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={`tarde-${dateStr}`} 
-                    checked={daySchedule?.shifts.tarde}
-                    onCheckedChange={(checked) => handleShiftChange(date, 'tarde', checked === true)}
-                    disabled={!canEditNextMonthSchedule || (!isSaturday(date) && !isSunday(date))}
-                  />
-                  <Label htmlFor={`tarde-${dateStr}`} className={(!isSaturday(date) && !isSunday(date)) ? "text-gray-400" : ""}>
-                    Tarde {(!isSaturday(date) && !isSunday(date)) && "(Apenas Sábado e Domingo)"}
-                  </Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={`noite-${dateStr}`} 
-                    checked={daySchedule?.shifts.noite}
-                    onCheckedChange={(checked) => handleShiftChange(date, 'noite', checked === true)}
-                    disabled={!canEditNextMonthSchedule || !isSaturday(date)}
-                  />
-                  <Label htmlFor={`noite-${dateStr}`} className={!isSaturday(date) ? "text-gray-400" : ""}>
-                    Noite {!isSaturday(date) && "(Apenas Sábado)"}
-                  </Label>
-                </div>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
+        <div 
+          className="w-full h-full flex items-center justify-center relative cursor-pointer bg-[#6E59A5] text-white"
+          onClick={() => setSelectedDay(date)}
+        >
+          <span className="text-lg">{date.getDate()}</span>
+          <div className="absolute top-1 right-1 flex flex-col gap-1">
+            {daySchedule?.shifts.manha && <div className="w-2 h-2 bg-green-500 rounded-full"></div>}
+            {daySchedule?.shifts.tarde && <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>}
+            {daySchedule?.shifts.noite && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
+          </div>
+        </div>
       );
     }
     
     // For regular days just show the date number
     return (
       <div className="w-full h-full flex items-center justify-center">
-        {date.getDate()}
+        <span className="text-lg">{date.getDate()}</span>
       </div>
     );
   };
@@ -316,8 +285,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         </Alert>
       )}
 
-      <div className="w-full">
-        <Card className="w-full">
+      <div className="w-full flex flex-col md:flex-row gap-6">
+        <Card className="w-full md:w-2/3">
           <CardHeader className="pb-2">
             <CardTitle>Calendário de Escalas</CardTitle>
             <CardDescription>Selecione os dias que pretende trabalhar</CardDescription>
@@ -355,8 +324,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                 classNames={{
                   caption: 'hidden', // Hide the month name/navigation
                   table: 'w-full border-collapse',
-                  head_cell: 'text-center font-semibold text-gray-700 px-1 py-2 bg-gray-200',
-                  cell: 'text-center p-0 relative border border-gray-200 h-12 w-12 md:h-14 md:w-14 lg:h-16 lg:w-16 aspect-square',
+                  head_cell: 'text-center font-semibold text-gray-700 px-1 py-3 bg-gray-200',
+                  cell: 'text-center p-0 relative border border-gray-200 h-14 w-14 md:h-16 md:w-16 lg:h-20 lg:w-20 aspect-square',
                   day: 'h-full w-full',
                   row: 'flex w-full mt-0',
                   head_row: 'flex w-full',
@@ -402,6 +371,70 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
             </div>
           </CardContent>
         </Card>
+        
+        {selectedDay && (isSaturday(selectedDay) || isSunday(selectedDay)) && (
+          <Card className="w-full md:w-1/3">
+            <CardHeader>
+              <CardTitle>Turnos para {format(selectedDay, "EEEE, d 'de' MMMM", { locale: pt })}</CardTitle>
+              <CardDescription>Selecione os turnos que pretende trabalhar</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Morning shift - always available */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`manha-${format(selectedDay, 'yyyy-MM-dd')}`} 
+                    checked={schedule.find(d => format(d.date, 'yyyy-MM-dd') === format(selectedDay, 'yyyy-MM-dd'))?.shifts.manha}
+                    onCheckedChange={(checked) => handleShiftChange(selectedDay, 'manha', checked === true)}
+                    disabled={!canEditNextMonthSchedule}
+                    className="w-5 h-5"
+                  />
+                  <Label htmlFor={`manha-${format(selectedDay, 'yyyy-MM-dd')}`} className="text-base">Manhã</Label>
+                </div>
+                
+                {/* Afternoon shift - available for Saturday and Sunday */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`tarde-${format(selectedDay, 'yyyy-MM-dd')}`} 
+                    checked={schedule.find(d => format(d.date, 'yyyy-MM-dd') === format(selectedDay, 'yyyy-MM-dd'))?.shifts.tarde}
+                    onCheckedChange={(checked) => handleShiftChange(selectedDay, 'tarde', checked === true)}
+                    disabled={!canEditNextMonthSchedule}
+                    className="w-5 h-5"
+                  />
+                  <Label htmlFor={`tarde-${format(selectedDay, 'yyyy-MM-dd')}`} className="text-base">
+                    Tarde
+                  </Label>
+                </div>
+                
+                {/* Night shift - only available for Saturday */}
+                {isSaturday(selectedDay) && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={`noite-${format(selectedDay, 'yyyy-MM-dd')}`} 
+                      checked={schedule.find(d => format(d.date, 'yyyy-MM-dd') === format(selectedDay, 'yyyy-MM-dd'))?.shifts.noite}
+                      onCheckedChange={(checked) => handleShiftChange(selectedDay, 'noite', checked === true)}
+                      disabled={!canEditNextMonthSchedule}
+                      className="w-5 h-5"
+                    />
+                    <Label htmlFor={`noite-${format(selectedDay, 'yyyy-MM-dd')}`} className="text-base">
+                      Noite
+                    </Label>
+                  </div>
+                )}
+                
+                <div className="pt-4">
+                  <Button 
+                    onClick={() => setSelectedDay(null)} 
+                    variant="outline" 
+                    className="w-full"
+                  >
+                    Fechar
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

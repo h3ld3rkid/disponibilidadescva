@@ -32,39 +32,7 @@ const UserSchedules = () => {
         setSchedules([]);
       }
     } else {
-      // If no stored schedules, use mock data
-      const mockSchedules = [
-        {
-          user: "João Silva",
-          email: "joao@gmail.com",
-          month: "junho 2023",
-          dates: [
-            { date: new Date(2023, 5, 3), shifts: ["manha"] },
-            { date: new Date(2023, 5, 5), shifts: ["manha", "noite"] }
-          ]
-        },
-        {
-          user: "Maria Oliveira",
-          email: "maria@gmail.com",
-          month: "junho 2023",
-          dates: [
-            { date: new Date(2023, 5, 12), shifts: ["manha"] },
-            { date: new Date(2023, 5, 19), shifts: ["tarde", "noite"] }
-          ]
-        },
-        {
-          user: "António Rodrigues",
-          email: "antonio@gmail.com",
-          month: "junho 2023",
-          dates: [
-            { date: new Date(2023, 5, 6), shifts: ["manha"] },
-            { date: new Date(2023, 5, 13), shifts: ["manha"] },
-            { date: new Date(2023, 5, 20), shifts: ["manha"] },
-            { date: new Date(2023, 5, 27), shifts: ["manha"] }
-          ]
-        }
-      ];
-      setSchedules(mockSchedules);
+      setSchedules([]);
     }
     setIsLoading(false);
   }, []);
