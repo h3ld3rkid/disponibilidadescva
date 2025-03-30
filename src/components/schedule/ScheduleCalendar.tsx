@@ -10,8 +10,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ScheduleCalendarProps {
   userEmail: string;
@@ -37,8 +35,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const [savedSchedule, setSavedSchedule] = useState<boolean>(false);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const { toast } = useToast();
-  const isMobile = useIsMobile();
-
+  
   const today = new Date();
   const currentMonth = getMonth(today);
   const currentYear = getYear(today);
@@ -324,29 +321,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                          !isBefore(date, startOfMonth(addMonths(nextMonth, 1)));
                 }}
                 className="w-full mx-auto rounded-lg"
-                components={{
-                  Day: ({ date, dayProps }) => (
-                    <button
-                      {...dayProps}
-                      onClick={(e) => {
-                        dayProps.onClick?.(e);
-                        handleDayClick(date);
-                      }}
-                      className={`h-full w-full flex items-center justify-center rounded-md 
-                        ${selectedDates.some(d => format(d, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')) 
-                          ? 'bg-[#6E59A5] text-white hover:bg-[#9b87f5]' 
-                          : 'hover:bg-gray-100'}
-                        ${isSaturday(date) || isSunday(date) ? 'font-bold' : ''}
-                      `}
-                    >
-                      {renderDayContent(date)}
-                    </button>
-                  ),
-                }}
                 classNames={{
                   caption: 'hidden', // Hide the month name/navigation
                   table: 'w-full border-collapse',
-                  head_cell: 'text-center font-semibold text-gray-700 px-1 py-3 bg-gray-200',
+                  head_cell: 'text-center font-semibold text-gray-700 px-1 py-3 bg-gray-200 text-base',
                   cell: 'text-center p-0 relative border border-gray-200 h-16 w-16 md:h-20 md:w-20 lg:h-24 lg:w-24 aspect-square',
                   day: 'h-full w-full',
                   row: 'flex w-full mt-0',
@@ -463,4 +441,3 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
 };
 
 export default ScheduleCalendar;
-
