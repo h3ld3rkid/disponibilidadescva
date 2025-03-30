@@ -51,12 +51,11 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   // Admin can bypass the day 15 restriction
   const canEditNextMonthSchedule = isAdmin || (!isPastDeadline && editCount < 2);
 
-  // Reset localStorage on component mount (to remove test data)
+  // Clear localStorage once for testing purposes
   useEffect(() => {
-    if (!localStorage.getItem('userSchedulesReset')) {
-      localStorage.removeItem('userSchedules');
-      localStorage.setItem('userSchedulesReset', 'true');
-    }
+    // Clear all test schedules
+    localStorage.removeItem('userSchedules');
+    localStorage.removeItem('userSchedulesReset');
   }, []);
 
   // Load existing schedule if it exists
@@ -143,8 +142,11 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       setSchedule(prev => [...prev, ...newScheduleItems]);
       
       // If only one new date and it's a weekend, open the shift selector
-      if (newDates.length === 1 && (isSaturday(newDates[0]) || isSunday(newDates[0]))) {
-        setSelectedDay(newDates[0]);
+      if (newDates.length === 1) {
+        const newDate = newDates[0];
+        if (isSaturday(newDate) || isSunday(newDate)) {
+          setSelectedDay(newDate);
+        }
       }
     }
     
@@ -242,8 +244,14 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     if (isSelected) {
       return (
         <div 
-          className="w-full h-full flex items-center justify-center relative cursor-pointer bg-[#6E59A5] text-white"
-          onClick={() => setSelectedDay(date)}
+          className="w-full h-full flex items-center justify-center relative cursor-pointer bg-[#6E59A5] text-white rounded-md"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (isSaturday(date) || isSunday(date)) {
+              setSelectedDay(date);
+            }
+          }}
         >
           <span className="text-lg">{date.getDate()}</span>
           <div className="absolute top-1 right-1 flex flex-col gap-1">
@@ -261,6 +269,16 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         <span className="text-lg">{date.getDate()}</span>
       </div>
     );
+  };
+
+  // Handle day click for weekend days specifically
+  const handleDayClick = (date: Date) => {
+    if (isSaturday(date) || isSunday(date)) {
+      // Check if the date is already selected 
+      if (selectedDates.some(d => format(d, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd'))) {
+        setSelectedDay(date);
+      }
+    }
   };
 
   return (
@@ -310,6 +328,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                   Day: ({ date, ...props }) => (
                     <button
                       {...props}
+                      onClick={(e) => {
+                        props.onClick?.(e);
+                        handleDayClick(date);
+                      }}
                       className={`h-full w-full flex items-center justify-center rounded-md 
                         ${selectedDates.some(d => format(d, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')) 
                           ? 'bg-[#6E59A5] text-white hover:bg-[#9b87f5]' 
@@ -325,7 +347,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                   caption: 'hidden', // Hide the month name/navigation
                   table: 'w-full border-collapse',
                   head_cell: 'text-center font-semibold text-gray-700 px-1 py-3 bg-gray-200',
-                  cell: 'text-center p-0 relative border border-gray-200 h-14 w-14 md:h-16 md:w-16 lg:h-20 lg:w-20 aspect-square',
+                  cell: 'text-center p-0 relative border border-gray-200 h-16 w-16 md:h-20 md:w-20 lg:h-24 lg:w-24 aspect-square',
                   day: 'h-full w-full',
                   row: 'flex w-full mt-0',
                   head_row: 'flex w-full',

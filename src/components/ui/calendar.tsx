@@ -31,11 +31,11 @@ function Calendar({
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
         table: "w-full border-collapse border border-gray-200 rounded-md overflow-hidden",
-        head_row: "flex w-full bg-gray-100",
+        head_row: "flex w-full bg-gray-200",
         head_cell:
           "text-muted-foreground rounded-md font-semibold text-center text-gray-700 p-3 bg-gray-200 flex-1",
         row: "flex w-full mt-0",
-        cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 border border-gray-200 flex-1 aspect-square h-14 w-14 md:h-16 md:w-16 lg:h-20 lg:w-20",
+        cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 border border-gray-200 flex-1 aspect-square h-16 w-16 md:h-20 md:w-20 lg:h-24 lg:w-24",
         day: cn(
           "h-full w-full p-0 font-normal aria-selected:opacity-100 cursor-pointer"
         ),
@@ -52,8 +52,8 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: ({ ..._props }) => <ChevronLeft className="h-5 w-5" />,
-        IconRight: ({ ..._props }) => <ChevronRight className="h-5 w-5" />,
+        IconLeft: ({ ...props }) => <ChevronLeft className="h-5 w-5" />,
+        IconRight: ({ ...props }) => <ChevronRight className="h-5 w-5" />,
       }}
       {...props}
     />
