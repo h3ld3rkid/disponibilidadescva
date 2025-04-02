@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -106,25 +107,27 @@ const Navbar = ({ email, role }: NavbarProps) => {
         Escala Atual
       </Button>
       
-      <Button 
-        variant="ghost" 
-        className="flex items-center"
-        onClick={navigateToAnnouncements}
-      >
-        <BellRing className="h-4 w-4 mr-2" />
-        Avisos
-      </Button>
+      {role === 'admin' && (
+        <Button 
+          variant="ghost" 
+          className="flex items-center"
+          onClick={navigateToAnnouncements}
+        >
+          <BellRing className="h-4 w-4 mr-2" />
+          Avisos
+        </Button>
+      )}
 
       {role === 'admin' && (
         <NavigationMenu>
           <NavigationMenuList>
             <NavigationMenuItem>
-              <NavigationMenuTrigger>
+              <NavigationMenuTrigger className="h-10 px-4 w-56">
                 <Settings className="h-4 w-4 mr-2" />
                 Administração
               </NavigationMenuTrigger>
               <NavigationMenuContent>
-                <div className="p-4 w-[220px]">
+                <div className="p-4 w-[250px] bg-white">
                   <ul className="space-y-2">
                     <li>
                       <Button 
@@ -170,51 +173,18 @@ const Navbar = ({ email, role }: NavbarProps) => {
                 </div>
               </NavigationMenuContent>
             </NavigationMenuItem>
-            
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>
-                <UserCog className="h-4 w-4 mr-2" />
-                Meu Perfil
-              </NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <div className="p-4 w-[200px]">
-                  <ul className="space-y-2">
-                    <li>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start"
-                        onClick={navigateToProfile}
-                      >
-                        O Meu Perfil
-                      </Button>
-                    </li>
-                    <li>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start"
-                        onClick={navigateToProfile}
-                      >
-                        Definições
-                      </Button>
-                    </li>
-                  </ul>
-                </div>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
       )}
 
-      {!role.includes('admin') && (
-        <Button 
-          variant="ghost" 
-          className="flex items-center"
-          onClick={navigateToProfile}
-        >
-          <UserCog className="h-4 w-4 mr-2" />
-          Meu Perfil
-        </Button>
-      )}
+      <Button 
+        variant="ghost" 
+        className="flex items-center"
+        onClick={navigateToProfile}
+      >
+        <UserCog className="h-4 w-4 mr-2" />
+        Meu Perfil
+      </Button>
     </>
   );
 
@@ -262,14 +232,16 @@ const Navbar = ({ email, role }: NavbarProps) => {
           Escala Atual
         </Button>
         
-        <Button 
-          variant="ghost" 
-          className="justify-start"
-          onClick={navigateToAnnouncements}
-        >
-          <BellRing className="h-4 w-4 mr-2" />
-          Avisos
-        </Button>
+        {role === 'admin' && (
+          <Button 
+            variant="ghost" 
+            className="justify-start"
+            onClick={navigateToAnnouncements}
+          >
+            <BellRing className="h-4 w-4 mr-2" />
+            Avisos
+          </Button>
+        )}
         
         {role === 'admin' && (
           <>

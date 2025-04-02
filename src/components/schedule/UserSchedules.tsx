@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { Download } from "lucide-react";
+import { Download, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const UserSchedules = () => {
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -74,62 +76,67 @@ const UserSchedules = () => {
       selectedUsers.includes(schedule.email)
     );
 
-    // Create CSV content with organized format
-    let csvContent = "Nome,Email,Mês,Data,Turnos\n";
+    // Create and download CSV file with better formatting
+    const doc = new jsPDF();
     
-    // Organize by user and date
-    const organizedData: Record<string, Record<string, { user: string, email: string, month: string, shifts: string[] }>> = {};
-
-    filteredSchedules.forEach(schedule => {
-      const userEmail = schedule.email;
-      if (!organizedData[userEmail]) {
-        organizedData[userEmail] = {};
+    // Add header
+    doc.setFontSize(16);
+    doc.text("Escalas Cruz Vermelha Amares", 14, 20);
+    doc.setFontSize(12);
+    doc.text(`Data de exportação: ${format(new Date(), "dd/MM/yyyy")}`, 14, 28);
+    
+    let yPos = 40;
+    
+    // Process each user separately
+    filteredSchedules.forEach((schedule, userIndex) => {
+      // Add user header
+      if (userIndex > 0) {
+        // Add page break if not the first user
+        doc.addPage();
+        yPos = 20;
       }
-
-      schedule.dates.forEach((dateInfo: any) => {
-        const dateStr = format(new Date(dateInfo.date), "yyyy-MM-dd");
-        const formattedDate = format(new Date(dateInfo.date), "d 'de' MMMM", { locale: pt });
-        
-        const shiftsText = dateInfo.shifts.map((shift: string) => 
-          shift === "manha" ? "Manhã" : shift === "tarde" ? "Tarde" : "Noite"
-        );
-
-        organizedData[userEmail][dateStr] = {
-          user: schedule.user,
-          email: schedule.email,
-          month: schedule.month,
-          shifts: shiftsText
-        };
-      });
-    });
-
-    // Convert organized data to CSV rows
-    Object.values(organizedData).forEach(userDates => {
-      // Sort dates chronologically
-      const sortedDates = Object.keys(userDates).sort();
       
-      sortedDates.forEach(dateStr => {
-        const data = userDates[dateStr];
-        const formattedDate = format(new Date(dateStr), "d 'de' MMMM", { locale: pt });
-        const shiftsText = data.shifts.join(" + ");
-        
-        csvContent += `${data.user},${data.email},${data.month},${formattedDate},${shiftsText}\n`;
+      doc.setFontSize(14);
+      doc.text(`Escala de: ${schedule.user} (${schedule.email})`, 14, yPos);
+      doc.text(`Mês: ${schedule.month}`, 14, yPos + 8);
+      
+      yPos += 20;
+      
+      // Group by date for better organization
+      const tableData = schedule.dates.map((dateInfo: any) => {
+        return [
+          format(new Date(dateInfo.date), "d 'de' MMMM", { locale: pt }),
+          dateInfo.shifts.map((shift: string) => 
+            shift === "manha" ? "Manhã" : 
+            shift === "tarde" ? "Tarde" : "Noite"
+          ).join(", ")
+        ];
+      });
+      
+      // Sort by date
+      tableData.sort((a: any, b: any) => {
+        const dateA = new Date(a[0]);
+        const dateB = new Date(b[0]);
+        return dateA.getTime() - dateB.getTime();
+      });
+      
+      // Generate table
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Data', 'Turnos']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [110, 89, 165], textColor: 255 },
+        margin: { top: 30 },
       });
     });
-
-    // Create and trigger download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `escalas_${format(new Date(), 'yyyy-MM-dd')}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
+    
+    // Save the PDF
+    doc.save(`escalas_utilizadores_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    
     toast({
       title: "Exportação concluída",
-      description: `Exportados dados de ${selectedUsers.length} utilizadores.`,
+      description: `Exportados dados de ${selectedUsers.length} utilizadores em formato PDF.`,
     });
   };
 
@@ -143,8 +150,8 @@ const UserSchedules = () => {
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
               disabled={selectedUsers.length === 0}
             >
-              <Download className="h-4 w-4" />
-              Exportar CSV
+              <FileText className="h-4 w-4" />
+              Exportar PDF
             </Button>
             <span className="text-sm text-gray-600">
               {selectedUsers.length} utilizador(es) selecionado(s)

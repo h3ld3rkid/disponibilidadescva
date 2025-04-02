@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Routes, Route } from 'react-router-dom';
+import { useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
 import Navbar from '@/components/Navbar';
 import UserManagement from '@/components/user/UserManagement';
@@ -57,13 +57,18 @@ const Dashboard = () => {
 
   const isAdmin = userInfo.role === 'admin';
 
+  // Check if user is trying to access admin-only routes
+  const checkAdminRoute = (element: React.ReactNode) => {
+    return isAdmin ? element : <Navigate to="/dashboard" replace />;
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Navbar */}
       <Navbar email={userInfo.email} role={userInfo.role} />
 
-      {/* Title Bar - moved below navbar */}
-      <div className="bg-white border-b border-gray-200 py-4 mb-4 mt-2">
+      {/* Title Bar - below navbar */}
+      <div className="bg-white border-b border-gray-200 py-4 mb-4">
         <div className="container mx-auto px-4 flex items-center">
           <img 
             src="https://amares.cruzvermelha.pt/images/site/Amares.webp" 
@@ -81,12 +86,12 @@ const Dashboard = () => {
             <Route path="/" element={<Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
             <Route path="/schedule" element={<ScheduleCalendar userEmail={userInfo.email} isAdmin={isAdmin} />} />
             <Route path="/current-schedule" element={<CurrentSchedule isAdmin={isAdmin} />} />
-            <Route path="/users" element={isAdmin ? <UserManagement /> : <Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
-            <Route path="/user-schedules" element={isAdmin ? <UserSchedules /> : <Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
-            <Route path="/schedule-upload" element={isAdmin ? <ScheduleUpload /> : <Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
-            <Route path="/announcements" element={isAdmin ? <Announcements /> : <Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
+            <Route path="/users" element={checkAdminRoute(<UserManagement />)} />
+            <Route path="/user-schedules" element={checkAdminRoute(<UserSchedules />)} />
+            <Route path="/schedule-upload" element={checkAdminRoute(<ScheduleUpload />)} />
+            <Route path="/announcements" element={checkAdminRoute(<Announcements />)} />
             <Route path="/profile" element={<ProfileEdit />} />
-            <Route path="*" element={<div className="container mx-auto px-4 py-8">Página não encontrada</div>} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>
       </div>
