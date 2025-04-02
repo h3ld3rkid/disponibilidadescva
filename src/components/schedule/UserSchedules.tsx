@@ -11,7 +11,6 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import ScheduleExport from './ScheduleExport';
 
 const UserSchedules = () => {
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -75,17 +74,46 @@ const UserSchedules = () => {
       selectedUsers.includes(schedule.email)
     );
 
-    // Create CSV content
+    // Create CSV content with organized format
     let csvContent = "Nome,Email,Mês,Data,Turnos\n";
     
+    // Organize by user and date
+    const organizedData: Record<string, Record<string, { user: string, email: string, month: string, shifts: string[] }>> = {};
+
     filteredSchedules.forEach(schedule => {
+      const userEmail = schedule.email;
+      if (!organizedData[userEmail]) {
+        organizedData[userEmail] = {};
+      }
+
       schedule.dates.forEach((dateInfo: any) => {
+        const dateStr = format(new Date(dateInfo.date), "yyyy-MM-dd");
         const formattedDate = format(new Date(dateInfo.date), "d 'de' MMMM", { locale: pt });
+        
         const shiftsText = dateInfo.shifts.map((shift: string) => 
           shift === "manha" ? "Manhã" : shift === "tarde" ? "Tarde" : "Noite"
-        ).join(" + ");
+        );
 
-        csvContent += `${schedule.user},${schedule.email},${schedule.month},${formattedDate},${shiftsText}\n`;
+        organizedData[userEmail][dateStr] = {
+          user: schedule.user,
+          email: schedule.email,
+          month: schedule.month,
+          shifts: shiftsText
+        };
+      });
+    });
+
+    // Convert organized data to CSV rows
+    Object.values(organizedData).forEach(userDates => {
+      // Sort dates chronologically
+      const sortedDates = Object.keys(userDates).sort();
+      
+      sortedDates.forEach(dateStr => {
+        const data = userDates[dateStr];
+        const formattedDate = format(new Date(dateStr), "d 'de' MMMM", { locale: pt });
+        const shiftsText = data.shifts.join(" + ");
+        
+        csvContent += `${data.user},${data.email},${data.month},${formattedDate},${shiftsText}\n`;
       });
     });
 
@@ -122,7 +150,6 @@ const UserSchedules = () => {
               {selectedUsers.length} utilizador(es) selecionado(s)
             </span>
           </div>
-          <ScheduleExport userSchedules={schedules} />
         </div>
       )}
       

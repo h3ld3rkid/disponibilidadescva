@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -70,6 +69,11 @@ const Navbar = ({ email, role }: NavbarProps) => {
 
   const navigateToAnnouncements = () => {
     navigate('/dashboard/announcements');
+    setIsMenuOpen(false);
+  };
+
+  const navigateToScheduleUpload = () => {
+    navigate('/dashboard/schedule-upload');
     setIsMenuOpen(false);
   };
 
@@ -156,7 +160,7 @@ const Navbar = ({ email, role }: NavbarProps) => {
                       <Button 
                         variant="ghost" 
                         className="w-full justify-start"
-                        onClick={navigateToCurrentSchedule}
+                        onClick={navigateToScheduleUpload}
                       >
                         <FileUp className="h-4 w-4 mr-2" />
                         Carregar Escala Atual
@@ -214,7 +218,6 @@ const Navbar = ({ email, role }: NavbarProps) => {
     </>
   );
 
-  // Mobile menu with sheet component
   const renderMobileMenu = () => (
     <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
       <SheetTrigger asChild>
@@ -287,6 +290,15 @@ const Navbar = ({ email, role }: NavbarProps) => {
               <ListChecks className="h-4 w-4 mr-2" />
               Escalas dos Utilizadores
             </Button>
+            
+            <Button 
+              variant="ghost" 
+              className="justify-start"
+              onClick={navigateToScheduleUpload}
+            >
+              <FileUp className="h-4 w-4 mr-2" />
+              Carregar Escala Atual
+            </Button>
           </>
         )}
         
@@ -350,7 +362,6 @@ const Navbar = ({ email, role }: NavbarProps) => {
             </div>
           </div>
           
-          {/* Mobile menu */}
           <div className="md:hidden flex items-center">
             {renderMobileMenu()}
           </div>
