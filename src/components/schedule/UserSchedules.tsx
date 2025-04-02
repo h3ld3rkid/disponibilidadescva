@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { Download, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -62,7 +62,7 @@ const UserSchedules = () => {
     });
   };
 
-  const exportSelectedToCSV = () => {
+  const exportSelectedToPDF = () => {
     if (selectedUsers.length === 0) {
       toast({
         title: "Nenhum utilizador selecionado",
@@ -76,68 +76,84 @@ const UserSchedules = () => {
       selectedUsers.includes(schedule.email)
     );
 
-    // Create and download CSV file with better formatting
-    const doc = new jsPDF();
-    
-    // Add header
-    doc.setFontSize(16);
-    doc.text("Escalas Cruz Vermelha Amares", 14, 20);
-    doc.setFontSize(12);
-    doc.text(`Data de exportação: ${format(new Date(), "dd/MM/yyyy")}`, 14, 28);
-    
-    let yPos = 40;
-    
-    // Process each user separately
-    filteredSchedules.forEach((schedule, userIndex) => {
-      // Add user header
-      if (userIndex > 0) {
-        // Add page break if not the first user
-        doc.addPage();
-        yPos = 20;
-      }
+    try {
+      // Create PDF document with one user per page
+      const doc = new jsPDF();
       
-      doc.setFontSize(14);
-      doc.text(`Escala de: ${schedule.user} (${schedule.email})`, 14, yPos);
-      doc.text(`Mês: ${schedule.month}`, 14, yPos + 8);
-      
-      yPos += 20;
-      
-      // Group by date for better organization
-      const tableData = schedule.dates.map((dateInfo: any) => {
-        return [
+      // Loop through each selected user
+      filteredSchedules.forEach((schedule, userIndex) => {
+        // Add a new page for each user after the first one
+        if (userIndex > 0) {
+          doc.addPage();
+        }
+        
+        // Add title and header
+        doc.setFontSize(18);
+        doc.setTextColor(0, 51, 102);
+        doc.text("Escalas Cruz Vermelha Amares", 14, 20);
+        
+        // Add user info
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Utilizador: ${schedule.user}`, 14, 35);
+        doc.text(`Email: ${schedule.email}`, 14, 45);
+        doc.text(`Mês: ${schedule.month}`, 14, 55);
+        
+        // Date and export info
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Data de exportação: ${format(new Date(), "dd/MM/yyyy")}`, 14, 65);
+        
+        // Sort dates chronologically
+        const sortedDates = [...schedule.dates].sort((a, b) => 
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+        
+        // Prepare table data
+        const tableData = sortedDates.map((dateInfo: any) => [
           format(new Date(dateInfo.date), "d 'de' MMMM", { locale: pt }),
           dateInfo.shifts.map((shift: string) => 
             shift === "manha" ? "Manhã" : 
             shift === "tarde" ? "Tarde" : "Noite"
           ).join(", ")
-        ];
+        ]);
+        
+        // Generate schedule table
+        autoTable(doc, {
+          startY: 75,
+          head: [['Data', 'Turnos']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: { 
+            fillColor: [110, 89, 165],
+            textColor: 255 
+          },
+          styles: {
+            cellPadding: 5,
+            fontSize: 10
+          },
+          columnStyles: {
+            0: { cellWidth: 80 },
+            1: { cellWidth: 70 }
+          }
+        });
       });
       
-      // Sort by date
-      tableData.sort((a: any, b: any) => {
-        const dateA = new Date(a[0]);
-        const dateB = new Date(b[0]);
-        return dateA.getTime() - dateB.getTime();
-      });
+      // Save the PDF
+      doc.save(`escalas_utilizadores_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
       
-      // Generate table
-      autoTable(doc, {
-        startY: yPos,
-        head: [['Data', 'Turnos']],
-        body: tableData,
-        theme: 'striped',
-        headStyles: { fillColor: [110, 89, 165], textColor: 255 },
-        margin: { top: 30 },
+      toast({
+        title: "Exportação concluída",
+        description: `Exportados dados de ${selectedUsers.length} utilizador(es) em formato PDF.`,
       });
-    });
-    
-    // Save the PDF
-    doc.save(`escalas_utilizadores_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
-    
-    toast({
-      title: "Exportação concluída",
-      description: `Exportados dados de ${selectedUsers.length} utilizadores em formato PDF.`,
-    });
+    } catch (error) {
+      console.error("Erro ao exportar para PDF:", error);
+      toast({
+        title: "Erro na exportação",
+        description: "Ocorreu um erro ao exportar as escalas",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -146,7 +162,7 @@ const UserSchedules = () => {
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button 
-              onClick={exportSelectedToCSV}
+              onClick={exportSelectedToPDF}
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
               disabled={selectedUsers.length === 0}
             >

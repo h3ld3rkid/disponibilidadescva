@@ -62,6 +62,18 @@ const Dashboard = () => {
     return isAdmin ? element : <Navigate to="/dashboard" replace />;
   };
 
+  // Check if user is trying to access user-only routes
+  const checkUserAccess = (path: string) => {
+    // Paths allowed for regular users
+    const allowedUserPaths = ['/', '/schedule', '/current-schedule', '/profile'];
+    
+    // Admin has access to all routes
+    if (isAdmin) return true;
+    
+    // Check if the path is in the allowed list for users
+    return allowedUserPaths.includes(path);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Navbar */}
