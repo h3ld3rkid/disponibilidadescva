@@ -9,6 +9,7 @@ import UserSchedules from '@/components/schedule/UserSchedules';
 import Announcements from '@/components/announcements/Announcements';
 import ProfileEdit from '@/components/profile/ProfileEdit';
 import Home from '@/components/Home';
+import CurrentSchedule from '@/components/schedule/CurrentSchedule';
 
 interface UserInfo {
   email: string;
@@ -60,11 +61,19 @@ const Dashboard = () => {
       {/* Navbar */}
       <Navbar email={userInfo.email} role={userInfo.role} />
 
+      {/* Title Bar */}
+      <div className="bg-white border-b border-gray-200 py-4 mb-4">
+        <div className="container mx-auto">
+          <h1 className="text-2xl font-semibold text-gray-900">Escalas Cruz Vermelha Amares</h1>
+        </div>
+      </div>
+
       {/* Main content with nested routes */}
       <div className="w-full max-w-[1440px] mx-auto">
         <Routes>
           <Route path="/" element={<Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
           <Route path="/schedule" element={<ScheduleCalendar userEmail={userInfo.email} isAdmin={isAdmin} />} />
+          <Route path="/current-schedule" element={<CurrentSchedule isAdmin={isAdmin} />} />
           <Route path="/users" element={<UserManagement />} />
           <Route path="/user-schedules" element={<UserSchedules />} />
           <Route path="/announcements" element={isAdmin ? <Announcements /> : <Home userEmail={userInfo.email} isAdmin={isAdmin} />} />

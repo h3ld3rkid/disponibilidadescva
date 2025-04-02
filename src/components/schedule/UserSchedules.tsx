@@ -5,14 +5,20 @@ import {
   Table, TableBody, TableCell, TableHead, 
   TableHeader, TableRow 
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import { Download } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import ScheduleExport from './ScheduleExport';
 
 const UserSchedules = () => {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userInfo, setUserInfo] = useState<any>(null);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Get user info
@@ -45,10 +51,79 @@ const UserSchedules = () => {
     setIsLoading(false);
   }, []);
 
+  const toggleUserSelection = (email: string) => {
+    setSelectedUsers(prev => {
+      if (prev.includes(email)) {
+        return prev.filter(e => e !== email);
+      } else {
+        return [...prev, email];
+      }
+    });
+  };
+
+  const exportSelectedToCSV = () => {
+    if (selectedUsers.length === 0) {
+      toast({
+        title: "Nenhum utilizador selecionado",
+        description: "Por favor, selecione pelo menos um utilizador para exportar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const filteredSchedules = schedules.filter(schedule => 
+      selectedUsers.includes(schedule.email)
+    );
+
+    // Create CSV content
+    let csvContent = "Nome,Email,Mês,Data,Turnos\n";
+    
+    filteredSchedules.forEach(schedule => {
+      schedule.dates.forEach((dateInfo: any) => {
+        const formattedDate = format(new Date(dateInfo.date), "d 'de' MMMM", { locale: pt });
+        const shiftsText = dateInfo.shifts.map((shift: string) => 
+          shift === "manha" ? "Manhã" : shift === "tarde" ? "Tarde" : "Noite"
+        ).join(" + ");
+
+        csvContent += `${schedule.user},${schedule.email},${schedule.month},${formattedDate},${shiftsText}\n`;
+      });
+    });
+
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `escalas_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Exportação concluída",
+      description: `Exportados dados de ${selectedUsers.length} utilizadores.`,
+    });
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       {userInfo && userInfo.role === 'admin' && (
-        <ScheduleExport userSchedules={schedules} />
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button 
+              onClick={exportSelectedToCSV}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+              disabled={selectedUsers.length === 0}
+            >
+              <Download className="h-4 w-4" />
+              Exportar CSV
+            </Button>
+            <span className="text-sm text-gray-600">
+              {selectedUsers.length} utilizador(es) selecionado(s)
+            </span>
+          </div>
+          <ScheduleExport userSchedules={schedules} />
+        </div>
       )}
       
       <Card>
@@ -70,6 +145,9 @@ const UserSchedules = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  {userInfo && userInfo.role === 'admin' && (
+                    <TableHead className="w-[50px]"></TableHead>
+                  )}
                   <TableHead>Utilizador</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Mês</TableHead>
@@ -81,6 +159,15 @@ const UserSchedules = () => {
                 {schedules.flatMap((schedule) => 
                   schedule.dates.map((dateInfo: any, dateIndex: number) => (
                     <TableRow key={`${schedule.email}-${dateIndex}`}>
+                      {dateIndex === 0 && userInfo && userInfo.role === 'admin' && (
+                        <TableCell rowSpan={schedule.dates.length} className="align-middle">
+                          <Checkbox 
+                            checked={selectedUsers.includes(schedule.email)}
+                            onCheckedChange={() => toggleUserSelection(schedule.email)}
+                            className="ml-1"
+                          />
+                        </TableCell>
+                      )}
                       {dateIndex === 0 ? (
                         <>
                           <TableCell rowSpan={schedule.dates.length} className="font-medium">{schedule.user}</TableCell>

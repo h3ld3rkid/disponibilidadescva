@@ -11,8 +11,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { 
   LogOut, Users, Calendar, Home,
-  ListChecks, UserCog, UserPlus, Pencil, Users as UsersIcon,
-  BellRing, Menu, X
+  ListChecks, UserCog, FileText, Pencil, Users as UsersIcon,
+  BellRing, Menu, FileUp, Settings
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -53,6 +53,11 @@ const Navbar = ({ email, role }: NavbarProps) => {
     setIsMenuOpen(false);
   };
 
+  const navigateToCurrentSchedule = () => {
+    navigate('/dashboard/current-schedule');
+    setIsMenuOpen(false);
+  };
+
   const navigateToUserSchedules = () => {
     navigate('/dashboard/user-schedules');
     setIsMenuOpen(false);
@@ -79,141 +84,132 @@ const Navbar = ({ email, role }: NavbarProps) => {
         Início
       </Button>
 
-      {role === 'admin' && (
-        <>
-          <NavigationMenu>
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <NavigationMenuTrigger>
-                  <Users className="h-4 w-4 mr-2" />
-                  Utilizadores
-                </NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <div className="p-4 w-[220px]">
-                    <ul className="space-y-2">
-                      <li>
-                        <Button 
-                          variant="ghost" 
-                          className="w-full justify-start"
-                          onClick={navigateToUserManagement}
-                        >
-                          <UsersIcon className="h-4 w-4 mr-2" />
-                          Gerir Utilizadores
-                        </Button>
-                      </li>
-                      <li>
-                        <Button 
-                          variant="ghost" 
-                          className="w-full justify-start"
-                          onClick={navigateToUserManagement}
-                        >
-                          <UserPlus className="h-4 w-4 mr-2" />
-                          Criar Utilizador
-                        </Button>
-                      </li>
-                      <li>
-                        <Button 
-                          variant="ghost" 
-                          className="w-full justify-start"
-                          onClick={navigateToUserManagement}
-                        >
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Editar Utilizadores
-                        </Button>
-                      </li>
-                    </ul>
-                  </div>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-              
-              <NavigationMenuItem>
-                <Button 
-                  variant="ghost" 
-                  className="flex items-center"
-                  onClick={navigateToCalendar}
-                >
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Escala
-                </Button>
-              </NavigationMenuItem>
-              
-              <NavigationMenuItem>
-                <Button 
-                  variant="ghost" 
-                  className="flex items-center"
-                  onClick={navigateToUserSchedules}
-                >
-                  <ListChecks className="h-4 w-4 mr-2" />
-                  Escalas dos Utilizadores
-                </Button>
-              </NavigationMenuItem>
+      <Button 
+        variant="ghost" 
+        className="flex items-center"
+        onClick={navigateToCalendar}
+      >
+        <Calendar className="h-4 w-4 mr-2" />
+        Inserir Escala
+      </Button>
+      
+      <Button 
+        variant="ghost" 
+        className="flex items-center"
+        onClick={navigateToCurrentSchedule}
+      >
+        <FileText className="h-4 w-4 mr-2" />
+        Escala Atual
+      </Button>
+      
+      <Button 
+        variant="ghost" 
+        className="flex items-center"
+        onClick={navigateToAnnouncements}
+      >
+        <BellRing className="h-4 w-4 mr-2" />
+        Avisos
+      </Button>
 
-              <NavigationMenuItem>
-                <Button 
-                  variant="ghost" 
-                  className="flex items-center"
-                  onClick={navigateToAnnouncements}
-                >
-                  <BellRing className="h-4 w-4 mr-2" />
-                  AVISOS
-                </Button>
-              </NavigationMenuItem>
-              
-              <NavigationMenuItem>
-                <NavigationMenuTrigger>
-                  <UserCog className="h-4 w-4 mr-2" />
-                  Meu Perfil
-                </NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <div className="p-4 w-[200px]">
-                    <ul className="space-y-2">
-                      <li>
-                        <Button 
-                          variant="ghost" 
-                          className="w-full justify-start"
-                          onClick={navigateToProfile}
-                        >
-                          O Meu Perfil
-                        </Button>
-                      </li>
-                      <li>
-                        <Button 
-                          variant="ghost" 
-                          className="w-full justify-start"
-                          onClick={navigateToProfile}
-                        >
-                          Definições
-                        </Button>
-                      </li>
-                    </ul>
-                  </div>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
-        </>
+      {role === 'admin' && (
+        <NavigationMenu>
+          <NavigationMenuList>
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>
+                <Settings className="h-4 w-4 mr-2" />
+                Administração
+              </NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <div className="p-4 w-[220px]">
+                  <ul className="space-y-2">
+                    <li>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start"
+                        onClick={navigateToUserManagement}
+                      >
+                        <UsersIcon className="h-4 w-4 mr-2" />
+                        Gerir Utilizadores
+                      </Button>
+                    </li>
+                    <li>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start"
+                        onClick={navigateToAnnouncements}
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Editar Avisos
+                      </Button>
+                    </li>
+                    <li>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start"
+                        onClick={navigateToUserSchedules}
+                      >
+                        <ListChecks className="h-4 w-4 mr-2" />
+                        Escalas dos Utilizadores
+                      </Button>
+                    </li>
+                    <li>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start"
+                        onClick={navigateToCurrentSchedule}
+                      >
+                        <FileUp className="h-4 w-4 mr-2" />
+                        Carregar Escala Atual
+                      </Button>
+                    </li>
+                  </ul>
+                </div>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+            
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>
+                <UserCog className="h-4 w-4 mr-2" />
+                Meu Perfil
+              </NavigationMenuTrigger>
+              <NavigationMenuContent>
+                <div className="p-4 w-[200px]">
+                  <ul className="space-y-2">
+                    <li>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start"
+                        onClick={navigateToProfile}
+                      >
+                        O Meu Perfil
+                      </Button>
+                    </li>
+                    <li>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start"
+                        onClick={navigateToProfile}
+                      >
+                        Definições
+                      </Button>
+                    </li>
+                  </ul>
+                </div>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
       )}
 
       {!role.includes('admin') && (
-        <>
-          <Button 
-            variant="ghost" 
-            className="flex items-center"
-            onClick={navigateToCalendar}
-          >
-            <Calendar className="h-4 w-4 mr-2" />
-            Escala
-          </Button>
-          
-          <Button 
-            variant="ghost" 
-            className="flex items-center"
-            onClick={navigateToProfile}
-          >
-            <UserCog className="h-4 w-4 mr-2" />
-            Meu Perfil
-          </Button>
-        </>
+        <Button 
+          variant="ghost" 
+          className="flex items-center"
+          onClick={navigateToProfile}
+        >
+          <UserCog className="h-4 w-4 mr-2" />
+          Meu Perfil
+        </Button>
       )}
     </>
   );
@@ -245,6 +241,33 @@ const Navbar = ({ email, role }: NavbarProps) => {
           Início
         </Button>
         
+        <Button 
+          variant="ghost" 
+          className="justify-start"
+          onClick={navigateToCalendar}
+        >
+          <Calendar className="h-4 w-4 mr-2" />
+          Inserir Escala
+        </Button>
+        
+        <Button 
+          variant="ghost" 
+          className="justify-start"
+          onClick={navigateToCurrentSchedule}
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          Escala Atual
+        </Button>
+        
+        <Button 
+          variant="ghost" 
+          className="justify-start"
+          onClick={navigateToAnnouncements}
+        >
+          <BellRing className="h-4 w-4 mr-2" />
+          Avisos
+        </Button>
+        
         {role === 'admin' && (
           <>
             <Button 
@@ -259,62 +282,22 @@ const Navbar = ({ email, role }: NavbarProps) => {
             <Button 
               variant="ghost" 
               className="justify-start"
-              onClick={navigateToCalendar}
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              Escala
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              className="justify-start"
               onClick={navigateToUserSchedules}
             >
               <ListChecks className="h-4 w-4 mr-2" />
               Escalas dos Utilizadores
             </Button>
-            
-            <Button 
-              variant="ghost" 
-              className="justify-start"
-              onClick={navigateToAnnouncements}
-            >
-              <BellRing className="h-4 w-4 mr-2" />
-              AVISOS
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              className="justify-start"
-              onClick={navigateToProfile}
-            >
-              <UserCog className="h-4 w-4 mr-2" />
-              O Meu Perfil
-            </Button>
           </>
         )}
         
-        {!role.includes('admin') && (
-          <>
-            <Button 
-              variant="ghost" 
-              className="justify-start"
-              onClick={navigateToCalendar}
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              Escala
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              className="justify-start"
-              onClick={navigateToProfile}
-            >
-              <UserCog className="h-4 w-4 mr-2" />
-              Meu Perfil
-            </Button>
-          </>
-        )}
+        <Button 
+          variant="ghost" 
+          className="justify-start"
+          onClick={navigateToProfile}
+        >
+          <UserCog className="h-4 w-4 mr-2" />
+          O Meu Perfil
+        </Button>
         
         <div className="mt-auto">
           <p className="text-sm text-gray-600 mb-2">
@@ -345,8 +328,6 @@ const Navbar = ({ email, role }: NavbarProps) => {
               alt="Cruz Vermelha Amares" 
               className="h-8 object-contain" 
             />
-            <h1 className="text-xl font-semibold text-gray-900 hidden sm:block">Escalas Cruz Vermelha Amares</h1>
-            <h1 className="text-xl font-semibold text-gray-900 sm:hidden">CV Amares</h1>
           </div>
           
           <div className="hidden md:flex items-center space-x-6">
