@@ -8,15 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Database } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 const loginSchema = z.object({
   email: z.string().email({
-    message: "Please enter a valid email address.",
+    message: "Por favor, introduza um email válido.",
   }),
   password: z.string().min(6, {
-    message: "Password must be at least 6 characters.",
+    message: "Password deve ter pelo menos 6 caracteres.",
   }),
 });
 
@@ -57,20 +57,20 @@ const Login = () => {
         }));
         
         toast({
-          title: "Login successful",
-          description: `Welcome, ${data.email}`,
+          title: "Login bem sucedido",
+          description: `Bem-vindo, ${data.email}`,
         });
         
         // Redirect to dashboard
         navigate('/dashboard');
       } else {
-        throw new Error("Invalid credentials");
+        throw new Error("Credenciais inválidas");
       }
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Erro no login:", error);
       toast({
-        title: "Login failed",
-        description: "Invalid email or password.",
+        title: "Falha no login",
+        description: "Email ou password inválidos.",
         variant: "destructive",
       });
     } finally {
@@ -83,17 +83,21 @@ const Login = () => {
       <div className="w-full max-w-md px-4">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <Database className="h-12 w-12 text-brand-indigo" />
+            <img 
+              src="https://amares.cruzvermelha.pt/images/site/Amares.webp" 
+              alt="Cruz Vermelha Amares" 
+              className="h-24 object-contain"
+            />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">MySQL Connect Portal</h1>
-          <p className="text-gray-600 mt-2">Login to access your database</p>
+          <h1 className="text-3xl font-bold text-gray-900">Disponibilidades CVAmares</h1>
+          <p className="text-gray-600 mt-2">Inicie sessão para aceder ao sistema</p>
         </div>
         
         <Card className="border border-gray-200 shadow-sm">
           <CardHeader>
             <CardTitle>Login</CardTitle>
             <CardDescription>
-              Enter your credentials to access the system
+              Introduza as suas credenciais para aceder ao sistema
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -131,17 +135,17 @@ const Login = () => {
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Logging in...
+                      A iniciar sessão...
                     </>
                   ) : (
-                    "Login"
+                    "Entrar"
                   )}
                 </Button>
               </form>
             </Form>
           </CardContent>
           <CardFooter className="flex justify-center text-sm text-gray-500">
-            Default admin: admin@gmail.com / password: abcabc
+            Admin padrão: admin@gmail.com / password: abcabc
           </CardFooter>
         </Card>
       </div>

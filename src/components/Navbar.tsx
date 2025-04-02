@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { Button } from "@/components/ui/button";
 import { 
-  Database, LogOut, Users, Calendar, Home,
+  LogOut, Users, Calendar, Home,
   ListChecks, UserCog, UserPlus, Pencil, Users as UsersIcon,
   BellRing, Menu, X
 } from "lucide-react";
@@ -61,10 +61,6 @@ const Navbar = ({ email, role }: NavbarProps) => {
   const navigateToProfile = () => {
     navigate('/dashboard/profile');
     setIsMenuOpen(false);
-    toast({
-      title: "Em desenvolvimento",
-      description: "Esta funcionalidade está a ser implementada",
-    });
   };
 
   const navigateToAnnouncements = () => {
@@ -80,7 +76,7 @@ const Navbar = ({ email, role }: NavbarProps) => {
         onClick={navigateToHome}
       >
         <Home className="h-4 w-4 mr-2" />
-        Home
+        Início
       </Button>
 
       {role === 'admin' && (
@@ -166,7 +162,7 @@ const Navbar = ({ email, role }: NavbarProps) => {
               <NavigationMenuItem>
                 <NavigationMenuTrigger>
                   <UserCog className="h-4 w-4 mr-2" />
-                  Meu Menu
+                  Meu Perfil
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
                   <div className="p-4 w-[200px]">
@@ -199,14 +195,25 @@ const Navbar = ({ email, role }: NavbarProps) => {
       )}
 
       {!role.includes('admin') && (
-        <Button 
-          variant="ghost" 
-          className="flex items-center"
-          onClick={navigateToCalendar}
-        >
-          <Calendar className="h-4 w-4 mr-2" />
-          Escala
-        </Button>
+        <>
+          <Button 
+            variant="ghost" 
+            className="flex items-center"
+            onClick={navigateToCalendar}
+          >
+            <Calendar className="h-4 w-4 mr-2" />
+            Escala
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            className="flex items-center"
+            onClick={navigateToProfile}
+          >
+            <UserCog className="h-4 w-4 mr-2" />
+            Meu Perfil
+          </Button>
+        </>
       )}
     </>
   );
@@ -221,7 +228,11 @@ const Navbar = ({ email, role }: NavbarProps) => {
       </SheetTrigger>
       <SheetContent side="left" className="flex flex-col gap-4 py-8">
         <div className="flex items-center mb-6">
-          <Database className="h-6 w-6 text-brand-indigo mr-2" />
+          <img 
+            src="https://amares.cruzvermelha.pt/images/site/Amares.webp" 
+            alt="Cruz Vermelha Amares" 
+            className="h-8 object-contain mr-2" 
+          />
           <span className="font-semibold">Cruz Vermelha Amares</span>
         </div>
         
@@ -231,7 +242,7 @@ const Navbar = ({ email, role }: NavbarProps) => {
           onClick={navigateToHome}
         >
           <Home className="h-4 w-4 mr-2" />
-          Home
+          Início
         </Button>
         
         {role === 'admin' && (
@@ -284,14 +295,25 @@ const Navbar = ({ email, role }: NavbarProps) => {
         )}
         
         {!role.includes('admin') && (
-          <Button 
-            variant="ghost" 
-            className="justify-start"
-            onClick={navigateToCalendar}
-          >
-            <Calendar className="h-4 w-4 mr-2" />
-            Escala
-          </Button>
+          <>
+            <Button 
+              variant="ghost" 
+              className="justify-start"
+              onClick={navigateToCalendar}
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Escala
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              className="justify-start"
+              onClick={navigateToProfile}
+            >
+              <UserCog className="h-4 w-4 mr-2" />
+              Meu Perfil
+            </Button>
+          </>
         )}
         
         <div className="mt-auto">
@@ -318,7 +340,11 @@ const Navbar = ({ email, role }: NavbarProps) => {
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Database className="h-6 w-6 text-brand-indigo" />
+            <img 
+              src="https://amares.cruzvermelha.pt/images/site/Amares.webp" 
+              alt="Cruz Vermelha Amares" 
+              className="h-8 object-contain" 
+            />
             <h1 className="text-xl font-semibold text-gray-900 hidden sm:block">Escalas Cruz Vermelha Amares</h1>
             <h1 className="text-xl font-semibold text-gray-900 sm:hidden">CV Amares</h1>
           </div>

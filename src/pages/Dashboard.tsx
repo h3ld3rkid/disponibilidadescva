@@ -7,6 +7,7 @@ import UserManagement from '@/components/user/UserManagement';
 import ScheduleCalendar from '@/components/schedule/ScheduleCalendar';
 import UserSchedules from '@/components/schedule/UserSchedules';
 import Announcements from '@/components/announcements/Announcements';
+import ProfileEdit from '@/components/profile/ProfileEdit';
 import Home from '@/components/Home';
 
 interface UserInfo {
@@ -67,7 +68,7 @@ const Dashboard = () => {
           <Route path="/users" element={<UserManagement />} />
           <Route path="/user-schedules" element={<UserSchedules />} />
           <Route path="/announcements" element={isAdmin ? <Announcements /> : <Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
-          <Route path="/profile" element={<div className="container mx-auto px-4 py-8">Funcionalidade em desenvolvimento</div>} />
+          <Route path="/profile" element={<ProfileEdit />} />
           <Route path="*" element={<div className="container mx-auto px-4 py-8">Página não encontrada</div>} />
         </Routes>
       </div>

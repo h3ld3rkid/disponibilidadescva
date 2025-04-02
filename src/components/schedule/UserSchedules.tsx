@@ -7,12 +7,20 @@ import {
 } from "@/components/ui/table";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import ScheduleExport from './ScheduleExport';
 
 const UserSchedules = () => {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userInfo, setUserInfo] = useState<any>(null);
 
   useEffect(() => {
+    // Get user info
+    const storedUser = localStorage.getItem('mysqlConnection');
+    if (storedUser) {
+      setUserInfo(JSON.parse(storedUser));
+    }
+    
     // Load schedules from localStorage
     const storedSchedules = localStorage.getItem('userSchedules');
     if (storedSchedules) {
@@ -28,7 +36,7 @@ const UserSchedules = () => {
         }));
         setSchedules(processedSchedules);
       } catch (error) {
-        console.error('Error parsing schedules:', error);
+        console.error('Erro ao processar escalas:', error);
         setSchedules([]);
       }
     } else {
@@ -39,6 +47,10 @@ const UserSchedules = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {userInfo && userInfo.role === 'admin' && (
+        <ScheduleExport userSchedules={schedules} />
+      )}
+      
       <Card>
         <CardHeader>
           <CardTitle>Escalas dos Utilizadores</CardTitle>
