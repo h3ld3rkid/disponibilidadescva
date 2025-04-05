@@ -13,7 +13,7 @@ import { FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { supabaseService } from "@/services/supabaseService";
+import { supabase } from "@/integrations/supabase/client";
 
 const UserSchedules = () => {
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -21,6 +21,30 @@ const UserSchedules = () => {
   const [userInfo, setUserInfo] = useState<any>(null);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const { toast } = useToast();
+
+  const loadAllSchedules = () => {
+    const storedSchedules = localStorage.getItem('userSchedules');
+    if (storedSchedules) {
+      try {
+        const parsedSchedules = JSON.parse(storedSchedules);
+        // Process dates to be Date objects
+        const processedSchedules = parsedSchedules.map((schedule: any) => ({
+          ...schedule,
+          dates: schedule.dates.map((dateInfo: any) => ({
+            ...dateInfo,
+            date: new Date(dateInfo.date)
+          }))
+        }));
+        setSchedules(processedSchedules);
+      } catch (error) {
+        console.error('Erro ao processar escalas:', error);
+        setSchedules([]);
+      }
+    } else {
+      setSchedules([]);
+    }
+    setIsLoading(false);
+  };
 
   useEffect(() => {
     // Get user info
@@ -30,36 +54,22 @@ const UserSchedules = () => {
     }
     
     // Load all schedules from localStorage
-    const fetchAllSchedules = () => {
-      const storedSchedules = localStorage.getItem('userSchedules');
-      if (storedSchedules) {
-        try {
-          const parsedSchedules = JSON.parse(storedSchedules);
-          // Process dates to be Date objects
-          const processedSchedules = parsedSchedules.map((schedule: any) => ({
-            ...schedule,
-            dates: schedule.dates.map((dateInfo: any) => ({
-              ...dateInfo,
-              date: new Date(dateInfo.date)
-            }))
-          }));
-          setSchedules(processedSchedules);
-        } catch (error) {
-          console.error('Erro ao processar escalas:', error);
-          setSchedules([]);
-        }
-      } else {
-        setSchedules([]);
-      }
-      setIsLoading(false);
+    loadAllSchedules();
+    
+    // Set up listener for schedule changes
+    const handleSchedulesChange = () => {
+      loadAllSchedules();
     };
-
-    fetchAllSchedules();
+    
+    window.addEventListener('schedulesChanged', handleSchedulesChange);
     
     // Set up an interval to check for new schedules every 30 seconds
-    const timer = setInterval(fetchAllSchedules, 30000);
+    const timer = setInterval(loadAllSchedules, 30000);
     
-    return () => clearInterval(timer);
+    return () => {
+      window.removeEventListener('schedulesChanged', handleSchedulesChange);
+      clearInterval(timer);
+    };
   }, []);
 
   const toggleUserSelection = (email: string) => {

@@ -26,10 +26,9 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [forceUpdate, setForceUpdate] = useState(0);
 
-  useEffect(() => {
-    // Retrieve user information from localStorage
+  // Function to check and update user info
+  const updateUserInfo = () => {
     const storedUser = localStorage.getItem('mysqlConnection');
-    
     if (storedUser) {
       setUserInfo(JSON.parse(storedUser));
     } else {
@@ -41,22 +40,43 @@ const Dashboard = () => {
       });
       navigate('/login');
     }
-    
+  };
+
+  useEffect(() => {
+    // Initial user info load
+    updateUserInfo();
     setLoading(false);
     
     // Listen for role changes
     const handleRoleChange = () => {
-      const updatedUser = localStorage.getItem('mysqlConnection');
-      if (updatedUser) {
-        setUserInfo(JSON.parse(updatedUser));
-        setForceUpdate(prev => prev + 1);
-      }
+      updateUserInfo();
+      setForceUpdate(prev => prev + 1);
+    };
+    
+    // Listen for announcements changes to refresh the UI
+    const handleAnnouncementsChange = () => {
+      setForceUpdate(prev => prev + 1);
+    };
+    
+    // Listen for schedule changes
+    const handleSchedulesChange = () => {
+      setForceUpdate(prev => prev + 1);
     };
     
     window.addEventListener('userRoleChanged', handleRoleChange);
+    window.addEventListener('announcementsChanged', handleAnnouncementsChange);
+    window.addEventListener('schedulesChanged', handleSchedulesChange);
+    
+    // Check for user info changes every 5 seconds
+    const userInfoTimer = setInterval(() => {
+      updateUserInfo();
+    }, 5000);
     
     return () => {
       window.removeEventListener('userRoleChanged', handleRoleChange);
+      window.removeEventListener('announcementsChanged', handleAnnouncementsChange);
+      window.removeEventListener('schedulesChanged', handleSchedulesChange);
+      clearInterval(userInfoTimer);
     };
   }, [navigate, toast]);
 
@@ -111,7 +131,7 @@ const Dashboard = () => {
       {/* Main content with nested routes - restrict user access */}
       <div className="flex-1">
         <div className="w-full max-w-[1440px] mx-auto px-4">
-          <AnnouncementsList />
+          <AnnouncementsList key={`announcements-list-${forceUpdate}`} />
           <Routes>
             {/* Routes accessible to all users */}
             <Route path="/" element={<Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
@@ -120,8 +140,8 @@ const Dashboard = () => {
             <Route path="/profile" element={<ProfileEdit />} />
             
             {/* Admin-only routes */}
-            <Route path="/users" element={checkAdminRoute(<UserManagement />)} />
-            <Route path="/user-schedules" element={checkAdminRoute(<UserSchedules />)} />
+            <Route path="/users" element={checkAdminRoute(<UserManagement key={`user-management-${forceUpdate}`} />)} />
+            <Route path="/user-schedules" element={checkAdminRoute(<UserSchedules key={`user-schedules-${forceUpdate}`} />)} />
             <Route path="/schedule-upload" element={checkAdminRoute(<ScheduleUpload />)} />
             <Route path="/announcements" element={checkAdminRoute(<Announcements />)} />
             

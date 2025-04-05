@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar } from "@/components/ui/calendar";
 import { format, isSaturday, isSunday, isAfter, isBefore, startOfMonth, endOfMonth, addMonths, getDate, getMonth, getYear } from "date-fns";
@@ -9,7 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { supabaseService } from "@/services/supabaseService";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ScheduleCalendarProps {
   userEmail: string;
@@ -47,13 +48,18 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   
   const canEditNextMonthSchedule = isAdmin || (!isPastDeadline && editCount < 2);
 
+  const monthKey = format(nextMonth, 'MMMM-yyyy', { locale: pt });
+  const editCountKey = `editCount_${userEmail}_${monthKey}`;
+
+  // Load edit count from localStorage only once when component mounts
   useEffect(() => {
-    const storedEditCount = localStorage.getItem(`editCount_${userEmail}_${format(nextMonth, 'MMMM-yyyy', { locale: pt })}`);
+    const storedEditCount = localStorage.getItem(editCountKey);
     if (storedEditCount) {
       setEditCount(parseInt(storedEditCount));
     }
-  }, [userEmail, nextMonth]);
+  }, [editCountKey]);
 
+  // Load saved schedule from localStorage
   useEffect(() => {
     const storedSchedules = localStorage.getItem('userSchedules');
     if (!storedSchedules) return;
@@ -206,14 +212,20 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       
       localStorage.setItem('userSchedules', JSON.stringify(existingSchedules));
       
-      const newEditCount = editCount + 1;
-      setEditCount(newEditCount);
-      
-      localStorage.setItem(`editCount_${userEmail}_${format(nextMonth, 'MMMM-yyyy', { locale: pt })}`, String(newEditCount));
+      // Only increment edit count if not admin
+      if (!isAdmin) {
+        const newEditCount = editCount + 1;
+        setEditCount(newEditCount);
+        localStorage.setItem(editCountKey, String(newEditCount));
+      }
       
       setSavedSchedule(true);
       
-      await supabaseService.saveUserSchedule(userEmail, userScheduleData);
+      // Dispatch event to notify other components that schedules have been updated
+      const event = new CustomEvent('schedulesChanged', { 
+        detail: { schedules: existingSchedules } 
+      });
+      window.dispatchEvent(event);
       
       toast({
         title: "Escala guardada",
