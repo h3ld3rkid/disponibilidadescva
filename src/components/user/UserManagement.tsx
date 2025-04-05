@@ -23,7 +23,6 @@ import {
   Popover, PopoverContent, PopoverTrigger 
 } from "@/components/ui/popover";
 
-// Define proper type for the onSubmit function
 type UserFormSubmitFunction = (data: { 
   name: string; 
   email: string; 
@@ -46,7 +45,6 @@ const UserManagement = () => {
         const userData = await supabaseService.getAllUsers();
         setUsers(userData);
         
-        // Get password reset requests
         const requests = await supabaseService.getPasswordResetRequests();
         setResetRequests(requests);
       } catch (error) {
@@ -63,7 +61,6 @@ const UserManagement = () => {
 
     fetchData();
     
-    // Set up a timer to check for reset requests every 30 seconds
     const timer = setInterval(async () => {
       try {
         const requests = await supabaseService.getPasswordResetRequests();
@@ -84,7 +81,7 @@ const UserManagement = () => {
         email: userData.email,
         mechanographic_number: userData.mechanographicNumber,
         role: userData.role,
-        password: "CVAmares" // Default password for new users
+        password: "CVAmares"
       });
       
       setUsers([...users, newUser]);
@@ -94,7 +91,7 @@ const UserManagement = () => {
         description: `Utilizador ${userData.name} foi criado com sucesso`,
       });
       
-      return true; // Success
+      return true;
     } catch (error) {
       console.error("Error creating user:", error);
       toast({
@@ -103,7 +100,7 @@ const UserManagement = () => {
         variant: "destructive",
       });
       
-      return false; // Failure
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -126,12 +123,24 @@ const UserManagement = () => {
       setUsers(updatedUsers);
       setIsEditSheetOpen(false);
       
+      const storedUser = localStorage.getItem('mysqlConnection');
+      if (storedUser) {
+        const currentUser = JSON.parse(storedUser);
+        if (currentUser.email === userData.email) {
+          currentUser.role = userData.role;
+          localStorage.setItem('mysqlConnection', JSON.stringify(currentUser));
+          
+          const event = new CustomEvent('userRoleChanged');
+          window.dispatchEvent(event);
+        }
+      }
+      
       toast({
         title: "Utilizador atualizado",
         description: `Utilizador ${userData.name} foi atualizado com sucesso`,
       });
       
-      return true; // Success
+      return true;
     } catch (error) {
       console.error("Error updating user:", error);
       toast({
@@ -140,7 +149,7 @@ const UserManagement = () => {
         variant: "destructive",
       });
       
-      return false; // Failure
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -176,13 +185,12 @@ const UserManagement = () => {
       setIsLoading(false);
     }
   };
-  
+
   const resetPassword = async (email: string) => {
     try {
       setIsLoading(true);
       await supabaseService.resetPassword(email);
       
-      // Update the reset requests list
       setResetRequests(resetRequests.filter(e => e !== email));
       
       toast({

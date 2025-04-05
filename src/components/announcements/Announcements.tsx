@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +30,7 @@ const Announcements = () => {
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [editingId, setEditingId] = useState<number | null>(null);
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<string>("list");
 
   useEffect(() => {
     // Load announcements from localStorage
@@ -53,6 +53,12 @@ const Announcements = () => {
   useEffect(() => {
     // Save announcements to localStorage whenever they change
     localStorage.setItem('announcements', JSON.stringify(announcements));
+    
+    // Add an event to notify other components that announcements have changed
+    const event = new CustomEvent('announcementsChanged', { 
+      detail: { announcements } 
+    });
+    window.dispatchEvent(event);
   }, [announcements]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -98,8 +104,9 @@ const Announcements = () => {
       });
     }
     
-    // Reset form
+    // Reset form and switch back to list tab
     resetForm();
+    setActiveTab("list");
   };
 
   const handleEdit = (announcement: Announcement) => {
@@ -128,7 +135,7 @@ const Announcements = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Tabs defaultValue="list" className="w-full">
+      <Tabs defaultValue="list" className="w-full" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="list">Lista de Avisos</TabsTrigger>
           <TabsTrigger value="create">Criar Aviso</TabsTrigger>

@@ -13,6 +13,7 @@ import { FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { supabaseService } from "@/services/supabaseService";
 
 const UserSchedules = () => {
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -28,28 +29,37 @@ const UserSchedules = () => {
       setUserInfo(JSON.parse(storedUser));
     }
     
-    // Load schedules from localStorage
-    const storedSchedules = localStorage.getItem('userSchedules');
-    if (storedSchedules) {
-      try {
-        const parsedSchedules = JSON.parse(storedSchedules);
-        // Process dates to be Date objects
-        const processedSchedules = parsedSchedules.map((schedule: any) => ({
-          ...schedule,
-          dates: schedule.dates.map((dateInfo: any) => ({
-            ...dateInfo,
-            date: new Date(dateInfo.date)
-          }))
-        }));
-        setSchedules(processedSchedules);
-      } catch (error) {
-        console.error('Erro ao processar escalas:', error);
+    // Load all schedules from localStorage
+    const fetchAllSchedules = () => {
+      const storedSchedules = localStorage.getItem('userSchedules');
+      if (storedSchedules) {
+        try {
+          const parsedSchedules = JSON.parse(storedSchedules);
+          // Process dates to be Date objects
+          const processedSchedules = parsedSchedules.map((schedule: any) => ({
+            ...schedule,
+            dates: schedule.dates.map((dateInfo: any) => ({
+              ...dateInfo,
+              date: new Date(dateInfo.date)
+            }))
+          }));
+          setSchedules(processedSchedules);
+        } catch (error) {
+          console.error('Erro ao processar escalas:', error);
+          setSchedules([]);
+        }
+      } else {
         setSchedules([]);
       }
-    } else {
-      setSchedules([]);
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    fetchAllSchedules();
+    
+    // Set up an interval to check for new schedules every 30 seconds
+    const timer = setInterval(fetchAllSchedules, 30000);
+    
+    return () => clearInterval(timer);
   }, []);
 
   const toggleUserSelection = (email: string) => {

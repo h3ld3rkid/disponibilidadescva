@@ -7,6 +7,7 @@ import UserManagement from '@/components/user/UserManagement';
 import ScheduleCalendar from '@/components/schedule/ScheduleCalendar';
 import UserSchedules from '@/components/schedule/UserSchedules';
 import Announcements from '@/components/announcements/Announcements';
+import AnnouncementsList from '@/components/announcements/AnnouncementsList';
 import ProfileEdit from '@/components/profile/ProfileEdit';
 import Home from '@/components/Home';
 import CurrentSchedule from '@/components/schedule/CurrentSchedule';
@@ -23,6 +24,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   useEffect(() => {
     // Retrieve user information from localStorage
@@ -41,6 +43,21 @@ const Dashboard = () => {
     }
     
     setLoading(false);
+    
+    // Listen for role changes
+    const handleRoleChange = () => {
+      const updatedUser = localStorage.getItem('mysqlConnection');
+      if (updatedUser) {
+        setUserInfo(JSON.parse(updatedUser));
+        setForceUpdate(prev => prev + 1);
+      }
+    };
+    
+    window.addEventListener('userRoleChanged', handleRoleChange);
+    
+    return () => {
+      window.removeEventListener('userRoleChanged', handleRoleChange);
+    };
   }, [navigate, toast]);
 
   if (loading) {
@@ -77,7 +94,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Navbar */}
-      <Navbar email={userInfo.email} role={userInfo.role} />
+      <Navbar key={`nav-${forceUpdate}`} email={userInfo.email} role={userInfo.role} />
 
       {/* Title Bar - below navbar */}
       <div className="bg-white border-b border-gray-200 py-4 mb-4">
@@ -94,6 +111,7 @@ const Dashboard = () => {
       {/* Main content with nested routes - restrict user access */}
       <div className="flex-1">
         <div className="w-full max-w-[1440px] mx-auto px-4">
+          <AnnouncementsList />
           <Routes>
             {/* Routes accessible to all users */}
             <Route path="/" element={<Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
