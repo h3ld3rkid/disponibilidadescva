@@ -9,7 +9,74 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      password_reset_requests: {
+        Row: {
+          email: string
+          fulfilled: boolean | null
+          id: string
+          requested_at: string | null
+        }
+        Insert: {
+          email: string
+          fulfilled?: boolean | null
+          id?: string
+          requested_at?: string | null
+        }
+        Update: {
+          email?: string
+          fulfilled?: boolean | null
+          id?: string
+          requested_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "password_reset_requests_email_fkey"
+            columns: ["email"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["email"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          active: boolean
+          created_at: string | null
+          email: string
+          id: string
+          mechanographic_number: string
+          name: string
+          needs_password_change: boolean
+          password_hash: string
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string | null
+          email: string
+          id?: string
+          mechanographic_number: string
+          name: string
+          needs_password_change?: boolean
+          password_hash?: string
+          role: string
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string | null
+          email?: string
+          id?: string
+          mechanographic_number?: string
+          name?: string
+          needs_password_change?: boolean
+          password_hash?: string
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

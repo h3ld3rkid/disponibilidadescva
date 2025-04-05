@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from "zod";
@@ -14,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, KeyRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { mysqlService } from "@/services/mysqlService";
+import { supabaseService } from "@/services/supabaseService";
 
 const loginSchema = z.object({
   email: z.string().email({
@@ -62,12 +61,6 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 type ResetFormValues = z.infer<typeof resetSchema>;
 type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
 
-// Sample user data - in a real app, this would come from a database
-const users = [
-  { email: "admin@gmail.com", password: "abcabc", role: "admin", needsPasswordChange: false },
-  { email: "user@example.com", password: "password", role: "user", needsPasswordChange: true }
-];
-
 const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -99,24 +92,33 @@ const Login = () => {
     },
   });
 
+  useEffect(() => {
+    // Check if user is already logged in
+    const storedUser = localStorage.getItem('mysqlConnection');
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      if (parsedUser.isConnected) {
+        navigate('/dashboard');
+      }
+    }
+  }, [navigate]);
+
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     
     try {
-      // Find user in our sample data
-      const user = users.find(u => u.email === data.email && u.password === data.password);
+      const result = await supabaseService.checkLogin(data.email, data.password);
       
-      if (user) {
-        if (user.needsPasswordChange) {
+      if (result.success && result.user) {
+        if (result.user.needsPasswordChange) {
           // If user needs to change password, show the change password dialog
-          setCurrentUser({ email: data.email, role: user.role });
+          setCurrentUser({ email: data.email, role: result.user.role });
           setShowChangePassword(true);
-          setIsLoading(false);
         } else {
           // Store login info
           localStorage.setItem('mysqlConnection', JSON.stringify({
             email: data.email,
-            role: user.role,
+            role: result.user.role,
             isConnected: true
           }));
           
@@ -138,13 +140,14 @@ const Login = () => {
         description: "Email ou password inválidos.",
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
     }
   };
 
   const onRequestReset = async (data: ResetFormValues) => {
     try {
-      await mysqlService.requestPasswordReset(data.email);
+      await supabaseService.requestPasswordReset(data.email);
       
       toast({
         title: "Pedido enviado",
@@ -168,15 +171,7 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // In a real implementation, we'd verify the current password first
-      await mysqlService.changePassword(currentUser.email, data.newPassword);
-      
-      // Update the sample user data
-      const userIndex = users.findIndex(u => u.email === currentUser.email);
-      if (userIndex >= 0) {
-        users[userIndex].password = data.newPassword;
-        users[userIndex].needsPasswordChange = false;
-      }
+      await supabaseService.changePassword(currentUser.email, data.newPassword);
       
       toast({
         title: "Password alterada",
@@ -313,7 +308,7 @@ const Login = () => {
             </Form>
           </CardContent>
           <CardFooter className="flex justify-center text-sm text-gray-500">
-            Admin padrão: admin@gmail.com / password: abcabc
+            Admin padrão: admin@gmail.com / password: CVAmares
           </CardFooter>
         </Card>
         

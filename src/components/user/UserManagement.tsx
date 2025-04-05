@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -19,7 +18,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import UserForm from "./UserForm";
-import { mysqlService } from "../../services/mysqlService";
+import { supabaseService } from "../../services/supabaseService";
 import { 
   Popover, PopoverContent, PopoverTrigger 
 } from "@/components/ui/popover";
@@ -44,11 +43,11 @@ const UserManagement = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const userData = await mysqlService.getAllUsers();
+        const userData = await supabaseService.getAllUsers();
         setUsers(userData);
         
         // Get password reset requests
-        const requests = await mysqlService.getPasswordResetRequests();
+        const requests = await supabaseService.getPasswordResetRequests();
         setResetRequests(requests);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -67,7 +66,7 @@ const UserManagement = () => {
     // Set up a timer to check for reset requests every 30 seconds
     const timer = setInterval(async () => {
       try {
-        const requests = await mysqlService.getPasswordResetRequests();
+        const requests = await supabaseService.getPasswordResetRequests();
         setResetRequests(requests);
       } catch (error) {
         console.error("Error checking reset requests:", error);
@@ -80,8 +79,11 @@ const UserManagement = () => {
   const handleCreateUser: UserFormSubmitFunction = async (userData) => {
     try {
       setIsLoading(true);
-      const newUser = await mysqlService.createUser({
-        ...userData,
+      const newUser = await supabaseService.createUser({
+        name: userData.name,
+        email: userData.email,
+        mechanographic_number: userData.mechanographicNumber,
+        role: userData.role,
         password: "CVAmares" // Default password for new users
       });
       
@@ -110,7 +112,12 @@ const UserManagement = () => {
   const handleEditUser: UserFormSubmitFunction = async (userData) => {
     try {
       setIsLoading(true);
-      const updatedUser = await mysqlService.updateUser(selectedUser.id, userData);
+      const updatedUser = await supabaseService.updateUser(selectedUser.id, {
+        name: userData.name,
+        email: userData.email,
+        mechanographic_number: userData.mechanographicNumber,
+        role: userData.role
+      });
       
       const updatedUsers = users.map(user => 
         user.id === selectedUser.id ? updatedUser : user
@@ -139,10 +146,10 @@ const UserManagement = () => {
     }
   };
 
-  const toggleUserStatus = async (userId: number) => {
+  const toggleUserStatus = async (userId: string) => {
     try {
       setIsLoading(true);
-      const result = await mysqlService.toggleUserStatus(userId);
+      const result = await supabaseService.toggleUserStatus(userId);
       
       if (result.success) {
         const updatedUsers = users.map(user => 
@@ -173,7 +180,7 @@ const UserManagement = () => {
   const resetPassword = async (email: string) => {
     try {
       setIsLoading(true);
-      await mysqlService.resetPassword(email);
+      await supabaseService.resetPassword(email);
       
       // Update the reset requests list
       setResetRequests(resetRequests.filter(e => e !== email));
@@ -280,7 +287,7 @@ const UserManagement = () => {
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.mechanographicNumber}</TableCell>
+                    <TableCell>{user.mechanographic_number}</TableCell>
                     <TableCell>
                       <span className={user.role === 'admin' ? 'text-brand-indigo font-medium' : ''}>
                         {user.role === 'admin' ? 'Administrador' : 'Utilizador'}
@@ -327,7 +334,7 @@ const UserManagement = () => {
                                   defaultValues={{
                                     name: selectedUser.name,
                                     email: selectedUser.email,
-                                    mechanographicNumber: selectedUser.mechanographicNumber,
+                                    mechanographicNumber: selectedUser.mechanographic_number,
                                     role: selectedUser.role,
                                   }}
                                   isEdit={true}
