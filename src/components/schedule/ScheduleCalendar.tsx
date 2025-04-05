@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { supabaseService } from "@/services/supabaseService";
 
 interface ScheduleCalendarProps {
   userEmail: string;
@@ -47,9 +48,11 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const canEditNextMonthSchedule = isAdmin || (!isPastDeadline && editCount < 2);
 
   useEffect(() => {
-    localStorage.removeItem('userSchedules');
-    localStorage.removeItem('userSchedulesReset');
-  }, []);
+    const storedEditCount = localStorage.getItem(`editCount_${userEmail}_${format(nextMonth, 'MMMM-yyyy', { locale: pt })}`);
+    if (storedEditCount) {
+      setEditCount(parseInt(storedEditCount));
+    }
+  }, [userEmail, nextMonth]);
 
   useEffect(() => {
     const storedSchedules = localStorage.getItem('userSchedules');
@@ -178,10 +181,11 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       const existingSchedules = localStorage.getItem('userSchedules') ? 
         JSON.parse(localStorage.getItem('userSchedules') || '[]') : [];
       
+      const monthKey = format(nextMonth, 'MMMM yyyy', { locale: pt });
       const userScheduleData = {
         user: userEmail,
         email: userEmail,
-        month: format(nextMonth, 'MMMM yyyy', { locale: pt }),
+        month: monthKey,
         dates: schedule.map(item => ({
           date: item.date,
           shifts: Object.entries(item.shifts)
@@ -191,7 +195,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       };
       
       const userIndex = existingSchedules.findIndex((s: any) => 
-        s.email === userEmail && s.month === format(nextMonth, 'MMMM yyyy', { locale: pt })
+        s.email === userEmail && s.month === monthKey
       );
       
       if (userIndex >= 0) {
@@ -202,8 +206,14 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       
       localStorage.setItem('userSchedules', JSON.stringify(existingSchedules));
       
-      setEditCount(prev => prev + 1);
+      const newEditCount = editCount + 1;
+      setEditCount(newEditCount);
+      
+      localStorage.setItem(`editCount_${userEmail}_${format(nextMonth, 'MMMM-yyyy', { locale: pt })}`, String(newEditCount));
+      
       setSavedSchedule(true);
+      
+      await supabaseService.saveUserSchedule(userEmail, userScheduleData);
       
       toast({
         title: "Escala guardada",
@@ -345,7 +355,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                 </Button>
               </div>
               
-              {editCount > 0 && !isAdmin && (
+              {!isAdmin && (
                 <p className="text-sm text-gray-500 mt-4 text-center">
                   Edições realizadas: {editCount}/2
                 </p>
