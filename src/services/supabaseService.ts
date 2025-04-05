@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 
 interface User {
   id?: string;
@@ -12,6 +13,11 @@ interface User {
   needs_password_change?: boolean;
 }
 
+// Define types for Supabase tables to help TypeScript understand our database schema
+type Tables = Database['public']['Tables'];
+type UsersTable = Tables['users']['Row'];
+type PasswordResetRequestsTable = Tables['password_reset_requests']['Row'];
+
 export const supabaseService = {
   // Create a new user
   async createUser(userData: Omit<User, 'id' | 'active'>): Promise<User> {
@@ -22,7 +28,7 @@ export const supabaseService = {
       .insert([{
         name: userData.name,
         email: userData.email,
-        mechanographic_number: userData.mechanographic_number || userData.mechanographicNumber,
+        mechanographic_number: userData.mechanographic_number,
         role: userData.role,
         // Password hash is set by default in the database
       }])
@@ -34,12 +40,16 @@ export const supabaseService = {
       throw error;
     }
     
+    if (!data) {
+      throw new Error('No data returned from create user operation');
+    }
+    
     return {
       id: data.id,
       name: data.name,
       email: data.email,
       mechanographic_number: data.mechanographic_number,
-      role: data.role,
+      role: data.role as 'admin' | 'user',
       active: data.active,
       needs_password_change: data.needs_password_change
     };
@@ -53,7 +63,6 @@ export const supabaseService = {
       ...(userData.name && { name: userData.name }),
       ...(userData.email && { email: userData.email }),
       ...(userData.mechanographic_number && { mechanographic_number: userData.mechanographic_number }),
-      ...(userData.mechanographicNumber && { mechanographic_number: userData.mechanographicNumber }),
       ...(userData.role && { role: userData.role }),
       ...(userData.active !== undefined && { active: userData.active }),
       ...(userData.needs_password_change !== undefined && { needs_password_change: userData.needs_password_change }),
@@ -72,12 +81,16 @@ export const supabaseService = {
       throw error;
     }
     
+    if (!data) {
+      throw new Error('No data returned from update user operation');
+    }
+    
     return {
       id: data.id,
       name: data.name,
       email: data.email,
       mechanographic_number: data.mechanographic_number,
-      role: data.role,
+      role: data.role as 'admin' | 'user',
       active: data.active,
       needs_password_change: data.needs_password_change
     };
@@ -97,6 +110,10 @@ export const supabaseService = {
     if (fetchError) {
       console.error('Error fetching user status:', fetchError);
       throw fetchError;
+    }
+    
+    if (!user) {
+      throw new Error('User not found');
     }
     
     const newStatus = !user.active;
@@ -131,12 +148,16 @@ export const supabaseService = {
       throw error;
     }
     
+    if (!data) {
+      return [];
+    }
+    
     return data.map(user => ({
       id: user.id,
       name: user.name,
       email: user.email,
       mechanographic_number: user.mechanographic_number,
-      role: user.role,
+      role: user.role as 'admin' | 'user',
       active: user.active,
       needs_password_change: user.needs_password_change
     }));
@@ -182,6 +203,10 @@ export const supabaseService = {
     if (error) {
       console.error('Error fetching reset requests:', error);
       throw error;
+    }
+    
+    if (!data) {
+      return [];
     }
     
     return data.map(request => request.email);
