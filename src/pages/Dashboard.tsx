@@ -91,18 +91,23 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Main content with nested routes */}
+      {/* Main content with nested routes - restrict user access */}
       <div className="flex-1">
         <div className="w-full max-w-[1440px] mx-auto px-4">
           <Routes>
+            {/* Routes accessible to all users */}
             <Route path="/" element={<Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
             <Route path="/schedule" element={<ScheduleCalendar userEmail={userInfo.email} isAdmin={isAdmin} />} />
             <Route path="/current-schedule" element={<CurrentSchedule isAdmin={isAdmin} />} />
+            <Route path="/profile" element={<ProfileEdit />} />
+            
+            {/* Admin-only routes */}
             <Route path="/users" element={checkAdminRoute(<UserManagement />)} />
             <Route path="/user-schedules" element={checkAdminRoute(<UserSchedules />)} />
             <Route path="/schedule-upload" element={checkAdminRoute(<ScheduleUpload />)} />
             <Route path="/announcements" element={checkAdminRoute(<Announcements />)} />
-            <Route path="/profile" element={<ProfileEdit />} />
+            
+            {/* Redirect to home if path not found or not authorized */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </div>

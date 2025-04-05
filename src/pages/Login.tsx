@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -8,8 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { 
+  Dialog, DialogContent, DialogDescription, 
+  DialogHeader, DialogTitle, DialogTrigger, DialogFooter 
+} from "@/components/ui/dialog";
+import { Loader2, KeyRound } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { mysqlService } from "@/services/mysqlService";
 
 const loginSchema = z.object({
   email: z.string().email({
@@ -20,24 +25,77 @@ const loginSchema = z.object({
   }),
 });
 
+const resetSchema = z.object({
+  email: z.string().email({
+    message: "Por favor, introduza um email válido.",
+  }),
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(6, {
+    message: "Password atual deve ter pelo menos 6 caracteres.",
+  }),
+  newPassword: z.string().min(8, {
+    message: "Nova password deve ter pelo menos 8 caracteres.",
+  }).refine(
+    (password) => /[A-Z]/.test(password),
+    { message: "Password deve conter pelo menos uma letra maiúscula." }
+  ).refine(
+    (password) => /[0-9]/.test(password),
+    { message: "Password deve conter pelo menos um número." }
+  ).refine(
+    (password) => /[^A-Za-z0-9]/.test(password),
+    { message: "Password deve conter pelo menos um caractere especial." }
+  ),
+  confirmPassword: z.string().min(8, {
+    message: "Confirmação da password deve ter pelo menos 8 caracteres.",
+  })
+}).refine(
+  (data) => data.newPassword === data.confirmPassword,
+  {
+    message: "As passwords não coincidem.",
+    path: ["confirmPassword"]
+  }
+);
+
 type LoginFormValues = z.infer<typeof loginSchema>;
+type ResetFormValues = z.infer<typeof resetSchema>;
+type ChangePasswordFormValues = z.infer<typeof changePasswordSchema>;
 
 // Sample user data - in a real app, this would come from a database
 const users = [
-  { email: "admin@gmail.com", password: "abcabc", role: "admin" },
-  { email: "user@example.com", password: "password", role: "user" }
+  { email: "admin@gmail.com", password: "abcabc", role: "admin", needsPasswordChange: false },
+  { email: "user@example.com", password: "password", role: "user", needsPasswordChange: true }
 ];
 
 const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ email: string, role: string } | null>(null);
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
       password: "",
+    },
+  });
+
+  const resetForm = useForm<ResetFormValues>({
+    resolver: zodResolver(resetSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
+
+  const changePasswordForm = useForm<ChangePasswordFormValues>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
     },
   });
 
@@ -49,20 +107,27 @@ const Login = () => {
       const user = users.find(u => u.email === data.email && u.password === data.password);
       
       if (user) {
-        // Store login info
-        localStorage.setItem('mysqlConnection', JSON.stringify({
-          email: data.email,
-          role: user.role,
-          isConnected: true
-        }));
-        
-        toast({
-          title: "Login bem sucedido",
-          description: `Bem-vindo, ${data.email}`,
-        });
-        
-        // Redirect to dashboard
-        navigate('/dashboard');
+        if (user.needsPasswordChange) {
+          // If user needs to change password, show the change password dialog
+          setCurrentUser({ email: data.email, role: user.role });
+          setShowChangePassword(true);
+          setIsLoading(false);
+        } else {
+          // Store login info
+          localStorage.setItem('mysqlConnection', JSON.stringify({
+            email: data.email,
+            role: user.role,
+            isConnected: true
+          }));
+          
+          toast({
+            title: "Login bem sucedido",
+            description: `Bem-vindo, ${data.email}`,
+          });
+          
+          // Redirect to dashboard
+          navigate('/dashboard');
+        }
       } else {
         throw new Error("Credenciais inválidas");
       }
@@ -71,6 +136,68 @@ const Login = () => {
       toast({
         title: "Falha no login",
         description: "Email ou password inválidos.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
+  };
+
+  const onRequestReset = async (data: ResetFormValues) => {
+    try {
+      await mysqlService.requestPasswordReset(data.email);
+      
+      toast({
+        title: "Pedido enviado",
+        description: "O pedido de reset de password foi enviado com sucesso.",
+      });
+      
+      resetForm.reset();
+    } catch (error) {
+      console.error("Erro ao solicitar reset:", error);
+      toast({
+        title: "Falha no pedido",
+        description: "Não foi possível solicitar o reset da password.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const onChangePassword = async (data: ChangePasswordFormValues) => {
+    if (!currentUser) return;
+    
+    setIsLoading(true);
+    
+    try {
+      // In a real implementation, we'd verify the current password first
+      await mysqlService.changePassword(currentUser.email, data.newPassword);
+      
+      // Update the sample user data
+      const userIndex = users.findIndex(u => u.email === currentUser.email);
+      if (userIndex >= 0) {
+        users[userIndex].password = data.newPassword;
+        users[userIndex].needsPasswordChange = false;
+      }
+      
+      toast({
+        title: "Password alterada",
+        description: "A sua password foi alterada com sucesso.",
+      });
+      
+      // Store login info
+      localStorage.setItem('mysqlConnection', JSON.stringify({
+        email: currentUser.email,
+        role: currentUser.role,
+        isConnected: true
+      }));
+      
+      // Close dialog and redirect
+      setShowChangePassword(false);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error("Erro ao alterar password:", error);
+      toast({
+        title: "Falha ao alterar password",
+        description: "Não foi possível alterar a password.",
         variant: "destructive",
       });
     } finally {
@@ -131,16 +258,57 @@ const Login = () => {
                   )}
                 />
                 
-                <Button type="submit" className="w-full bg-brand-indigo hover:bg-brand-darkblue" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      A iniciar sessão...
-                    </>
-                  ) : (
-                    "Entrar"
-                  )}
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button type="submit" className="w-full bg-brand-indigo hover:bg-brand-darkblue" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        A iniciar sessão...
+                      </>
+                    ) : (
+                      "Entrar"
+                    )}
+                  </Button>
+                  
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full" type="button">
+                        <KeyRound className="mr-2 h-4 w-4" />
+                        Pedir Password
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Pedir Reset de Password</DialogTitle>
+                        <DialogDescription>
+                          Introduza o seu email para solicitar um reset de password.
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <Form {...resetForm}>
+                        <form onSubmit={resetForm.handleSubmit(onRequestReset)} className="space-y-4">
+                          <FormField
+                            control={resetForm.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="seu@email.com" type="email" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <DialogFooter>
+                            <Button type="submit">Enviar Pedido</Button>
+                          </DialogFooter>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </form>
             </Form>
           </CardContent>
@@ -148,6 +316,81 @@ const Login = () => {
             Admin padrão: admin@gmail.com / password: abcabc
           </CardFooter>
         </Card>
+        
+        {/* Password Change Dialog */}
+        <Dialog open={showChangePassword} onOpenChange={setShowChangePassword}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Alterar Password</DialogTitle>
+              <DialogDescription>
+                É necessário alterar a sua password antes de continuar.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <Form {...changePasswordForm}>
+              <form onSubmit={changePasswordForm.handleSubmit(onChangePassword)} className="space-y-4">
+                <FormField
+                  control={changePasswordForm.control}
+                  name="currentPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password Atual</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={changePasswordForm.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nova Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                      <p className="text-xs text-gray-500">
+                        A password deve ter pelo menos 8 caracteres, incluindo uma letra maiúscula, 
+                        um número e um caractere especial.
+                      </p>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={changePasswordForm.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirmar Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <DialogFooter>
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        A alterar...
+                      </>
+                    ) : (
+                      "Confirmar"
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

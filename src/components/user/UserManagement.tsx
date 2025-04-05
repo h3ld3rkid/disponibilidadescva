@@ -14,36 +14,47 @@ import {
   Sheet, SheetContent, SheetDescription, 
   SheetHeader, SheetTitle, SheetTrigger 
 } from "@/components/ui/sheet";
-import { UserPlus, Pencil, UserX, UserCheck } from "lucide-react";
+import { 
+  UserPlus, Pencil, UserX, UserCheck, KeyRound, BellRing 
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import UserForm from "./UserForm";
 import { mysqlService } from "../../services/mysqlService";
+import { 
+  Popover, PopoverContent, PopoverTrigger 
+} from "@/components/ui/popover";
 
 // Define proper type for the onSubmit function
 type UserFormSubmitFunction = (data: { 
   name: string; 
   email: string; 
   password?: string; 
+  mechanographicNumber: string;
   role: "admin" | "user";
 }) => Promise<boolean>;
 
 const UserManagement = () => {
   const { toast } = useToast();
   const [users, setUsers] = useState<any[]>([]);
+  const [resetRequests, setResetRequests] = useState<string[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchData = async () => {
       try {
         const userData = await mysqlService.getAllUsers();
         setUsers(userData);
+        
+        // Get password reset requests
+        const requests = await mysqlService.getPasswordResetRequests();
+        setResetRequests(requests);
       } catch (error) {
-        console.error("Error fetching users:", error);
+        console.error("Error fetching data:", error);
         toast({
-          title: "Falha ao obter utilizadores",
-          description: "Ocorreu um erro ao carregar a lista de utilizadores",
+          title: "Falha ao obter dados",
+          description: "Ocorreu um erro ao carregar os dados",
           variant: "destructive",
         });
       } finally {
@@ -51,13 +62,28 @@ const UserManagement = () => {
       }
     };
 
-    fetchUsers();
+    fetchData();
+    
+    // Set up a timer to check for reset requests every 30 seconds
+    const timer = setInterval(async () => {
+      try {
+        const requests = await mysqlService.getPasswordResetRequests();
+        setResetRequests(requests);
+      } catch (error) {
+        console.error("Error checking reset requests:", error);
+      }
+    }, 30000);
+    
+    return () => clearInterval(timer);
   }, [toast]);
 
   const handleCreateUser: UserFormSubmitFunction = async (userData) => {
     try {
       setIsLoading(true);
-      const newUser = await mysqlService.createUser(userData);
+      const newUser = await mysqlService.createUser({
+        ...userData,
+        password: "CVAmares" // Default password for new users
+      });
       
       setUsers([...users, newUser]);
       
@@ -143,33 +169,93 @@ const UserManagement = () => {
       setIsLoading(false);
     }
   };
+  
+  const resetPassword = async (email: string) => {
+    try {
+      setIsLoading(true);
+      await mysqlService.resetPassword(email);
+      
+      // Update the reset requests list
+      setResetRequests(resetRequests.filter(e => e !== email));
+      
+      toast({
+        title: "Password redefinida",
+        description: `A password do utilizador ${email} foi redefinida para 'CVAmares'`,
+      });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      toast({
+        title: "Falha ao redefinir password",
+        description: "Ocorreu um erro ao redefinir a password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <div>
+          <div className="flex-1">
             <CardTitle>Gestão de Utilizadores</CardTitle>
             <CardDescription>Criar, editar e gerir utilizadores do sistema</CardDescription>
           </div>
           
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="bg-brand-indigo hover:bg-brand-darkblue">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Criar Utilizador
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Criar Novo Utilizador</DialogTitle>
-                <DialogDescription>
-                  Preencha os detalhes para criar uma nova conta de utilizador
-                </DialogDescription>
-              </DialogHeader>
-              <UserForm onSubmit={handleCreateUser} />
-            </DialogContent>
-          </Dialog>
+          <div className="flex items-center space-x-2">
+            {resetRequests.length > 0 && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="relative">
+                    <BellRing className="h-4 w-4" />
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                      {resetRequests.length}
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Pedidos de Reset de Password</h4>
+                    <div className="max-h-40 overflow-auto">
+                      {resetRequests.map((email, index) => (
+                        <div key={index} className="flex items-center justify-between py-1">
+                          <span className="text-sm">{email}</span>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => resetPassword(email)}
+                            className="text-xs"
+                          >
+                            <KeyRound className="h-3 w-3 mr-1" />
+                            Redefinir
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="bg-brand-indigo hover:bg-brand-darkblue">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Criar Utilizador
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Criar Novo Utilizador</DialogTitle>
+                  <DialogDescription>
+                    Preencha os detalhes para criar uma nova conta de utilizador
+                  </DialogDescription>
+                </DialogHeader>
+                <UserForm onSubmit={handleCreateUser} />
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
         
         <CardContent>
@@ -183,7 +269,8 @@ const UserManagement = () => {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Função</TableHead>
+                  <TableHead>Núm. Mec.</TableHead>
+                  <TableHead>Nível de Acesso</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -193,6 +280,7 @@ const UserManagement = () => {
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.mechanographicNumber}</TableCell>
                     <TableCell>
                       <span className={user.role === 'admin' ? 'text-brand-indigo font-medium' : ''}>
                         {user.role === 'admin' ? 'Administrador' : 'Utilizador'}
@@ -239,6 +327,7 @@ const UserManagement = () => {
                                   defaultValues={{
                                     name: selectedUser.name,
                                     email: selectedUser.email,
+                                    mechanographicNumber: selectedUser.mechanographicNumber,
                                     role: selectedUser.role,
                                   }}
                                   isEdit={true}
@@ -247,6 +336,14 @@ const UserManagement = () => {
                             )}
                           </SheetContent>
                         </Sheet>
+                        
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => resetPassword(user.email)}
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
                         
                         <Button 
                           variant="outline" 

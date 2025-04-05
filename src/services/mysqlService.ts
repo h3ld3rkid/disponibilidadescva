@@ -6,11 +6,17 @@ interface User {
   name: string;
   email: string;
   password?: string;
+  mechanographicNumber: string;
   role: 'admin' | 'user';
   active: boolean;
+  needsPasswordChange?: boolean;
+  passwordResetRequested?: boolean;
 }
 
 class MySQLService {
+  // Store password reset requests
+  private passwordResetRequests: string[] = [];
+  
   // Mock function to create a user in MySQL
   async createUser(userData: Omit<User, 'id' | 'active'>): Promise<User> {
     console.log('MySQL: Creating user', userData);
@@ -21,8 +27,10 @@ class MySQLService {
       id: Math.floor(Math.random() * 1000),
       name: userData.name,
       email: userData.email,
+      mechanographicNumber: userData.mechanographicNumber,
       role: userData.role,
-      active: true
+      active: true,
+      needsPasswordChange: true // New users always need to change password
     };
   }
   
@@ -36,8 +44,10 @@ class MySQLService {
       id: userId,
       name: userData.name || 'Desconhecido',
       email: userData.email || 'desconhecido@exemplo.com',
+      mechanographicNumber: userData.mechanographicNumber || '00000',
       role: userData.role || 'user',
-      active: userData.active !== undefined ? userData.active : true
+      active: userData.active !== undefined ? userData.active : true,
+      needsPasswordChange: userData.needsPasswordChange
     };
   }
   
@@ -62,10 +72,10 @@ class MySQLService {
     // In a real implementation, this would execute an SQL SELECT statement
     // For now, we'll return mock data
     return [
-      { id: 1, name: "Administrador", email: "admin@gmail.com", role: 'admin', active: true },
-      { id: 2, name: "João Silva", email: "joao@exemplo.com", role: 'user', active: true },
-      { id: 3, name: "Maria Oliveira", email: "maria@exemplo.com", role: 'user', active: true },
-      { id: 4, name: "António Rodrigues", email: "antonio@exemplo.com", role: 'user', active: false },
+      { id: 1, name: "Administrador", email: "admin@gmail.com", mechanographicNumber: "00001", role: 'admin', active: true, needsPasswordChange: false },
+      { id: 2, name: "João Silva", email: "joao@exemplo.com", mechanographicNumber: "00002", role: 'user', active: true, needsPasswordChange: true },
+      { id: 3, name: "Maria Oliveira", email: "maria@exemplo.com", mechanographicNumber: "00003", role: 'user', active: true, needsPasswordChange: false },
+      { id: 4, name: "António Rodrigues", email: "antonio@exemplo.com", mechanographicNumber: "00004", role: 'user', active: false, needsPasswordChange: true },
     ];
   }
 
@@ -84,6 +94,44 @@ class MySQLService {
     // In a real implementation, this would execute SQL statements
     // For now, we'll return empty data
     return [];
+  }
+  
+  // Request password reset
+  async requestPasswordReset(email: string): Promise<{ success: boolean }> {
+    console.log('MySQL: Password reset requested for', email);
+    
+    // Add to reset requests if not already there
+    if (!this.passwordResetRequests.includes(email)) {
+      this.passwordResetRequests.push(email);
+    }
+    
+    return { success: true };
+  }
+  
+  // Get password reset requests
+  async getPasswordResetRequests(): Promise<string[]> {
+    return this.passwordResetRequests;
+  }
+  
+  // Reset password for user
+  async resetPassword(email: string): Promise<{ success: boolean }> {
+    console.log('MySQL: Resetting password for', email);
+    
+    // Remove from reset requests
+    this.passwordResetRequests = this.passwordResetRequests.filter(e => e !== email);
+    
+    // In a real implementation, this would reset the password to "CVAmares"
+    // and set needsPasswordChange to true
+    return { success: true };
+  }
+  
+  // Change password for user
+  async changePassword(email: string, newPassword: string): Promise<{ success: boolean }> {
+    console.log('MySQL: Changing password for', email);
+    
+    // In a real implementation, this would update the password
+    // and set needsPasswordChange to false
+    return { success: true };
   }
 }
 

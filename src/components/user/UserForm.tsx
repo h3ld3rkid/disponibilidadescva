@@ -26,16 +26,16 @@ import { Loader2 } from "lucide-react";
 // Define the form schema with Zod
 const userFormSchema = z.object({
   name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
+    message: "Nome deve ter pelo menos 2 caracteres.",
   }),
   email: z.string().email({
-    message: "Please enter a valid email address.",
+    message: "Por favor, introduza um email válido.",
   }),
-  password: z.string().min(6, {
-    message: "Password must be at least 6 characters.",
-  }).optional(),
+  mechanographicNumber: z.string().min(1, {
+    message: "Número mecanográfico é obrigatório.",
+  }),
   role: z.enum(["admin", "user"], {
-    required_error: "Please select a user role.",
+    required_error: "Por favor, selecione um nível de acesso.",
   }),
 });
 
@@ -55,23 +55,20 @@ const UserForm = ({ onSubmit, defaultValues, isEdit = false }: UserFormProps) =>
     defaultValues: {
       name: defaultValues?.name || "",
       email: defaultValues?.email || "",
-      password: "",
+      mechanographicNumber: defaultValues?.mechanographicNumber || "",
       role: defaultValues?.role || "user",
     },
   });
   
-  // Allow password to be optional during edit
-  React.useEffect(() => {
-    if (isEdit) {
-      form.unregister('password');
-    }
-  }, [form, isEdit]);
+  // We no longer handle password in the form as it will be set to default
   
   const handleSubmit = async (data: UserFormValues) => {
     setIsSubmitting(true);
     
     try {
-      const success = await onSubmit(data);
+      // Add default password "CVAmares" for new users
+      const userData = isEdit ? data : { ...data, password: "CVAmares" };
+      const success = await onSubmit(userData);
       if (success) {
         form.reset();
       }
@@ -88,9 +85,9 @@ const UserForm = ({ onSubmit, defaultValues, isEdit = false }: UserFormProps) =>
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name</FormLabel>
+              <FormLabel>Nome</FormLabel>
               <FormControl>
-                <Input placeholder="John Doe" {...field} />
+                <Input placeholder="João Silva" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -104,47 +101,45 @@ const UserForm = ({ onSubmit, defaultValues, isEdit = false }: UserFormProps) =>
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input type="email" placeholder="user@example.com" {...field} />
+                <Input type="email" placeholder="utilizador@exemplo.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
         
-        {!isEdit && (
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Password</FormLabel>
-                <FormControl>
-                  <Input type="password" placeholder="******" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
+        <FormField
+          control={form.control}
+          name="mechanographicNumber"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Número Mecanográfico</FormLabel>
+              <FormControl>
+                <Input placeholder="12345" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         
         <FormField
           control={form.control}
           name="role"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Role</FormLabel>
+              <FormLabel>Nível de Acesso</FormLabel>
               <Select 
                 onValueChange={field.onChange} 
                 defaultValue={field.value}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a role" />
+                    <SelectValue placeholder="Selecione um nível de acesso" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="user">Utilizador</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -157,10 +152,10 @@ const UserForm = ({ onSubmit, defaultValues, isEdit = false }: UserFormProps) =>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isEdit ? "Updating..." : "Creating..."}
+                {isEdit ? "A atualizar..." : "A criar..."}
               </>
             ) : (
-              isEdit ? "Save Changes" : "Create User"
+              isEdit ? "Guardar Alterações" : "Criar Utilizador"
             )}
           </Button>
         </DialogFooter>
