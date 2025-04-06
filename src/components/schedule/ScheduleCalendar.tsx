@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 interface ScheduleCalendarProps {
   userEmail: string;
@@ -150,10 +151,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const handleDateSelect = useCallback((days: Date[] | undefined) => {
     if (!days) return;
     
-    if (!canEditNextMonthSchedule) {
+    if (!canEditNextMonthSchedule && !isAdmin) {
       toast({
         title: "Não é possível editar",
-        description: isPastDeadline && !isAdmin
+        description: isPastDeadline
           ? `Hoje é dia ${currentDay} e já não é permitido inserir a escala para o próximo mês.`
           : "Só é permitido editar a escala 2 vezes por mês.",
         variant: "destructive",
@@ -418,23 +419,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                 weekStartsOn={1}
               />
               
-              <div className="mt-6 w-full flex justify-center">
-                <div className="flex flex-wrap gap-4 items-center mb-4 justify-center">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-sm">Manhã</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                    <span className="text-sm">Tarde (Sábado/Domingo)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm">Noite (Sábado)</span>
-                  </div>
-                </div>
-              </div>
-              
               <div className="mt-6 flex justify-center">
                 <Button 
                   onClick={handleSaveSchedule} 
@@ -445,9 +429,11 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                 </Button>
               </div>
               
-              <p className="text-sm text-gray-500 mt-4 text-center">
-                Edições realizadas: {editCount}/2
-              </p>
+              <div className="mt-4 flex justify-center">
+                <Badge variant={editCount >= 2 ? "destructive" : editCount === 1 ? "outline" : "secondary"} className="px-4 py-2 text-base">
+                  <span className="font-bold">Edições realizadas:</span> {editCount}/2
+                </Badge>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -465,7 +451,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                     id={`manha-${format(selectedDay, 'yyyy-MM-dd')}`} 
                     checked={schedule.find(d => format(d.date, 'yyyy-MM-dd') === format(selectedDay, 'yyyy-MM-dd'))?.shifts.manha}
                     onCheckedChange={(checked) => handleShiftChange(selectedDay, 'manha', checked === true)}
-                    disabled={!canEditNextMonthSchedule}
+                    disabled={!canEditNextMonthSchedule && !isAdmin}
                     className="w-5 h-5"
                   />
                   <Label htmlFor={`manha-${format(selectedDay, 'yyyy-MM-dd')}`} className="text-base">Manhã</Label>
@@ -476,7 +462,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                     id={`tarde-${format(selectedDay, 'yyyy-MM-dd')}`} 
                     checked={schedule.find(d => format(d.date, 'yyyy-MM-dd') === format(selectedDay, 'yyyy-MM-dd'))?.shifts.tarde}
                     onCheckedChange={(checked) => handleShiftChange(selectedDay, 'tarde', checked === true)}
-                    disabled={!canEditNextMonthSchedule}
+                    disabled={!canEditNextMonthSchedule && !isAdmin}
                     className="w-5 h-5"
                   />
                   <Label htmlFor={`tarde-${format(selectedDay, 'yyyy-MM-dd')}`} className="text-base">
@@ -490,7 +476,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                       id={`noite-${format(selectedDay, 'yyyy-MM-dd')}`} 
                       checked={schedule.find(d => format(d.date, 'yyyy-MM-dd') === format(selectedDay, 'yyyy-MM-dd'))?.shifts.noite}
                       onCheckedChange={(checked) => handleShiftChange(selectedDay, 'noite', checked === true)}
-                      disabled={!canEditNextMonthSchedule}
+                      disabled={!canEditNextMonthSchedule && !isAdmin}
                       className="w-5 h-5"
                     />
                     <Label htmlFor={`noite-${format(selectedDay, 'yyyy-MM-dd')}`} className="text-base">
