@@ -6,6 +6,7 @@ import { BellRing } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Announcement {
   id: number;
@@ -18,6 +19,7 @@ interface Announcement {
 
 const AnnouncementsList = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const { toast } = useToast();
 
   const loadAnnouncements = () => {
     const storedAnnouncements = localStorage.getItem('announcements');
@@ -34,6 +36,9 @@ const AnnouncementsList = () => {
           now >= new Date(announcement.startDate) && now <= new Date(announcement.endDate)
         );
         setAnnouncements(activeAnnouncements);
+        
+        // Debug what we're showing
+        console.log("Active announcements found:", activeAnnouncements.length);
       } catch (error) {
         console.error('Error parsing announcements:', error);
         setAnnouncements([]);
@@ -46,7 +51,8 @@ const AnnouncementsList = () => {
     loadAnnouncements();
     
     // Add event listener for announcements changes
-    const handleAnnouncementsChange = () => {
+    const handleAnnouncementsChange = (event: any) => {
+      console.log("Announcements changed event received");
       loadAnnouncements();
     };
     

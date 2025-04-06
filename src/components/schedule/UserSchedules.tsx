@@ -13,7 +13,6 @@ import { FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { supabase } from "@/integrations/supabase/client";
 
 const UserSchedules = () => {
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -23,10 +22,13 @@ const UserSchedules = () => {
   const { toast } = useToast();
 
   const loadAllSchedules = () => {
+    console.log("Loading all schedules for admin view");
     const storedSchedules = localStorage.getItem('userSchedules');
     if (storedSchedules) {
       try {
         const parsedSchedules = JSON.parse(storedSchedules);
+        console.log(`Found ${parsedSchedules.length} schedules in localStorage`);
+        
         // Process dates to be Date objects
         const processedSchedules = parsedSchedules.map((schedule: any) => ({
           ...schedule,
@@ -35,15 +37,66 @@ const UserSchedules = () => {
             date: new Date(dateInfo.date)
           }))
         }));
+        
         setSchedules(processedSchedules);
       } catch (error) {
         console.error('Erro ao processar escalas:', error);
         setSchedules([]);
       }
     } else {
+      console.log("No schedules found in localStorage");
       setSchedules([]);
     }
     setIsLoading(false);
+  };
+
+  // Look for individual user schedules that might not be in the combined storage
+  const loadIndividualSchedules = () => {
+    const allUserSchedules: any[] = [];
+    // Collect schedules from users' individual storage
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('userSchedule_')) {
+        try {
+          const userEmail = key.split('_')[1];
+          const monthInfo = key.split('_')[2];
+          
+          const scheduleData = JSON.parse(localStorage.getItem(key) || '[]');
+          
+          // Create a schedule entry for this user
+          const userSchedule = {
+            user: userEmail,
+            email: userEmail,
+            month: monthInfo.replace('-', ' '),
+            dates: scheduleData.map((item: any) => ({
+              date: new Date(item.date),
+              shifts: Object.entries(item.shifts)
+                .filter(([_, isSelected]) => isSelected === true)
+                .map(([shiftName]) => shiftName)
+            }))
+          };
+          
+          allUserSchedules.push(userSchedule);
+        } catch (error) {
+          console.error(`Error processing schedule for key ${key}:`, error);
+        }
+      }
+    }
+    
+    if (allUserSchedules.length > 0) {
+      console.log(`Found ${allUserSchedules.length} individual user schedules`);
+      
+      // Merge with existing schedules from combined storage
+      const existingEmails = schedules.map(s => `${s.email}_${s.month}`);
+      const newSchedules = allUserSchedules.filter(s => 
+        !existingEmails.includes(`${s.email}_${s.month}`)
+      );
+      
+      if (newSchedules.length > 0) {
+        setSchedules(prev => [...prev, ...newSchedules]);
+        console.log(`Added ${newSchedules.length} new schedules from individual storage`);
+      }
+    }
   };
 
   useEffect(() => {
@@ -56,15 +109,28 @@ const UserSchedules = () => {
     // Load all schedules from localStorage
     loadAllSchedules();
     
+    // Also check for individual schedules
+    setTimeout(() => {
+      loadIndividualSchedules();
+    }, 500);
+    
     // Set up listener for schedule changes
     const handleSchedulesChange = () => {
+      console.log("Schedule changed event received");
       loadAllSchedules();
+      // Check individual schedules after a short delay
+      setTimeout(() => {
+        loadIndividualSchedules();
+      }, 500);
     };
     
     window.addEventListener('schedulesChanged', handleSchedulesChange);
     
     // Set up an interval to check for new schedules every 30 seconds
-    const timer = setInterval(loadAllSchedules, 30000);
+    const timer = setInterval(() => {
+      loadAllSchedules();
+      loadIndividualSchedules();
+    }, 30000);
     
     return () => {
       window.removeEventListener('schedulesChanged', handleSchedulesChange);

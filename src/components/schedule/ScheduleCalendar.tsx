@@ -10,7 +10,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
 
 interface ScheduleCalendarProps {
   userEmail: string;
@@ -50,17 +49,64 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
 
   const monthKey = format(nextMonth, 'MMMM-yyyy', { locale: pt });
   const editCountKey = `editCount_${userEmail}_${monthKey}`;
+  const scheduleKey = `userSchedule_${userEmail}_${monthKey}`;
 
-  // Load edit count from localStorage only once when component mounts
+  // Load edit count from localStorage when component mounts
   useEffect(() => {
     const storedEditCount = localStorage.getItem(editCountKey);
     if (storedEditCount) {
-      setEditCount(parseInt(storedEditCount));
+      const count = parseInt(storedEditCount);
+      setEditCount(count);
+      console.log(`Loaded edit count for ${userEmail}: ${count}/2`);
     }
-  }, [editCountKey]);
+    
+    // Show toast notification about edit count if not admin and edits have been made
+    if (!isAdmin && storedEditCount) {
+      const count = parseInt(storedEditCount);
+      if (count > 0) {
+        toast({
+          title: `Edições de escala: ${count}/2`,
+          description: count >= 2 
+            ? "Você atingiu o limite de edições para este mês." 
+            : `Você ainda pode editar sua escala ${2-count} vez(es) este mês.`,
+          duration: 5000,
+        });
+      }
+    }
+  }, [editCountKey, userEmail, isAdmin, toast]);
 
-  // Load saved schedule from localStorage
+  // Load saved schedule directly for this user from localStorage
   useEffect(() => {
+    // First check user-specific schedule in localStorage
+    const userScheduleData = localStorage.getItem(scheduleKey);
+    
+    if (userScheduleData) {
+      try {
+        const parsedSchedule = JSON.parse(userScheduleData);
+        const dates: Date[] = [];
+        const scheduleItems: DaySchedule[] = [];
+        
+        parsedSchedule.forEach((item: any) => {
+          const date = new Date(item.date);
+          dates.push(date);
+          
+          scheduleItems.push({
+            date,
+            shifts: item.shifts
+          });
+        });
+        
+        setSelectedDates(dates);
+        setSchedule(scheduleItems);
+        setSavedSchedule(true);
+        console.log(`Loaded user schedule for ${userEmail}: ${dates.length} days`);
+      } catch (error) {
+        console.error('Error loading schedule from direct storage:', error);
+      }
+      return;
+    }
+    
+    // Fall back to searching in the combined userSchedules
     const storedSchedules = localStorage.getItem('userSchedules');
     if (!storedSchedules) return;
     
@@ -91,11 +137,15 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         setSelectedDates(dates);
         setSchedule(scheduleItems);
         setSavedSchedule(true);
+        console.log(`Loaded user schedule from combined storage for ${userEmail}: ${dates.length} days`);
+        
+        // Save to user-specific key for future faster loading
+        saveScheduleToUserStorage(scheduleItems);
       }
     } catch (error) {
-      console.error('Error loading schedule:', error);
+      console.error('Error loading schedule from combined storage:', error);
     }
-  }, [userEmail, nextMonth]);
+  }, [userEmail, nextMonth, scheduleKey]);
 
   const handleDateSelect = useCallback((days: Date[] | undefined) => {
     if (!days) return;
@@ -164,6 +214,20 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     setSavedSchedule(false);
   };
 
+  // Helper function to save schedule to user-specific storage
+  const saveScheduleToUserStorage = (scheduleData: DaySchedule[]) => {
+    try {
+      const dataToSave = scheduleData.map(item => ({
+        date: item.date,
+        shifts: item.shifts
+      }));
+      
+      localStorage.setItem(scheduleKey, JSON.stringify(dataToSave));
+    } catch (error) {
+      console.error('Error saving schedule to user storage:', error);
+    }
+  };
+
   const handleSaveSchedule = async () => {
     if (!isAdmin && isPastDeadline) {
       toast({
@@ -184,6 +248,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     }
 
     try {
+      // 1. Update user-specific storage
+      saveScheduleToUserStorage(schedule);
+      
+      // 2. Update the combined userSchedules
       const existingSchedules = localStorage.getItem('userSchedules') ? 
         JSON.parse(localStorage.getItem('userSchedules') || '[]') : [];
       
@@ -212,11 +280,19 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       
       localStorage.setItem('userSchedules', JSON.stringify(existingSchedules));
       
-      // Only increment edit count if not admin
+      // 3. Only increment edit count if not admin
       if (!isAdmin) {
         const newEditCount = editCount + 1;
         setEditCount(newEditCount);
         localStorage.setItem(editCountKey, String(newEditCount));
+        
+        toast({
+          title: `Edições: ${newEditCount}/2`,
+          description: newEditCount >= 2 
+            ? "Você atingiu o limite de edições para este mês." 
+            : `Você ainda pode editar sua escala ${2-newEditCount} vez(es) este mês.`,
+          duration: 5000,
+        });
       }
       
       setSavedSchedule(true);
@@ -275,14 +351,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     );
   };
 
-  const handleDayClick = (date: Date) => {
-    if (isSaturday(date) || isSunday(date)) {
-      if (selectedDates.some(d => format(d, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd'))) {
-        setSelectedDay(date);
-      }
-    }
-  };
-
   return (
     <div className="w-full px-4 py-6">
       {isPastDeadline && !isAdmin && (
@@ -301,6 +369,16 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
           <AlertTitle className="text-yellow-700">Modo Administrador</AlertTitle>
           <AlertDescription className="text-yellow-600">
             Você está no modo administrador e pode editar a escala mesmo após o dia 15.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {!isAdmin && !isPastDeadline && editCount > 0 && (
+        <Alert className="mb-6 border-blue-500 bg-blue-50">
+          <AlertTriangle className="h-4 w-4 text-blue-500" />
+          <AlertTitle className="text-blue-700">Edições restantes</AlertTitle>
+          <AlertDescription className="text-blue-600">
+            Você já utilizou {editCount} de 2 edições permitidas para este mês.
           </AlertDescription>
         </Alert>
       )}
@@ -367,11 +445,9 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                 </Button>
               </div>
               
-              {!isAdmin && (
-                <p className="text-sm text-gray-500 mt-4 text-center">
-                  Edições realizadas: {editCount}/2
-                </p>
-              )}
+              <p className="text-sm text-gray-500 mt-4 text-center">
+                Edições realizadas: {editCount}/2
+              </p>
             </div>
           </CardContent>
         </Card>

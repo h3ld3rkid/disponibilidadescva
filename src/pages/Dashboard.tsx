@@ -30,7 +30,15 @@ const Dashboard = () => {
   const updateUserInfo = () => {
     const storedUser = localStorage.getItem('mysqlConnection');
     if (storedUser) {
-      setUserInfo(JSON.parse(storedUser));
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUserInfo(parsedUser);
+        console.log("User info updated:", parsedUser);
+      } catch (error) {
+        console.error("Error parsing user info:", error);
+        // Redirect to login if parse error
+        navigate('/login');
+      }
     } else {
       // Redirect to login if not connected
       toast({
@@ -49,17 +57,20 @@ const Dashboard = () => {
     
     // Listen for role changes
     const handleRoleChange = () => {
+      console.log("Role change event detected");
       updateUserInfo();
       setForceUpdate(prev => prev + 1);
     };
     
     // Listen for announcements changes to refresh the UI
     const handleAnnouncementsChange = () => {
+      console.log("Announcements change event detected");
       setForceUpdate(prev => prev + 1);
     };
     
     // Listen for schedule changes
     const handleSchedulesChange = () => {
+      console.log("Schedule change event detected");
       setForceUpdate(prev => prev + 1);
     };
     
@@ -67,10 +78,10 @@ const Dashboard = () => {
     window.addEventListener('announcementsChanged', handleAnnouncementsChange);
     window.addEventListener('schedulesChanged', handleSchedulesChange);
     
-    // Check for user info changes every 5 seconds
+    // Check for user info changes frequently
     const userInfoTimer = setInterval(() => {
       updateUserInfo();
-    }, 5000);
+    }, 2000); // Check more frequently for immediate role change effect
     
     return () => {
       window.removeEventListener('userRoleChanged', handleRoleChange);
@@ -135,7 +146,7 @@ const Dashboard = () => {
           <Routes>
             {/* Routes accessible to all users */}
             <Route path="/" element={<Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
-            <Route path="/schedule" element={<ScheduleCalendar userEmail={userInfo.email} isAdmin={isAdmin} />} />
+            <Route path="/schedule" element={<ScheduleCalendar key={`schedule-calendar-${forceUpdate}`} userEmail={userInfo.email} isAdmin={isAdmin} />} />
             <Route path="/current-schedule" element={<CurrentSchedule isAdmin={isAdmin} />} />
             <Route path="/profile" element={<ProfileEdit />} />
             
@@ -143,7 +154,7 @@ const Dashboard = () => {
             <Route path="/users" element={checkAdminRoute(<UserManagement key={`user-management-${forceUpdate}`} />)} />
             <Route path="/user-schedules" element={checkAdminRoute(<UserSchedules key={`user-schedules-${forceUpdate}`} />)} />
             <Route path="/schedule-upload" element={checkAdminRoute(<ScheduleUpload />)} />
-            <Route path="/announcements" element={checkAdminRoute(<Announcements />)} />
+            <Route path="/announcements" element={checkAdminRoute(<Announcements key={`announcements-${forceUpdate}`} />)} />
             
             {/* Redirect to home if path not found or not authorized */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
