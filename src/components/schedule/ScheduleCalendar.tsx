@@ -11,6 +11,7 @@ import { AlertTriangle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ScheduleCalendarProps {
   userEmail: string;
@@ -35,6 +36,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const [editCount, setEditCount] = useState<number>(0);
   const [savedSchedule, setSavedSchedule] = useState<boolean>(false);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [personalNotes, setPersonalNotes] = useState<string>('');
   const { toast } = useToast();
   
   const today = new Date();
@@ -51,6 +53,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const monthKey = format(nextMonth, 'MMMM-yyyy', { locale: pt });
   const editCountKey = `editCount_${userEmail}_${monthKey}`;
   const scheduleKey = `userSchedule_${userEmail}_${monthKey}`;
+  const notesKey = `userNotes_${userEmail}_${monthKey}`;
 
   // Load edit count from localStorage when component mounts
   useEffect(() => {
@@ -74,10 +77,19 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         });
       }
     }
-  }, [editCountKey, userEmail, isAdmin, toast]);
+    
+    // Load personal notes
+    const storedNotes = localStorage.getItem(notesKey);
+    if (storedNotes) {
+      setPersonalNotes(storedNotes);
+    }
+  }, [editCountKey, userEmail, isAdmin, toast, notesKey]);
 
   // Load saved schedule directly for this user from localStorage
   useEffect(() => {
+    // Reset selected dates at component mount
+    setSelectedDates([]);
+    
     // First check user-specific schedule in localStorage
     const userScheduleData = localStorage.getItem(scheduleKey);
     
@@ -261,6 +273,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         user: userEmail,
         email: userEmail,
         month: monthKey,
+        notes: personalNotes,
         dates: schedule.map(item => ({
           date: item.date,
           shifts: Object.entries(item.shifts)
@@ -280,6 +293,9 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       }
       
       localStorage.setItem('userSchedules', JSON.stringify(existingSchedules));
+      
+      // Save personal notes
+      localStorage.setItem(notesKey, personalNotes);
       
       // 3. Only increment edit count if not admin
       if (!isAdmin) {
@@ -419,20 +435,33 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                 weekStartsOn={1}
               />
               
-              <div className="mt-6 flex justify-center">
-                <Button 
-                  onClick={handleSaveSchedule} 
-                  className="w-64 bg-[#6E59A5] hover:bg-[#9b87f5] text-lg py-6"
-                  disabled={(!canEditNextMonthSchedule || selectedDates.length === 0) && !isAdmin}
-                >
-                  Guardar Escala
-                </Button>
-              </div>
+              <div className="mt-6 space-y-4">
+                <div>
+                  <Label htmlFor="personalNotes" className="text-base mb-2 block">Notas pessoais (opcional)</Label>
+                  <Textarea 
+                    id="personalNotes" 
+                    value={personalNotes} 
+                    onChange={(e) => setPersonalNotes(e.target.value)} 
+                    placeholder="Adicione aqui quaisquer notas ou informações adicionais sobre sua disponibilidade..."
+                    className="min-h-[100px]"
+                  />
+                </div>
+
+                <div className="flex justify-center">
+                  <Button 
+                    onClick={handleSaveSchedule} 
+                    className="w-64 bg-[#6E59A5] hover:bg-[#9b87f5] text-lg py-6"
+                    disabled={(!canEditNextMonthSchedule || selectedDates.length === 0) && !isAdmin}
+                  >
+                    Guardar Escala
+                  </Button>
+                </div>
               
-              <div className="mt-4 flex justify-center">
-                <Badge variant={editCount >= 2 ? "destructive" : editCount === 1 ? "outline" : "secondary"} className="px-4 py-2 text-base">
-                  <span className="font-bold">Edições realizadas:</span> {editCount}/2
-                </Badge>
+                <div className="flex justify-center">
+                  <Badge variant={editCount >= 2 ? "destructive" : editCount === 1 ? "outline" : "secondary"} className="px-4 py-2 text-base">
+                    <span className="font-bold">Edições realizadas:</span> {editCount}/2
+                  </Badge>
+                </div>
               </div>
             </div>
           </CardContent>

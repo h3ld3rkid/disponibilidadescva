@@ -5,6 +5,13 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { BellRing } from 'lucide-react';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious
+} from "@/components/ui/carousel";
 
 interface HomeProps {
   userEmail: string;
@@ -65,26 +72,53 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
             <div className="text-center py-10 text-gray-500">
               Não existem avisos ativos de momento.
             </div>
+          ) : announcements.length > 1 ? (
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+              <Carousel className="w-full relative mx-auto">
+                <CarouselContent>
+                  {announcements.map((announcement) => (
+                    <CarouselItem key={announcement.id}>
+                      <Card className="w-full bg-blue-50 border-blue-200">
+                        <CardHeader className="pb-2">
+                          <div className="flex justify-between items-start">
+                            <CardTitle className="text-lg">{announcement.title}</CardTitle>
+                            <div className="text-xs text-gray-500">
+                              {format(announcement.startDate, "dd/MM/yyyy", { locale: pt })} a {format(announcement.endDate, "dd/MM/yyyy", { locale: pt })}
+                            </div>
+                          </div>
+                          <CardDescription className="text-xs">
+                            Publicado por: {announcement.createdBy}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="whitespace-pre-wrap text-sm">{announcement.content}</p>
+                        </CardContent>
+                      </Card>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="left-0 md:-left-12" />
+                <CarouselNext className="right-0 md:-right-12" />
+              </Carousel>
+            </div>
           ) : (
             <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-              {announcements.map((announcement) => (
-                <Card key={announcement.id} className="w-full bg-blue-50 border-blue-200">
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-lg">{announcement.title}</CardTitle>
-                      <div className="text-xs text-gray-500">
-                        {format(announcement.startDate, "dd/MM/yyyy", { locale: pt })} a {format(announcement.endDate, "dd/MM/yyyy", { locale: pt })}
-                      </div>
+              <Card className="w-full bg-blue-50 border-blue-200">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-lg">{announcements[0].title}</CardTitle>
+                    <div className="text-xs text-gray-500">
+                      {format(announcements[0].startDate, "dd/MM/yyyy", { locale: pt })} a {format(announcements[0].endDate, "dd/MM/yyyy", { locale: pt })}
                     </div>
-                    <CardDescription className="text-xs">
-                      Publicado por: {announcement.createdBy}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="whitespace-pre-wrap text-sm">{announcement.content}</p>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                  <CardDescription className="text-xs">
+                    Publicado por: {announcements[0].createdBy}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="whitespace-pre-wrap text-sm">{announcements[0].content}</p>
+                </CardContent>
+              </Card>
             </div>
           )}
         </CardContent>

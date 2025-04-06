@@ -110,17 +110,9 @@ const Dashboard = () => {
     return isAdmin ? element : <Navigate to="/dashboard" replace />;
   };
 
-  // Check if user is trying to access user-only routes
-  const checkUserAccess = (path: string) => {
-    // Paths allowed for regular users
-    const allowedUserPaths = ['/', '/schedule', '/current-schedule', '/profile'];
-    
-    // Admin has access to all routes
-    if (isAdmin) return true;
-    
-    // Check if the path is in the allowed list for users
-    return allowedUserPaths.includes(path);
-  };
+  // Current path to determine if we should show announcements list
+  const path = window.location.pathname;
+  const isHomePage = path === '/dashboard' || path === '/dashboard/';
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -142,7 +134,8 @@ const Dashboard = () => {
       {/* Main content with nested routes - restrict user access */}
       <div className="flex-1">
         <div className="w-full max-w-[1440px] mx-auto px-4">
-          <AnnouncementsList key={`announcements-list-${forceUpdate}`} />
+          {/* Only show announcements list on non-Home pages since Home already displays announcements */}
+          {!isHomePage && <AnnouncementsList key={`announcements-list-${forceUpdate}`} />}
           <Routes>
             {/* Routes accessible to all users */}
             <Route path="/" element={<Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
