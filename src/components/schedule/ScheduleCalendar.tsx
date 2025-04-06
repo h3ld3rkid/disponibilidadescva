@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar } from "@/components/ui/calendar";
 import { format, isSaturday, isSunday, isAfter, isBefore, startOfMonth, endOfMonth, addMonths, getDate, getMonth, getYear } from "date-fns";
 import { pt } from "date-fns/locale";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -55,13 +55,21 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const scheduleKey = `userSchedule_${userEmail}_${monthKey}`;
   const notesKey = `userNotes_${userEmail}_${monthKey}`;
 
-  // Load edit count from localStorage when component mounts
+  // Reset all selections when component mounts or user changes
   useEffect(() => {
+    // Clear selections initially
+    setSelectedDates([]);
+    setSchedule([]);
+    setSavedSchedule(false);
+    
+    // Load edit count from localStorage
     const storedEditCount = localStorage.getItem(editCountKey);
     if (storedEditCount) {
       const count = parseInt(storedEditCount);
       setEditCount(count);
       console.log(`Loaded edit count for ${userEmail}: ${count}/2`);
+    } else {
+      setEditCount(0);
     }
     
     // Show toast notification about edit count if not admin and edits have been made
@@ -83,14 +91,13 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     if (storedNotes) {
       setPersonalNotes(storedNotes);
     }
-  }, [editCountKey, userEmail, isAdmin, toast, notesKey]);
+    
+    // Load saved schedule if it exists
+    loadSavedSchedule();
+  }, [userEmail, editCountKey, isAdmin, toast, notesKey]);
 
   // Load saved schedule directly for this user from localStorage
-  useEffect(() => {
-    // Reset selected dates at component mount - this ensures no pre-selected dates
-    setSelectedDates([]);
-    setSchedule([]);
-    
+  const loadSavedSchedule = useCallback(() => {
     // First check user-specific schedule in localStorage
     const userScheduleData = localStorage.getItem(scheduleKey);
     
@@ -162,7 +169,11 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   }, [userEmail, nextMonth, scheduleKey]);
 
   const handleDateSelect = useCallback((days: Date[] | undefined) => {
-    if (!days) return;
+    if (!days) {
+      setSelectedDates([]);
+      setSchedule([]);
+      return;
+    }
     
     if (!canEditNextMonthSchedule && !isAdmin) {
       toast({
@@ -335,7 +346,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const renderDayContent = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     const isSelected = selectedDates.some(d => format(d, 'yyyy-MM-dd') === dateStr);
-    const daySchedule = schedule.find(d => format(d.date, 'yyyy-MM-dd') === dateStr);
     
     if (isSelected) {
       return (
@@ -434,7 +444,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                   <Button 
                     onClick={handleSaveSchedule} 
                     className="w-64 bg-[#6E59A5] hover:bg-[#9b87f5] text-lg py-6"
-                    disabled={(!canEditNextMonthSchedule || selectedDates.length === 0) && !isAdmin}
+                    disabled={((!canEditNextMonthSchedule || selectedDates.length === 0) && !isAdmin) || (editCount >= 2 && !isAdmin)}
                   >
                     Guardar Escala
                   </Button>

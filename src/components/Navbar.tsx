@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   NavigationMenu,
@@ -28,6 +28,22 @@ const Navbar = ({ email, role }: NavbarProps) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const adminMenuRef = useRef<HTMLDivElement>(null);
+
+  // Handle clicks outside admin menu to close it
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (adminMenuRef.current && !adminMenuRef.current.contains(event.target as Node)) {
+        setAdminMenuOpen(false);
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('mysqlConnection');
@@ -41,6 +57,7 @@ const Navbar = ({ email, role }: NavbarProps) => {
   const navigateToUserManagement = () => {
     navigate('/dashboard/users');
     setIsMenuOpen(false);
+    setAdminMenuOpen(false);
   };
 
   const navigateToHome = () => {
@@ -61,6 +78,7 @@ const Navbar = ({ email, role }: NavbarProps) => {
   const navigateToUserSchedules = () => {
     navigate('/dashboard/user-schedules');
     setIsMenuOpen(false);
+    setAdminMenuOpen(false);
   };
 
   const navigateToProfile = () => {
@@ -71,11 +89,17 @@ const Navbar = ({ email, role }: NavbarProps) => {
   const navigateToAnnouncements = () => {
     navigate('/dashboard/announcements');
     setIsMenuOpen(false);
+    setAdminMenuOpen(false);
   };
 
   const navigateToScheduleUpload = () => {
     navigate('/dashboard/schedule-upload');
     setIsMenuOpen(false);
+    setAdminMenuOpen(false);
+  };
+
+  const toggleAdminMenu = () => {
+    setAdminMenuOpen(!adminMenuOpen);
   };
 
   const renderMenuContent = () => (
@@ -119,62 +143,53 @@ const Navbar = ({ email, role }: NavbarProps) => {
       )}
 
       {role === 'admin' && (
-        <NavigationMenu>
-          <NavigationMenuList>
-            <NavigationMenuItem>
-              <NavigationMenuTrigger className="h-10 px-4 w-56">
-                <Settings className="h-4 w-4 mr-2" />
-                Administração
-              </NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <div className="p-4 w-[250px] bg-white">
-                  <ul className="space-y-2">
-                    <li>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start"
-                        onClick={navigateToUserManagement}
-                      >
-                        <UsersIcon className="h-4 w-4 mr-2" />
-                        Gerir Utilizadores
-                      </Button>
-                    </li>
-                    <li>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start"
-                        onClick={navigateToAnnouncements}
-                      >
-                        <Pencil className="h-4 w-4 mr-2" />
-                        Editar Avisos
-                      </Button>
-                    </li>
-                    <li>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start"
-                        onClick={navigateToUserSchedules}
-                      >
-                        <ListChecks className="h-4 w-4 mr-2" />
-                        Escalas dos Utilizadores
-                      </Button>
-                    </li>
-                    <li>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start"
-                        onClick={navigateToScheduleUpload}
-                      >
-                        <FileUp className="h-4 w-4 mr-2" />
-                        Carregar Escala Atual
-                      </Button>
-                    </li>
-                  </ul>
-                </div>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
+        <div className="relative" ref={adminMenuRef}>
+          <Button 
+            variant="ghost" 
+            onClick={toggleAdminMenu}
+            className="flex items-center"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Administração
+          </Button>
+          
+          {adminMenuOpen && (
+            <div className="absolute top-full left-0 mt-2 bg-white shadow-lg rounded-md p-2 z-50 min-w-[200px]">
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start mb-1"
+                onClick={navigateToUserManagement}
+              >
+                <UsersIcon className="h-4 w-4 mr-2" />
+                Gerir Utilizadores
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start mb-1"
+                onClick={navigateToAnnouncements}
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Editar Avisos
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start mb-1"
+                onClick={navigateToUserSchedules}
+              >
+                <ListChecks className="h-4 w-4 mr-2" />
+                Escalas dos Utilizadores
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start"
+                onClick={navigateToScheduleUpload}
+              >
+                <FileUp className="h-4 w-4 mr-2" />
+                Carregar Escala Atual
+              </Button>
+            </div>
+          )}
+        </div>
       )}
 
       <Button 

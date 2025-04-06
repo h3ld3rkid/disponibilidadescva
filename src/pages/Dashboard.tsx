@@ -125,6 +125,8 @@ const Dashboard = () => {
   };
 
   // Current path to determine if we should show announcements list
+  // Only show announcements on homepage since it has its own display of announcements
+  // This prevents duplicate announcements
   const isHomePage = currentPath === '/dashboard' || currentPath === '/dashboard/';
 
   return (
