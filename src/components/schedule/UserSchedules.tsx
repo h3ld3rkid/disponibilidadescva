@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { FileText } from "lucide-react";
+import { FileText, Trash2, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 
 const UserSchedules = () => {
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -146,6 +147,74 @@ const UserSchedules = () => {
         return [...prev, email];
       }
     });
+  };
+
+  const deleteUserSchedules = (email: string) => {
+    try {
+      // First remove from combined storage
+      const storedSchedules = localStorage.getItem('userSchedules');
+      if (storedSchedules) {
+        const parsedSchedules = JSON.parse(storedSchedules);
+        const updatedSchedules = parsedSchedules.filter((s: any) => s.email !== email);
+        localStorage.setItem('userSchedules', JSON.stringify(updatedSchedules));
+      }
+
+      // Then remove individual user schedules
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(`userSchedule_${email}`)) {
+          localStorage.removeItem(key);
+        }
+      }
+
+      // Update UI state
+      setSchedules(prev => prev.filter(schedule => schedule.email !== email));
+      setSelectedUsers(prev => prev.filter(e => e !== email));
+
+      // Notify other components
+      const event = new CustomEvent('schedulesChanged');
+      window.dispatchEvent(event);
+
+      toast({
+        title: "Escalas eliminadas",
+        description: `As escalas de ${email} foram eliminadas com sucesso.`,
+      });
+    } catch (error) {
+      console.error("Error deleting schedules:", error);
+      toast({
+        title: "Erro ao eliminar",
+        description: "Ocorreu um erro ao eliminar as escalas.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resetEditCounter = (email: string) => {
+    try {
+      // Find all edit counters for this user
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(`editCount_${email}`)) {
+          localStorage.setItem(key, '0');
+        }
+      }
+
+      toast({
+        title: "Contador reiniciado",
+        description: `O contador de edições de ${email} foi reiniciado com sucesso.`,
+      });
+
+      // Notify other components
+      const event = new CustomEvent('schedulesChanged');
+      window.dispatchEvent(event);
+    } catch (error) {
+      console.error("Error resetting edit counter:", error);
+      toast({
+        title: "Erro ao reiniciar",
+        description: "Ocorreu um erro ao reiniciar o contador.",
+        variant: "destructive",
+      });
+    }
   };
 
   const exportSelectedToPDF = () => {
@@ -289,6 +358,9 @@ const UserSchedules = () => {
                   <TableHead>Mês</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Turnos</TableHead>
+                  {userInfo && userInfo.role === 'admin' && (
+                    <TableHead className="w-[150px] text-right">Ações</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -319,6 +391,64 @@ const UserSchedules = () => {
                           </span>
                         ))}
                       </TableCell>
+                      {dateIndex === 0 && userInfo && userInfo.role === 'admin' && (
+                        <TableCell rowSpan={schedule.dates.length} className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  variant="destructive" 
+                                  size="sm" 
+                                  className="h-8 flex items-center"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Eliminar
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Confirmar eliminação</DialogTitle>
+                                </DialogHeader>
+                                <p>Tem a certeza que deseja eliminar as escalas de {schedule.email}?</p>
+                                <DialogFooter>
+                                  <Button 
+                                    variant="destructive" 
+                                    onClick={() => deleteUserSchedules(schedule.email)}
+                                  >
+                                    Eliminar
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                            
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-8 flex items-center"
+                                >
+                                  <RotateCcw className="h-4 w-4 mr-1" />
+                                  Resetar
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Reiniciar contador</DialogTitle>
+                                </DialogHeader>
+                                <p>Deseja reiniciar o contador de edições para {schedule.email}?</p>
+                                <DialogFooter>
+                                  <Button 
+                                    onClick={() => resetEditCounter(schedule.email)}
+                                  >
+                                    Reiniciar (0/2)
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 )}

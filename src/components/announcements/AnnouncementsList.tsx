@@ -5,7 +5,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { BellRing } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Carousel,
@@ -27,6 +26,7 @@ interface Announcement {
 const AnnouncementsList = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const { toast } = useToast();
+  const [isHomePage, setIsHomePage] = useState<boolean>(false);
 
   const loadAnnouncements = () => {
     const storedAnnouncements = localStorage.getItem('announcements');
@@ -54,27 +54,34 @@ const AnnouncementsList = () => {
   };
 
   useEffect(() => {
-    // Load announcements initially
-    loadAnnouncements();
+    // Check if we're on the home page to avoid duplicate announcements
+    const currentPath = window.location.pathname;
+    setIsHomePage(currentPath === '/dashboard' || currentPath === '/dashboard/');
     
-    // Add event listener for announcements changes
-    const handleAnnouncementsChange = (event: any) => {
-      console.log("Announcements changed event received");
+    // Don't load announcements on home page (they're already shown there)
+    if (!isHomePage) {
+      // Load announcements initially
       loadAnnouncements();
-    };
-    
-    window.addEventListener('announcementsChanged', handleAnnouncementsChange);
-    
-    // Check for new announcements every minute
-    const interval = setInterval(loadAnnouncements, 60000);
-    
-    return () => {
-      window.removeEventListener('announcementsChanged', handleAnnouncementsChange);
-      clearInterval(interval);
-    };
-  }, []);
+      
+      // Add event listener for announcements changes
+      const handleAnnouncementsChange = () => {
+        console.log("Announcements changed event received");
+        loadAnnouncements();
+      };
+      
+      window.addEventListener('announcementsChanged', handleAnnouncementsChange);
+      
+      // Check for new announcements every minute
+      const interval = setInterval(loadAnnouncements, 60000);
+      
+      return () => {
+        window.removeEventListener('announcementsChanged', handleAnnouncementsChange);
+        clearInterval(interval);
+      };
+    }
+  }, [isHomePage]);
 
-  if (announcements.length === 0) {
+  if (announcements.length === 0 || isHomePage) {
     return null;
   }
 

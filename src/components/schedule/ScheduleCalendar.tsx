@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar } from "@/components/ui/calendar";
 import { format, isSaturday, isSunday, isAfter, isBefore, startOfMonth, endOfMonth, addMonths, getDate, getMonth, getYear } from "date-fns";
 import { pt } from "date-fns/locale";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -87,8 +87,9 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
 
   // Load saved schedule directly for this user from localStorage
   useEffect(() => {
-    // Reset selected dates at component mount
+    // Reset selected dates at component mount - this ensures no pre-selected dates
     setSelectedDates([]);
+    setSchedule([]);
     
     // First check user-specific schedule in localStorage
     const userScheduleData = localStorage.getItem(scheduleKey);
@@ -186,15 +187,12 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     
     if (newDates.length > 0) {
       const newScheduleItems = newDates.map(date => {
-        const isSat = isSaturday(date);
-        const isSun = isSunday(date);
-        
         return {
           date,
           shifts: {
-            manha: true,
-            tarde: isSat || isSun,
-            noite: isSat
+            manha: false,
+            tarde: false,
+            noite: false
           }
         };
       });
@@ -352,11 +350,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
           }}
         >
           <span className="text-xs md:text-sm">{date.getDate()}</span>
-          <div className="absolute top-0.5 right-0.5 flex flex-col gap-0.5">
-            {daySchedule?.shifts.manha && <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full"></div>}
-            {daySchedule?.shifts.tarde && <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-yellow-500 rounded-full"></div>}
-            {daySchedule?.shifts.noite && <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-blue-500 rounded-full"></div>}
-          </div>
         </div>
       );
     }
@@ -386,16 +379,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
           <AlertTitle className="text-yellow-700">Modo Administrador</AlertTitle>
           <AlertDescription className="text-yellow-600">
             Você está no modo administrador e pode editar a escala mesmo após o dia 15.
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {!isAdmin && !isPastDeadline && editCount > 0 && (
-        <Alert className="mb-6 border-blue-500 bg-blue-50">
-          <AlertTriangle className="h-4 w-4 text-blue-500" />
-          <AlertTitle className="text-blue-700">Edições restantes</AlertTitle>
-          <AlertDescription className="text-blue-600">
-            Você já utilizou {editCount} de 2 edições permitidas para este mês.
           </AlertDescription>
         </Alert>
       )}
@@ -458,8 +441,11 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                 </div>
               
                 <div className="flex justify-center">
-                  <Badge variant={editCount >= 2 ? "destructive" : editCount === 1 ? "outline" : "secondary"} className="px-4 py-2 text-base">
-                    <span className="font-bold">Edições realizadas:</span> {editCount}/2
+                  <Badge 
+                    variant={editCount >= 2 ? "destructive" : editCount === 1 ? "outline" : "secondary"} 
+                    className="px-4 py-2 text-base font-bold border-2 shadow-sm"
+                  >
+                    Edições realizadas: {editCount}/2
                   </Badge>
                 </div>
               </div>

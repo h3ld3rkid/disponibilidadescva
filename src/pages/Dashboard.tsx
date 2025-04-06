@@ -25,6 +25,7 @@ const Dashboard = () => {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [forceUpdate, setForceUpdate] = useState(0);
+  const [currentPath, setCurrentPath] = useState<string>(window.location.pathname);
 
   // Function to check and update user info
   const updateUserInfo = () => {
@@ -49,6 +50,19 @@ const Dashboard = () => {
       navigate('/login');
     }
   };
+  
+  // Update the current path when it changes
+  useEffect(() => {
+    const handlePathChange = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    
+    window.addEventListener('popstate', handlePathChange);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePathChange);
+    };
+  }, []);
 
   useEffect(() => {
     // Initial user info load
@@ -111,8 +125,7 @@ const Dashboard = () => {
   };
 
   // Current path to determine if we should show announcements list
-  const path = window.location.pathname;
-  const isHomePage = path === '/dashboard' || path === '/dashboard/';
+  const isHomePage = currentPath === '/dashboard' || currentPath === '/dashboard/';
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -136,6 +149,7 @@ const Dashboard = () => {
         <div className="w-full max-w-[1440px] mx-auto px-4">
           {/* Only show announcements list on non-Home pages since Home already displays announcements */}
           {!isHomePage && <AnnouncementsList key={`announcements-list-${forceUpdate}`} />}
+          
           <Routes>
             {/* Routes accessible to all users */}
             <Route path="/" element={<Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
