@@ -5,7 +5,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { BellRing } from "lucide-react";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { useToast } from "@/hooks/use-toast";
 import { 
   Carousel,
   CarouselContent,
@@ -25,22 +24,24 @@ interface Announcement {
 
 const AnnouncementsList = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const { toast } = useToast();
   const [isHomePage, setIsHomePage] = useState<boolean>(false);
 
   const loadAnnouncements = () => {
     const storedAnnouncements = localStorage.getItem('announcements');
     if (storedAnnouncements) {
       try {
-        const parsedAnnouncements = JSON.parse(storedAnnouncements).map((announcement: any) => ({
+        const parsedAnnouncements = JSON.parse(storedAnnouncements);
+        
+        // Convert string dates to Date objects
+        const processedAnnouncements = parsedAnnouncements.map((announcement: any) => ({
           ...announcement,
           startDate: new Date(announcement.startDate),
           endDate: new Date(announcement.endDate)
         }));
         
-        // Filter announcements to show only active ones (current date is between startDate and endDate)
+        // Filter announcements to show only active ones
         const now = new Date();
-        const activeAnnouncements = parsedAnnouncements.filter((announcement: Announcement) => {
+        const activeAnnouncements = processedAnnouncements.filter((announcement: Announcement) => {
           const startDate = new Date(announcement.startDate);
           const endDate = new Date(announcement.endDate);
           return now >= startDate && now <= endDate;
@@ -52,6 +53,8 @@ const AnnouncementsList = () => {
         console.error('Error parsing announcements:', error);
         setAnnouncements([]);
       }
+    } else {
+      setAnnouncements([]);
     }
   };
 

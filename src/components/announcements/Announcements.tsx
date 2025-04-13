@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { BellRing, Plus, Edit, Trash2, CalendarIcon } from "lucide-react";
+import { BellRing, Edit, Trash2, CalendarIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 
@@ -35,6 +35,20 @@ const Announcements = () => {
 
   useEffect(() => {
     // Load announcements from localStorage
+    loadAnnouncementsFromStorage();
+  }, []);
+
+  useEffect(() => {
+    // Only save announcements to localStorage if they've been loaded
+    if (announcements.length > 0 || document.readyState === 'complete') {
+      saveAnnouncementsToStorage();
+      
+      // Dispatch event to notify other components that announcements have changed
+      triggerAnnouncementsChangedEvent();
+    }
+  }, [announcements]);
+
+  const loadAnnouncementsFromStorage = () => {
     const storedAnnouncements = localStorage.getItem('announcements');
     if (storedAnnouncements) {
       try {
@@ -49,20 +63,18 @@ const Announcements = () => {
         setAnnouncements([]);
       }
     }
-  }, []);
+  };
 
-  useEffect(() => {
-    // Only save announcements to localStorage if they've been loaded
-    if (announcements.length > 0 || document.readyState === 'complete') {
-      localStorage.setItem('announcements', JSON.stringify(announcements));
-      
-      // Add an event to notify other components that announcements have changed
-      const event = new CustomEvent('announcementsChanged', { 
-        detail: { announcements } 
-      });
-      window.dispatchEvent(event);
-    }
-  }, [announcements]);
+  const saveAnnouncementsToStorage = () => {
+    localStorage.setItem('announcements', JSON.stringify(announcements));
+  };
+
+  const triggerAnnouncementsChangedEvent = () => {
+    const event = new CustomEvent('announcementsChanged', { 
+      detail: { announcements } 
+    });
+    window.dispatchEvent(event);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,8 +131,8 @@ const Announcements = () => {
   const handleEdit = (announcement: Announcement) => {
     setTitle(announcement.title);
     setContent(announcement.content);
-    setStartDate(announcement.startDate);
-    setEndDate(announcement.endDate);
+    setStartDate(new Date(announcement.startDate));
+    setEndDate(new Date(announcement.endDate));
     setEditingId(announcement.id);
     setActiveTab("create");
   };
@@ -259,7 +271,7 @@ const Announcements = () => {
                           className="w-full justify-start text-left font-normal"
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {startDate ? format(new Date(startDate), "dd/MM/yyyy", { locale: pt }) : "Selecione uma data"}
+                          {startDate ? format(startDate, "dd/MM/yyyy", { locale: pt }) : "Selecione uma data"}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
@@ -282,7 +294,7 @@ const Announcements = () => {
                           className="w-full justify-start text-left font-normal"
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {endDate ? format(new Date(endDate), "dd/MM/yyyy", { locale: pt }) : "Selecione uma data"}
+                          {endDate ? format(endDate, "dd/MM/yyyy", { locale: pt }) : "Selecione uma data"}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
