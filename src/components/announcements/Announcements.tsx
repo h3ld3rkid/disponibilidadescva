@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,14 +52,16 @@ const Announcements = () => {
   }, []);
 
   useEffect(() => {
-    // Save announcements to localStorage whenever they change
-    localStorage.setItem('announcements', JSON.stringify(announcements));
-    
-    // Add an event to notify other components that announcements have changed
-    const event = new CustomEvent('announcementsChanged', { 
-      detail: { announcements } 
-    });
-    window.dispatchEvent(event);
+    // Only save announcements to localStorage if they've been loaded
+    if (announcements.length > 0 || document.readyState === 'complete') {
+      localStorage.setItem('announcements', JSON.stringify(announcements));
+      
+      // Add an event to notify other components that announcements have changed
+      const event = new CustomEvent('announcementsChanged', { 
+        detail: { announcements } 
+      });
+      window.dispatchEvent(event);
+    }
   }, [announcements]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -73,12 +76,16 @@ const Announcements = () => {
       return;
     }
     
+    // Make sure dates are valid Date objects
+    const validStartDate = startDate instanceof Date ? startDate : new Date(startDate);
+    const validEndDate = endDate instanceof Date ? endDate : new Date(endDate);
+
     if (editingId !== null) {
       // Update existing announcement
       setAnnouncements(prev => 
         prev.map(item => 
           item.id === editingId 
-            ? { ...item, title, content, startDate, endDate }
+            ? { ...item, title, content, startDate: validStartDate, endDate: validEndDate }
             : item
         )
       );
@@ -92,8 +99,8 @@ const Announcements = () => {
         id: Date.now(),
         title,
         content,
-        startDate,
-        endDate,
+        startDate: validStartDate,
+        endDate: validEndDate,
         createdBy: 'Admin', // In a real app, this would be the current user's name
       };
       
@@ -115,6 +122,7 @@ const Announcements = () => {
     setStartDate(announcement.startDate);
     setEndDate(announcement.endDate);
     setEditingId(announcement.id);
+    setActiveTab("create");
   };
 
   const handleDelete = (id: number) => {
@@ -135,7 +143,7 @@ const Announcements = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Tabs defaultValue="list" className="w-full" value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="list">Lista de Avisos</TabsTrigger>
           <TabsTrigger value="create">Criar Aviso</TabsTrigger>
@@ -163,7 +171,7 @@ const Announcements = () => {
                         <div className="flex justify-between items-start">
                           <CardTitle className="text-lg">{announcement.title}</CardTitle>
                           <div className="text-xs text-gray-500">
-                            {format(announcement.startDate, "dd/MM/yyyy", { locale: pt })} a {format(announcement.endDate, "dd/MM/yyyy", { locale: pt })}
+                            {format(new Date(announcement.startDate), "dd/MM/yyyy", { locale: pt })} a {format(new Date(announcement.endDate), "dd/MM/yyyy", { locale: pt })}
                           </div>
                         </div>
                         <CardDescription className="text-xs">
@@ -251,16 +259,15 @@ const Announcements = () => {
                           className="w-full justify-start text-left font-normal"
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {startDate ? format(startDate, "dd/MM/yyyy", { locale: pt }) : "Selecione uma data"}
+                          {startDate ? format(new Date(startDate), "dd/MM/yyyy", { locale: pt }) : "Selecione uma data"}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
+                      <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
                           selected={startDate}
                           onSelect={(date) => date && setStartDate(date)}
                           initialFocus
-                          className="p-3 pointer-events-auto"
                         />
                       </PopoverContent>
                     </Popover>
@@ -275,16 +282,15 @@ const Announcements = () => {
                           className="w-full justify-start text-left font-normal"
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {endDate ? format(endDate, "dd/MM/yyyy", { locale: pt }) : "Selecione uma data"}
+                          {endDate ? format(new Date(endDate), "dd/MM/yyyy", { locale: pt }) : "Selecione uma data"}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
+                      <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
                           selected={endDate}
                           onSelect={(date) => date && setEndDate(date)}
                           initialFocus
-                          className="p-3 pointer-events-auto"
                         />
                       </PopoverContent>
                     </Popover>
@@ -308,7 +314,10 @@ const Announcements = () => {
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={resetForm}
+                  onClick={() => {
+                    resetForm();
+                    setActiveTab("list");
+                  }}
                 >
                   {editingId !== null ? "Cancelar" : "Limpar"}
                 </Button>

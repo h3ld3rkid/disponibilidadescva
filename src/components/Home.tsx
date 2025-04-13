@@ -31,9 +31,7 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const { toast } = useToast();
 
-  useEffect(() => {
-    // In a real app, this would fetch announcements from an API
-    // For now, we'll use mock data stored in localStorage
+  const loadAnnouncements = () => {
     const storedAnnouncements = localStorage.getItem('announcements');
     if (storedAnnouncements) {
       try {
@@ -45,7 +43,9 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
           startDate: new Date(announcement.startDate),
           endDate: new Date(announcement.endDate)
         })).filter((announcement: Announcement) => {
-          return announcement.startDate <= currentDate && announcement.endDate >= currentDate;
+          const startDate = new Date(announcement.startDate);
+          const endDate = new Date(announcement.endDate);
+          return startDate <= currentDate && endDate >= currentDate;
         });
         setAnnouncements(validAnnouncements);
       } catch (error) {
@@ -55,6 +55,27 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
     } else {
       setAnnouncements([]);
     }
+  };
+
+  useEffect(() => {
+    // Load announcements initially
+    loadAnnouncements();
+    
+    // Add event listener for announcements changes
+    const handleAnnouncementsChange = () => {
+      console.log("Announcements changed event received in Home");
+      loadAnnouncements();
+    };
+    
+    window.addEventListener('announcementsChanged', handleAnnouncementsChange);
+    
+    // Reload announcements periodically
+    const interval = setInterval(loadAnnouncements, 60000);
+    
+    return () => {
+      window.removeEventListener('announcementsChanged', handleAnnouncementsChange);
+      clearInterval(interval);
+    };
   }, []);
 
   return (
@@ -83,7 +104,7 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
                           <div className="flex justify-between items-start">
                             <CardTitle className="text-lg">{announcement.title}</CardTitle>
                             <div className="text-xs text-gray-500">
-                              {format(announcement.startDate, "dd/MM/yyyy", { locale: pt })} a {format(announcement.endDate, "dd/MM/yyyy", { locale: pt })}
+                              {format(new Date(announcement.startDate), "dd/MM/yyyy", { locale: pt })} a {format(new Date(announcement.endDate), "dd/MM/yyyy", { locale: pt })}
                             </div>
                           </div>
                           <CardDescription className="text-xs">
@@ -108,7 +129,7 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
                   <div className="flex justify-between items-start">
                     <CardTitle className="text-lg">{announcements[0].title}</CardTitle>
                     <div className="text-xs text-gray-500">
-                      {format(announcements[0].startDate, "dd/MM/yyyy", { locale: pt })} a {format(announcements[0].endDate, "dd/MM/yyyy", { locale: pt })}
+                      {format(new Date(announcements[0].startDate), "dd/MM/yyyy", { locale: pt })} a {format(new Date(announcements[0].endDate), "dd/MM/yyyy", { locale: pt })}
                     </div>
                   </div>
                   <CardDescription className="text-xs">

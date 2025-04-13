@@ -37,14 +37,16 @@ const AnnouncementsList = () => {
           startDate: new Date(announcement.startDate),
           endDate: new Date(announcement.endDate)
         }));
+        
         // Filter announcements to show only active ones (current date is between startDate and endDate)
         const now = new Date();
-        const activeAnnouncements = parsedAnnouncements.filter((announcement: Announcement) => 
-          now >= new Date(announcement.startDate) && now <= new Date(announcement.endDate)
-        );
-        setAnnouncements(activeAnnouncements);
+        const activeAnnouncements = parsedAnnouncements.filter((announcement: Announcement) => {
+          const startDate = new Date(announcement.startDate);
+          const endDate = new Date(announcement.endDate);
+          return now >= startDate && now <= endDate;
+        });
         
-        // Debug what we're showing
+        setAnnouncements(activeAnnouncements);
         console.log("Active announcements found:", activeAnnouncements.length);
       } catch (error) {
         console.error('Error parsing announcements:', error);
@@ -58,9 +60,8 @@ const AnnouncementsList = () => {
     const currentPath = window.location.pathname;
     setIsHomePage(currentPath === '/dashboard' || currentPath === '/dashboard/');
     
-    // Don't load announcements on home page (they're already shown there)
+    // Load announcements initially if not on home page
     if (!isHomePage) {
-      // Load announcements initially
       loadAnnouncements();
       
       // Add event listener for announcements changes
