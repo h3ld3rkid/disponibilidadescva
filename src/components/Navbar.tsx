@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { 
   LogOut, Users, Calendar, Home,
   ListChecks, UserCog, FileText, Pencil, Users as UsersIcon,
-  BellRing, Menu, FileUp, Settings
+  BellRing, Menu, FileUp, Settings, Database
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -94,6 +94,12 @@ const Navbar = ({ email, role }: NavbarProps) => {
 
   const navigateToScheduleUpload = () => {
     navigate('/dashboard/schedule-upload');
+    setIsMenuOpen(false);
+    setAdminMenuOpen(false);
+  };
+
+  const navigateToDatabaseConfig = () => {
+    navigate('/dashboard/config/database');
     setIsMenuOpen(false);
     setAdminMenuOpen(false);
   };
@@ -181,11 +187,19 @@ const Navbar = ({ email, role }: NavbarProps) => {
               </Button>
               <Button 
                 variant="ghost" 
-                className="w-full justify-start"
+                className="w-full justify-start mb-1"
                 onClick={navigateToScheduleUpload}
               >
                 <FileUp className="h-4 w-4 mr-2" />
                 Carregar Escala Atual
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start"
+                onClick={navigateToDatabaseConfig}
+              >
+                <Database className="h-4 w-4 mr-2" />
+                Configurar Base de Dados
               </Button>
             </div>
           )}
@@ -285,6 +299,15 @@ const Navbar = ({ email, role }: NavbarProps) => {
             >
               <FileUp className="h-4 w-4 mr-2" />
               Carregar Escala Atual
+            </Button>
+
+            <Button 
+              variant="ghost" 
+              className="justify-start"
+              onClick={navigateToDatabaseConfig}
+            >
+              <Database className="h-4 w-4 mr-2" />
+              Configurar Base de Dados
             </Button>
           </>
         )}

@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Database, Server, Settings } from 'lucide-react';
 import { localDatabaseService } from '@/services/localDatabaseService';
 
 const Login = () => {
@@ -119,19 +118,6 @@ const Login = () => {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'A processar...' : 'Entrar'}
             </Button>
-            
-            <div className="flex justify-center gap-2 w-full">
-              <Button 
-                type="button" 
-                variant="outline" 
-                size="sm"
-                onClick={() => navigate('/config/database')}
-                className="flex items-center gap-1"
-              >
-                <Settings className="h-4 w-4" />
-                <span>Configurar Base de Dados</span>
-              </Button>
-            </div>
           </CardFooter>
         </form>
       </Card>

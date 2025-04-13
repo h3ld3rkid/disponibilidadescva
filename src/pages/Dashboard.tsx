@@ -12,6 +12,7 @@ import ProfileEdit from '@/components/profile/ProfileEdit';
 import Home from '@/components/Home';
 import CurrentSchedule from '@/components/schedule/CurrentSchedule';
 import ScheduleUpload from '@/components/admin/ScheduleUpload';
+import DatabaseConfigForm from '@/components/config/DatabaseConfig';
 
 interface UserInfo {
   email: string;
@@ -164,6 +165,7 @@ const Dashboard = () => {
             <Route path="/user-schedules" element={checkAdminRoute(<UserSchedules key={`user-schedules-${forceUpdate}`} />)} />
             <Route path="/schedule-upload" element={checkAdminRoute(<ScheduleUpload />)} />
             <Route path="/announcements" element={checkAdminRoute(<Announcements key={`announcements-${forceUpdate}`} />)} />
+            <Route path="/config/database" element={checkAdminRoute(<DatabaseConfigForm />)} />
             
             {/* Redirect to home if path not found or not authorized */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

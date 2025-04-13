@@ -8,7 +8,6 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
-import DatabaseConfig from "./pages/DatabaseConfig";
 
 // Create QueryClient
 const queryClient = new QueryClient();
@@ -23,7 +22,6 @@ const App = () => (
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard/*" element={<Dashboard />} />
-          <Route path="/config/database" element={<DatabaseConfig />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
