@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -31,7 +30,6 @@ const Navbar = ({ email, role }: NavbarProps) => {
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
   const adminMenuRef = useRef<HTMLDivElement>(null);
 
-  // Handle clicks outside admin menu to close it
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (adminMenuRef.current && !adminMenuRef.current.contains(event.target as Node)) {
@@ -99,7 +97,7 @@ const Navbar = ({ email, role }: NavbarProps) => {
   };
 
   const navigateToDatabaseConfig = () => {
-    navigate('/dashboard/config/database');
+    navigate('/config/database');
     setIsMenuOpen(false);
     setAdminMenuOpen(false);
   };
