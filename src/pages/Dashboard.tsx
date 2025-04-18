@@ -118,9 +118,8 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar key={`nav-${forceUpdate}`} email={userInfo.email} role={userInfo.role} />
-      <AnnouncementBanner />
       
-      <div className="bg-white border-b border-gray-200 py-4 mb-4">
+      <div className="bg-white border-b border-gray-200 py-4">
         <div className="container mx-auto px-4 flex items-center">
           <img 
             src="https://amares.cruzvermelha.pt/images/site/Amares.webp" 
@@ -130,6 +129,8 @@ const Dashboard = () => {
           <h1 className="text-2xl font-semibold text-gray-900">Escalas Cruz Vermelha Amares</h1>
         </div>
       </div>
+
+      <AnnouncementBanner />
 
       <div className="flex-1">
         <div className="w-full max-w-[1440px] mx-auto px-4">
