@@ -51,13 +51,16 @@ const UserSchedules = () => {
     setIsLoading(false);
   };
 
-  // Look for individual user schedules that might not be in the combined storage
+  // Modified to prevent duplicates by tracking already processed schedules
   const loadIndividualSchedules = () => {
     const allUserSchedules: any[] = [];
+    const processedKeys = new Set(); // Track processed keys to avoid duplicates
+    
     // Collect schedules from users' individual storage
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith('userSchedule_')) {
+      if (key && key.startsWith('userSchedule_') && !processedKeys.has(key)) {
+        processedKeys.add(key);
         try {
           const userEmail = key.split('_')[1];
           const monthInfo = key.split('_')[2];
@@ -88,9 +91,15 @@ const UserSchedules = () => {
       console.log(`Found ${allUserSchedules.length} individual user schedules`);
       
       // Merge with existing schedules from combined storage
-      const existingEmails = schedules.map(s => `${s.email}_${s.month}`);
+      // Create a map of existing schedules by email and month to avoid duplicates
+      const existingScheduleMap = new Map();
+      schedules.forEach(s => {
+        existingScheduleMap.set(`${s.email}_${s.month}`, true);
+      });
+      
+      // Only add schedules that aren't already in the list
       const newSchedules = allUserSchedules.filter(s => 
-        !existingEmails.includes(`${s.email}_${s.month}`)
+        !existingScheduleMap.has(`${s.email}_${s.month}`)
       );
       
       if (newSchedules.length > 0) {
@@ -110,16 +119,22 @@ const UserSchedules = () => {
     // Load all schedules from localStorage
     loadAllSchedules();
     
-    // Also check for individual schedules
-    setTimeout(() => {
+    // Also check for individual schedules with a delay to ensure they don't overlap
+    const timer = setTimeout(() => {
       loadIndividualSchedules();
     }, 500);
     
     // Set up listener for schedule changes
     const handleSchedulesChange = () => {
       console.log("Schedule changed event received");
+      
+      // Clear schedules first to avoid duplication
+      setSchedules([]);
+      
+      // Then load them with a delay between the two methods
       loadAllSchedules();
-      // Check individual schedules after a short delay
+      
+      // Wait before loading individual schedules to avoid race conditions
       setTimeout(() => {
         loadIndividualSchedules();
       }, 500);
@@ -127,15 +142,21 @@ const UserSchedules = () => {
     
     window.addEventListener('schedulesChanged', handleSchedulesChange);
     
-    // Set up an interval to check for new schedules every 30 seconds
-    const timer = setInterval(() => {
+    // Set up an interval to check for new schedules periodically
+    const intervalTimer = setInterval(() => {
+      // Clear schedules first to avoid duplication on refresh
+      setSchedules([]);
       loadAllSchedules();
-      loadIndividualSchedules();
+      
+      setTimeout(() => {
+        loadIndividualSchedules();
+      }, 500);
     }, 30000);
     
     return () => {
       window.removeEventListener('schedulesChanged', handleSchedulesChange);
-      clearInterval(timer);
+      clearInterval(intervalTimer);
+      clearTimeout(timer);
     };
   }, []);
 
@@ -366,7 +387,7 @@ const UserSchedules = () => {
               <TableBody>
                 {schedules.flatMap((schedule) => 
                   schedule.dates.map((dateInfo: any, dateIndex: number) => (
-                    <TableRow key={`${schedule.email}-${dateIndex}`}>
+                    <TableRow key={`${schedule.email}-${dateIndex}-${schedule.month}`}>
                       {dateIndex === 0 && userInfo && userInfo.role === 'admin' && (
                         <TableCell rowSpan={schedule.dates.length} className="align-middle">
                           <Checkbox 

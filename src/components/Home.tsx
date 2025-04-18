@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -36,7 +35,6 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
     if (storedAnnouncements) {
       try {
         const parsedAnnouncements = JSON.parse(storedAnnouncements);
-        // Filter announcements to show only current ones
         const currentDate = new Date();
         const validAnnouncements = parsedAnnouncements.map((announcement: any) => ({
           ...announcement,
@@ -58,10 +56,8 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
   };
 
   useEffect(() => {
-    // Load announcements initially
     loadAnnouncements();
     
-    // Add event listener for announcements changes
     const handleAnnouncementsChange = () => {
       console.log("Announcements changed event received in Home");
       loadAnnouncements();
@@ -69,7 +65,6 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
     
     window.addEventListener('announcementsChanged', handleAnnouncementsChange);
     
-    // Reload announcements periodically
     const interval = setInterval(loadAnnouncements, 60000);
     
     return () => {
