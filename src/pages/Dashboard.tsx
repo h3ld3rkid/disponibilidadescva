@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +12,7 @@ import CurrentSchedule from '@/components/schedule/CurrentSchedule';
 import ScheduleUpload from '@/components/admin/ScheduleUpload';
 import DatabaseConfigForm from '@/components/config/DatabaseConfig';
 import Announcements from '@/components/announcements/Announcements';
+import AnnouncementBanner from '@/components/announcements/AnnouncementBanner';
 
 interface UserInfo {
   email: string;
@@ -116,7 +118,8 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar key={`nav-${forceUpdate}`} email={userInfo.email} role={userInfo.role} />
-
+      <AnnouncementBanner />
+      
       <div className="bg-white border-b border-gray-200 py-4 mb-4">
         <div className="container mx-auto px-4 flex items-center">
           <img 
