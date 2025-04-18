@@ -59,7 +59,7 @@ const AnnouncementsList = () => {
   };
 
   useEffect(() => {
-    // Check if we're on the home page to avoid duplicate announcements
+    // Check if we're on the home page
     const currentPath = window.location.pathname;
     setIsHomePage(currentPath === '/dashboard' || currentPath === '/dashboard/');
     

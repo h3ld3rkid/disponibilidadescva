@@ -33,17 +33,15 @@ const Announcements = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("list");
 
+  // Load announcements when component mounts
   useEffect(() => {
-    // Load announcements from localStorage
     loadAnnouncementsFromStorage();
   }, []);
 
+  // Save announcements and trigger event when announcements state changes
   useEffect(() => {
-    // Only save announcements to localStorage if they've been loaded
     if (announcements.length > 0 || document.readyState === 'complete') {
       saveAnnouncementsToStorage();
-      
-      // Dispatch event to notify other components that announcements have changed
       triggerAnnouncementsChangedEvent();
     }
   }, [announcements]);
@@ -52,12 +50,13 @@ const Announcements = () => {
     const storedAnnouncements = localStorage.getItem('announcements');
     if (storedAnnouncements) {
       try {
-        const parsedAnnouncements = JSON.parse(storedAnnouncements).map((announcement: any) => ({
+        const parsedAnnouncements = JSON.parse(storedAnnouncements);
+        const processedAnnouncements = parsedAnnouncements.map((announcement: any) => ({
           ...announcement,
           startDate: new Date(announcement.startDate),
           endDate: new Date(announcement.endDate)
         }));
-        setAnnouncements(parsedAnnouncements);
+        setAnnouncements(processedAnnouncements);
       } catch (error) {
         console.error('Error parsing announcements:', error);
         setAnnouncements([]);
@@ -88,7 +87,7 @@ const Announcements = () => {
       return;
     }
     
-    // Make sure dates are valid Date objects
+    // Ensure dates are valid Date objects
     const validStartDate = startDate instanceof Date ? startDate : new Date(startDate);
     const validEndDate = endDate instanceof Date ? endDate : new Date(endDate);
 
@@ -101,6 +100,7 @@ const Announcements = () => {
             : item
         )
       );
+      
       toast({
         title: "Aviso atualizado",
         description: "O aviso foi atualizado com sucesso",
@@ -117,13 +117,14 @@ const Announcements = () => {
       };
       
       setAnnouncements(prev => [...prev, newAnnouncement]);
+      
       toast({
         title: "Aviso criado",
         description: "O novo aviso foi criado com sucesso",
       });
     }
     
-    // Reset form and switch back to list tab
+    // Reset form and switch to list tab after submission
     resetForm();
     setActiveTab("list");
   };
@@ -155,13 +156,18 @@ const Announcements = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs 
+        value={activeTab} 
+        onValueChange={setActiveTab} 
+        className="w-full"
+        defaultValue="list" // Ensure a default value is set
+      >
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="list">Lista de Avisos</TabsTrigger>
           <TabsTrigger value="create">Criar Aviso</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="list">
+        <TabsContent value="list" className="mt-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -238,7 +244,7 @@ const Announcements = () => {
           </Card>
         </TabsContent>
         
-        <TabsContent value="create">
+        <TabsContent value="create" className="mt-4">
           <Card>
             <CardHeader>
               <CardTitle>
