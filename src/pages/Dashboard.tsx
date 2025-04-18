@@ -10,6 +10,7 @@ import Home from '@/components/Home';
 import CurrentSchedule from '@/components/schedule/CurrentSchedule';
 import ScheduleUpload from '@/components/admin/ScheduleUpload';
 import DatabaseConfigForm from '@/components/config/DatabaseConfig';
+import Announcements from '@/components/announcements/Announcements';
 
 interface UserInfo {
   email: string;
