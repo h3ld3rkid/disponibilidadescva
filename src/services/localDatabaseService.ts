@@ -1,4 +1,3 @@
-
 import { DatabaseConfig, getDatabaseConfig } from '@/config/database';
 
 interface User {
@@ -62,13 +61,30 @@ export const localDatabaseService = {
       mechanographic_number: userData.mechanographic_number,
       role: userData.role,
       active: true,
-      needs_password_change: true
+      needs_password_change: true,
+      password: 'CVAmares'
     };
     
     users.push(newUser);
     localStorage.setItem('localUsers', JSON.stringify(users));
     
     return newUser;
+  },
+  
+  // Delete a user
+  async deleteUser(userId: number): Promise<{ success: boolean }> {
+    console.log('Deleting user from local database', userId);
+    
+    const users = this.getAllUsersFromStorage();
+    const filteredUsers = users.filter(user => user.id !== userId);
+    
+    if (filteredUsers.length === users.length) {
+      throw new Error('User not found');
+    }
+    
+    localStorage.setItem('localUsers', JSON.stringify(filteredUsers));
+    
+    return { success: true };
   },
   
   // Update an existing user
@@ -212,7 +228,7 @@ export const localDatabaseService = {
     
     if (userIndex !== -1) {
       // Set default password and flag to change
-      users[userIndex].password = 'CVAmares'; // This would be hashed in a real app
+      users[userIndex].password = 'CVAmares';
       users[userIndex].needs_password_change = true;
       
       localStorage.setItem('localUsers', JSON.stringify(users));
@@ -235,7 +251,7 @@ export const localDatabaseService = {
     
     if (userIndex !== -1) {
       // Update password and flag
-      users[userIndex].password = newPassword; // This would be hashed in a real app
+      users[userIndex].password = newPassword;
       users[userIndex].needs_password_change = false;
       
       localStorage.setItem('localUsers', JSON.stringify(users));

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -7,14 +8,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { 
   Dialog, DialogContent, DialogDescription, 
-  DialogFooter, DialogHeader, DialogTitle, DialogTrigger 
+  DialogFooter, DialogHeader, DialogTitle, DialogTrigger, 
+  DialogClose
 } from "@/components/ui/dialog";
 import { 
   Sheet, SheetContent, SheetDescription, 
   SheetHeader, SheetTitle, SheetTrigger 
 } from "@/components/ui/sheet";
 import { 
-  UserPlus, Pencil, UserX, UserCheck, KeyRound, BellRing 
+  UserPlus, Pencil, UserX, UserCheck, KeyRound, BellRing, Trash2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import UserForm from "./UserForm";
@@ -38,6 +40,8 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [userToDelete, setUserToDelete] = useState<any>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -209,6 +213,37 @@ const UserManagement = () => {
     }
   };
 
+  const deleteUser = async (userId: string) => {
+    try {
+      setIsLoading(true);
+      const result = await supabaseService.deleteUser(userId);
+      
+      if (result.success) {
+        setUsers(users.filter(user => user.id !== userId));
+        
+        toast({
+          title: "Utilizador eliminado",
+          description: "Utilizador foi eliminado com sucesso",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      toast({
+        title: "Falha ao eliminar utilizador",
+        description: "Ocorreu um erro ao eliminar o utilizador",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
+  const openDeleteDialog = (user: any) => {
+    setUserToDelete(user);
+    setIsDeleteDialogOpen(true);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <Card>
@@ -372,6 +407,15 @@ const UserManagement = () => {
                             <UserCheck className="h-4 w-4" />
                           )}
                         </Button>
+                        
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => openDeleteDialog(user)}
+                          className="text-red-500 hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -381,6 +425,38 @@ const UserManagement = () => {
           )}
         </CardContent>
       </Card>
+      
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Eliminar Utilizador</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja eliminar este utilizador? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {userToDelete && (
+              <div className="bg-slate-100 p-4 rounded-md mb-4">
+                <p><strong>Nome:</strong> {userToDelete.name}</p>
+                <p><strong>Email:</strong> {userToDelete.email}</p>
+                <p><strong>Núm. Mec.:</strong> {userToDelete.mechanographic_number}</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => userToDelete && deleteUser(userToDelete.id)}
+              disabled={isLoading}
+            >
+              {isLoading ? 'A processar...' : 'Eliminar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

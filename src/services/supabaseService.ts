@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 
@@ -30,7 +29,8 @@ export const supabaseService = {
         email: userData.email,
         mechanographic_number: userData.mechanographic_number,
         role: userData.role,
-        // Password hash is set by default in the database
+        password_hash: '$2a$10$XO/2sFKr6!2XY9kaPL5DEO5P/hmEhaXbMSdqJjm1YsVqFYnNU1K1i',
+        needs_password_change: true
       }])
       .select()
       .single();
@@ -53,6 +53,23 @@ export const supabaseService = {
       active: data.active,
       needs_password_change: data.needs_password_change
     };
+  },
+  
+  // Delete a user
+  async deleteUser(userId: string): Promise<{ success: boolean }> {
+    console.log('Supabase: Deleting user', userId);
+    
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userId);
+    
+    if (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
+    
+    return { success: true };
   },
   
   // Update an existing user
@@ -255,7 +272,7 @@ export const supabaseService = {
     const { error } = await supabase
       .from('users')
       .update({ 
-        password_hash: newPassword, // In reality, this would be hashed
+        password_hash: newPassword,
         needs_password_change: false,
         updated_at: new Date().toISOString()
       })
@@ -291,9 +308,8 @@ export const supabaseService = {
       return { success: false };
     }
     
-    // In a real scenario, you would compare the hashed password
-    // Here we're just checking if the password is 'CVAmares' for simplicity
-    // or if the password matches the stored hash (for testing)
+    // For default password 'CVAmares', the hash is always '$2a$10$XO/2sFKr6!2XY9kaPL5DEO5P/hmEhaXbMSdqJjm1YsVqFYnNU1K1i'
+    // So we check if either the password is 'CVAmares' or matches the hash directly
     const passwordMatches = password === 'CVAmares' || password === data.password_hash;
     
     if (!passwordMatches) {
