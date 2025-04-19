@@ -16,6 +16,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { supabaseService } from '@/services/supabaseService';
 
 interface NavbarProps {
   email: string;
@@ -28,20 +29,26 @@ const Navbar = ({ email, role }: NavbarProps) => {
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const [userName, setUserName] = useState('');
   const adminMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (adminMenuRef.current && !adminMenuRef.current.contains(event.target as Node)) {
-        setAdminMenuOpen(false);
+    const fetchUserName = async () => {
+      try {
+        const users = await supabaseService.getAllUsers();
+        const currentUser = users.find(user => user.email === email);
+        if (currentUser) {
+          setUserName(currentUser.name);
+        }
+      } catch (error) {
+        console.error('Error fetching user name:', error);
       }
-    }
-    
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+
+    if (email) {
+      fetchUserName();
+    }
+  }, [email]);
 
   const handleLogout = () => {
     localStorage.removeItem('mysqlConnection');
@@ -321,7 +328,7 @@ const Navbar = ({ email, role }: NavbarProps) => {
         
         <div className="mt-auto">
           <p className="text-sm text-gray-600 mb-2">
-            {email}
+            {userName}
             {role === 'admin' && <span className="ml-1 text-brand-indigo">(Admin)</span>}
           </p>
           <Button 
@@ -355,7 +362,7 @@ const Navbar = ({ email, role }: NavbarProps) => {
             
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600 hidden lg:inline">
-                Sessão iniciada como <span className="font-medium">{email}</span>
+                Sessão iniciada como <span className="font-medium">{userName}</span>
                 {role === 'admin' && <span className="ml-1 text-brand-indigo">(Admin)</span>}
               </span>
               <Button 
