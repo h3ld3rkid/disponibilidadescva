@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -10,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save, Lock } from "lucide-react";
+import { supabaseService } from "@/services/supabaseService";
 
 // Form validation schemas
 const profileSchema = z.object({
