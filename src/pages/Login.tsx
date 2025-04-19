@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { localDatabaseService } from '@/services/localDatabaseService';
+import { supabaseService } from '@/services/supabaseService';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await localDatabaseService.checkLogin(email, password);
+      const response = await supabaseService.checkLogin(email, password);
       
       if (response.success && response.user) {
         // Save user info to localStorage

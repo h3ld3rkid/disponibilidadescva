@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 
@@ -308,8 +309,9 @@ export const supabaseService = {
       return { success: false };
     }
     
-    // For default password 'CVAmares', the hash is always '$2a$10$XO/2sFKr6!2XY9kaPL5DEO5P/hmEhaXbMSdqJjm1YsVqFYnNU1K1i'
-    // So we check if either the password is 'CVAmares' or matches the hash directly
+    // For our simplified implementation, we'll accept the password if:
+    // 1. The password is 'CVAmares' (default password)
+    // 2. The password matches what's stored in password_hash
     const passwordMatches = password === 'CVAmares' || password === data.password_hash;
     
     if (!passwordMatches) {
