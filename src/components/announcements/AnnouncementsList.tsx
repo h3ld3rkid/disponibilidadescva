@@ -45,6 +45,7 @@ const AnnouncementsList = () => {
             );
           
           setAnnouncements(activeAnnouncements);
+          console.log('Loaded announcements in AnnouncementsList:', activeAnnouncements);
         } catch (error) {
           console.error('Error loading announcements:', error);
           setAnnouncements([]);

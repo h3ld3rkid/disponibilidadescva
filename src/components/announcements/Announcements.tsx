@@ -40,6 +40,7 @@ const Announcements = () => {
           endDate: new Date(announcement.endDate)
         }));
         setAnnouncements(processedAnnouncements);
+        console.log('Loaded announcements in Announcements component:', processedAnnouncements);
       } catch (error) {
         console.error('Error loading announcements:', error);
         setAnnouncements([]);
@@ -50,7 +51,9 @@ const Announcements = () => {
   const saveAnnouncements = (newAnnouncements: Announcement[]) => {
     localStorage.setItem('announcements', JSON.stringify(newAnnouncements));
     setAnnouncements(newAnnouncements);
+    // Dispatch a custom event to notify other components that announcements have changed
     window.dispatchEvent(new Event('announcementsChanged'));
+    console.log('Announcements saved and event dispatched:', newAnnouncements);
   };
 
   const handleCreateAnnouncement = (data: {

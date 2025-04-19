@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -46,6 +47,7 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
           return startDate <= currentDate && endDate >= currentDate;
         });
         setAnnouncements(validAnnouncements);
+        console.log('Loaded announcements in Home:', validAnnouncements);
       } catch (error) {
         console.error('Error parsing announcements:', error);
         setAnnouncements([]);
