@@ -33,6 +33,7 @@ interface UserData {
   name: string;
   email: string;
   role: string;
+  mechanographic_number: string;
 }
 
 const ProfileEdit = () => {
@@ -66,19 +67,31 @@ const ProfileEdit = () => {
     if (userConnection) {
       const userInfo = JSON.parse(userConnection);
       
-      // In a real app, you would fetch the user's full profile from the backend
-      // For now, we'll simulate it with the email we have and a mock name
-      setUserData({
-        name: userInfo.email.split('@')[0], // Just for demonstration
-        email: userInfo.email,
-        role: userInfo.role,
-      });
+      // Get the full user data from Supabase
+      const fetchUserData = async () => {
+        try {
+          const users = await supabaseService.getAllUsers();
+          const currentUser = users.find(user => user.email === userInfo.email);
+          if (currentUser) {
+            setUserData({
+              name: currentUser.name,
+              email: currentUser.email,
+              role: currentUser.role,
+              mechanographic_number: currentUser.mechanographic_number
+            });
 
-      // Set form default values
-      profileForm.reset({
-        name: userInfo.email.split('@')[0],
-        email: userInfo.email,
-      });
+            // Set form default values
+            profileForm.reset({
+              name: currentUser.name,
+              email: currentUser.email,
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        }
+      };
+      
+      fetchUserData();
     }
   }, [profileForm]);
 
@@ -210,6 +223,15 @@ const ProfileEdit = () => {
                       </FormItem>
                     )}
                   />
+                  
+                  <div className="space-y-2">
+                    <FormLabel>Número Mecanográfico</FormLabel>
+                    <Input 
+                      value={userData.mechanographic_number}
+                      disabled
+                      className="bg-gray-50"
+                    />
+                  </div>
                   
                   <div className="mt-2">
                     <div className="text-sm text-gray-500 mb-4">

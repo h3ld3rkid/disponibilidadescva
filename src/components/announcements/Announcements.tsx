@@ -59,10 +59,14 @@ const Announcements = () => {
     startDate: Date;
     endDate: Date;
   }) => {
+    const userConnection = localStorage.getItem('mysqlConnection');
+    if (!userConnection) return;
+    
+    const userInfo = JSON.parse(userConnection);
     const newAnnouncement = {
       ...data,
       id: Date.now(),
-      createdBy: 'Admin'
+      createdBy: userInfo.email
     };
 
     saveAnnouncements([...announcements, newAnnouncement]);
