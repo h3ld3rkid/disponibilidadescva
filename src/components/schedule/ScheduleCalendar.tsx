@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar } from "@/components/ui/calendar";
 import { format, isSaturday, isSunday, isAfter, isBefore, startOfMonth, endOfMonth, addMonths, getDate, getMonth, getYear } from "date-fns";
@@ -12,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface ScheduleCalendarProps {
   userEmail: string;
@@ -343,33 +343,53 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     }
   };
 
-  const renderDayContent = (date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const isSelected = selectedDates.some(d => format(d, 'yyyy-MM-dd') === dateStr);
-    
-    if (isSelected) {
-      return (
-        <div 
-          className="w-full h-full flex items-center justify-center relative cursor-pointer bg-[#6E59A5] text-white rounded-md"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (isSaturday(date) || isSunday(date)) {
-              setSelectedDay(date);
-            }
-          }}
-        >
-          <span className="text-xs md:text-sm">{date.getDate()}</span>
-        </div>
-      );
-    }
-    
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        <span className="text-xs md:text-sm">{date.getDate()}</span>
-      </div>
+  const getDayName = (dayIndex: number): string => {
+    const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    return days[dayIndex];
+  };
+
+  const isSelectedDate = (date: Date): boolean => {
+    return selectedDates.some(d => 
+      format(d, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
     );
   };
+
+  // Generate calendar data for the month
+  const generateCalendarDays = () => {
+    const monthStart = startOfMonth(nextMonth);
+    const monthEnd = endOfMonth(nextMonth);
+    const startDate = new Date(monthStart);
+    const endDate = new Date(monthEnd);
+    
+    // Adjust to start on Monday (1) instead of Sunday (0)
+    let startDay = startDate.getDay();
+    if (startDay === 0) startDay = 7; // Sunday becomes 7 to go at the end
+    startDate.setDate(startDate.getDate() - (startDay - 1));
+    
+    const days = [];
+    let currentDate = new Date(startDate);
+    
+    // Generate 6 weeks to ensure we cover the entire month
+    for (let week = 0; week < 6; week++) {
+      const weekDays = [];
+      for (let i = 0; i < 7; i++) {
+        weekDays.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      days.push(weekDays);
+      
+      // If we're past the end of the month and finished a complete week, break
+      if (currentDate > monthEnd && currentDate.getDay() === 1) {
+        break;
+      }
+    }
+    
+    return days;
+  };
+
+  // Generate week days header (Mon-Sun)
+  const weekDays = Array.from({ length: 7 }, (_, i) => getDayName((i + 1) % 7));
+  const calendarDays = generateCalendarDays();
 
   return (
     <div className="w-full px-4 py-6">
@@ -398,35 +418,92 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
           <CardHeader className="pb-2">
             <CardTitle>Calendário de Escalas</CardTitle>
             <CardDescription>Selecione os dias que pretende trabalhar</CardDescription>
+            <div className="text-center text-lg font-medium mt-2">
+              {format(nextMonth, 'MMMM yyyy', { locale: pt })}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col w-full">
-              <Calendar
-                mode="multiple"
-                month={nextMonth}
-                onMonthChange={() => {}}
-                selected={selectedDates}
-                onSelect={handleDateSelect}
-                locale={pt}
-                disabled={(date) => {
-                  return !isAfter(date, endOfMonth(today)) || 
-                         !isBefore(date, startOfMonth(addMonths(nextMonth, 1)));
-                }}
-                className="w-full mx-auto rounded-lg shadow-sm"
-                classNames={{
-                  caption: 'hidden',
-                  table: 'w-full border-collapse border-spacing-0',
-                  head_cell: 'text-center font-medium text-gray-700 px-1 py-2 bg-gray-200 text-xs md:text-sm border-b border-gray-300',
-                  cell: 'text-center p-0 relative border border-gray-200 h-10 w-10 md:h-12 md:w-12 lg:h-14 lg:w-14 aspect-square',
-                  day: 'h-full w-full flex items-center justify-center',
-                  row: 'flex w-full mt-0',
-                  head_row: 'flex w-full',
-                  month: 'w-full max-w-full',
-                  months: 'w-full max-w-full',
-                }}
-                defaultMonth={nextMonth}
-                weekStartsOn={1}
-              />
+              {/* New calendar implementation with better alignment */}
+              <div className="border rounded-lg overflow-hidden shadow-sm">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {weekDays.map((day, i) => (
+                        <TableHead 
+                          key={i} 
+                          className="text-center py-3 font-medium bg-slate-100 text-gray-700 h-10"
+                        >
+                          {day}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {calendarDays.map((week, weekIndex) => (
+                      <TableRow key={weekIndex}>
+                        {week.map((day, dayIndex) => {
+                          const isCurrentMonth = day.getMonth() === nextMonth.getMonth();
+                          const isSelectable = isAfter(day, endOfMonth(today)) && 
+                                             isBefore(day, startOfMonth(addMonths(nextMonth, 1)));
+                          const isSelected = isSelectedDate(day);
+                          const isWeekend = isSaturday(day) || isSunday(day);
+                          
+                          return (
+                            <TableCell 
+                              key={dayIndex}
+                              className={`text-center p-0 border h-14 w-14 relative ${
+                                !isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''
+                              } ${isWeekend ? 'bg-gray-50' : ''}`}
+                              onClick={() => {
+                                if (isSelectable && canEditNextMonthSchedule || isAdmin) {
+                                  const newDates = [...selectedDates];
+                                  const dateStr = format(day, 'yyyy-MM-dd');
+                                  const existingIndex = newDates.findIndex(d => format(d, 'yyyy-MM-dd') === dateStr);
+                                  
+                                  if (existingIndex >= 0) {
+                                    newDates.splice(existingIndex, 1);
+                                  } else {
+                                    newDates.push(day);
+                                  }
+                                  
+                                  handleDateSelect(newDates);
+                                  
+                                  if (isWeekend && !existingIndex) {
+                                    setSelectedDay(day);
+                                  }
+                                }
+                              }}
+                            >
+                              <div 
+                                className={`w-full h-full flex items-center justify-center rounded-md ${
+                                  isSelected ? 'bg-[#6E59A5] text-white' : ''
+                                } ${isSelectable ? 'cursor-pointer' : 'opacity-50'}`}
+                              >
+                                <span>{day.getDate()}</span>
+                                
+                                {isSelected && isWeekend && (
+                                  <div className="absolute bottom-0 left-0 right-0 flex justify-center space-x-1 pb-1">
+                                    {schedule.find(s => format(s.date, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'))?.shifts.manha && 
+                                      <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></span>
+                                    }
+                                    {schedule.find(s => format(s.date, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'))?.shifts.tarde && 
+                                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                                    }
+                                    {schedule.find(s => format(s.date, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'))?.shifts.noite && 
+                                      <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                                    }
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
               
               <div className="mt-6 space-y-4">
                 <div>
