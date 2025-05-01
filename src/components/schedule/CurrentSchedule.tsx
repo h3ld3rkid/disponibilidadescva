@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FormLabel } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 
 interface CurrentScheduleProps {
   isAdmin?: boolean;
@@ -60,7 +60,7 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
               <h3 className="font-medium mb-2">Adicionar link do Google Drive</h3>
               <div className="space-y-3">
                 <div>
-                  <FormLabel htmlFor="drive-link">Link para o PDF da escala:</FormLabel>
+                  <Label htmlFor="drive-link">Link para o PDF da escala:</Label>
                   <Input
                     id="drive-link"
                     value={googleDriveUrl}
