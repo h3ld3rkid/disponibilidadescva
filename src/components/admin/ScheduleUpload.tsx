@@ -54,9 +54,17 @@ const ScheduleUpload = () => {
       return;
     }
 
+    // Convert to embed URL if it's a standard view URL
+    let embedUrl = googleDriveUrl;
+    
+    // If it's a standard view URL, convert it to an embed URL
+    if (googleDriveUrl.includes('/view') && !googleDriveUrl.includes('embedded=true')) {
+      embedUrl = googleDriveUrl.replace('/view', '/preview');
+    }
+
     // Save the URL to localStorage
-    localStorage.setItem('currentSchedulePdf', googleDriveUrl);
-    setPdfUrl(googleDriveUrl);
+    localStorage.setItem('currentSchedulePdf', embedUrl);
+    setPdfUrl(embedUrl);
     
     toast({
       title: "Link guardado",
@@ -100,10 +108,10 @@ const ScheduleUpload = () => {
           {pdfUrl ? (
             <div className="w-full rounded-md overflow-hidden shadow-md">
               <iframe 
-                src={`${pdfUrl}&embedded=true&rm=minimal`}
+                src={pdfUrl}
                 className="w-full h-[400px] border-0" 
                 title="Escala Atual"
-                sandbox="allow-scripts allow-same-origin"
+                sandbox="allow-scripts allow-same-origin allow-popups"
               />
               <div className="mt-4 text-sm text-gray-500">
                 Pré-visualização da escala atual carregada
