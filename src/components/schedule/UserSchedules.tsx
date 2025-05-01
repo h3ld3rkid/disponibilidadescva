@@ -9,104 +9,108 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { FileText, Trash2, RotateCcw } from "lucide-react";
+import { FileText, Trash2, RotateCcw, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import ScheduleCalendar from './ScheduleCalendar';
 
 const UserSchedules = () => {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userInfo, setUserInfo] = useState<any>(null);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [userEmails, setUserEmails] = useState<string[]>([]);
+  const [viewingUserSchedule, setViewingUserSchedule] = useState<string | null>(null);
   const { toast } = useToast();
 
   const loadAllSchedules = () => {
     console.log("Loading all schedules for admin view");
-    const storedSchedules = localStorage.getItem('userSchedules');
-    if (storedSchedules) {
-      try {
-        const parsedSchedules = JSON.parse(storedSchedules);
-        console.log(`Found ${parsedSchedules.length} schedules in localStorage`);
-        
-        // Process dates to be Date objects
-        const processedSchedules = parsedSchedules.map((schedule: any) => ({
-          ...schedule,
-          dates: schedule.dates.map((dateInfo: any) => ({
-            ...dateInfo,
-            date: new Date(dateInfo.date)
-          }))
-        }));
-        
-        setSchedules(processedSchedules);
-      } catch (error) {
-        console.error('Erro ao processar escalas:', error);
-        setSchedules([]);
-      }
-    } else {
-      console.log("No schedules found in localStorage");
-      setSchedules([]);
-    }
-    setIsLoading(false);
-  };
-
-  // Modified to prevent duplicates by tracking already processed schedules
-  const loadIndividualSchedules = () => {
-    const allUserSchedules: any[] = [];
-    const processedKeys = new Set(); // Track processed keys to avoid duplicates
+    // Get unique users with schedules
+    const uniqueUsers: string[] = [];
+    const processedUsers = new Set();
     
-    // Collect schedules from users' individual storage
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith('userSchedule_') && !processedKeys.has(key)) {
-        processedKeys.add(key);
+      if (key && key.startsWith('userSchedule_')) {
         try {
           const userEmail = key.split('_')[1];
+          if (!processedUsers.has(userEmail)) {
+            processedUsers.add(userEmail);
+            uniqueUsers.push(userEmail);
+          }
+        } catch (error) {
+          console.error(`Error processing key ${key}:`, error);
+        }
+      }
+    }
+    
+    setUserEmails(uniqueUsers);
+    
+    // Get schedule data for these users
+    const userScheduleData: any[] = [];
+    uniqueUsers.forEach(email => {
+      // For each user, find all their schedule keys
+      const userScheduleKeys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(`userSchedule_${email}`)) {
+          userScheduleKeys.push(key);
+        }
+      }
+      
+      // For each user's schedule key, get the schedule data
+      userScheduleKeys.forEach(key => {
+        try {
           const monthInfo = key.split('_')[2];
-          
           const scheduleData = JSON.parse(localStorage.getItem(key) || '[]');
           
-          // Create a schedule entry for this user
+          // Find other user info if available
+          let userName = email;
+          const userDataKey = `userInfo_${email}`;
+          if (localStorage.getItem(userDataKey)) {
+            try {
+              const userData = JSON.parse(localStorage.getItem(userDataKey) || '{}');
+              if (userData.name) {
+                userName = userData.name;
+              }
+            } catch (e) {
+              console.error(`Error parsing user info for ${email}:`, e);
+            }
+          }
+          
+          // Create a schedule entry for this user and month
           const userSchedule = {
-            user: userEmail,
-            email: userEmail,
+            user: userName,
+            email: email,
             month: monthInfo.replace('-', ' '),
             dates: scheduleData.map((item: any) => ({
               date: new Date(item.date),
               shifts: Object.entries(item.shifts)
                 .filter(([_, isSelected]) => isSelected === true)
-                .map(([shiftName]) => shiftName)
+                .map(([shiftName]) => shiftName),
+              notes: item.notes || ""
             }))
           };
           
-          allUserSchedules.push(userSchedule);
+          // Check if this user has any selected shifts
+          const hasSelectedShifts = userSchedule.dates.some((dateInfo: any) => 
+            dateInfo.shifts && dateInfo.shifts.length > 0
+          );
+          
+          // Only add if user has selected shifts
+          if (hasSelectedShifts) {
+            userScheduleData.push(userSchedule);
+          }
         } catch (error) {
           console.error(`Error processing schedule for key ${key}:`, error);
         }
-      }
-    }
-    
-    if (allUserSchedules.length > 0) {
-      console.log(`Found ${allUserSchedules.length} individual user schedules`);
-      
-      // Merge with existing schedules from combined storage
-      // Create a map of existing schedules by email and month to avoid duplicates
-      const existingScheduleMap = new Map();
-      schedules.forEach(s => {
-        existingScheduleMap.set(`${s.email}_${s.month}`, true);
       });
-      
-      // Only add schedules that aren't already in the list
-      const newSchedules = allUserSchedules.filter(s => 
-        !existingScheduleMap.has(`${s.email}_${s.month}`)
-      );
-      
-      if (newSchedules.length > 0) {
-        setSchedules(prev => [...prev, ...newSchedules]);
-        console.log(`Added ${newSchedules.length} new schedules from individual storage`);
-      }
-    }
+    });
+    
+    setSchedules(userScheduleData);
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -119,44 +123,22 @@ const UserSchedules = () => {
     // Load all schedules from localStorage
     loadAllSchedules();
     
-    // Also check for individual schedules with a delay to ensure they don't overlap
-    const timer = setTimeout(() => {
-      loadIndividualSchedules();
-    }, 500);
-    
     // Set up listener for schedule changes
     const handleSchedulesChange = () => {
       console.log("Schedule changed event received");
-      
-      // Clear schedules first to avoid duplication
-      setSchedules([]);
-      
-      // Then load them with a delay between the two methods
       loadAllSchedules();
-      
-      // Wait before loading individual schedules to avoid race conditions
-      setTimeout(() => {
-        loadIndividualSchedules();
-      }, 500);
     };
     
     window.addEventListener('schedulesChanged', handleSchedulesChange);
     
     // Set up an interval to check for new schedules periodically
     const intervalTimer = setInterval(() => {
-      // Clear schedules first to avoid duplication on refresh
-      setSchedules([]);
       loadAllSchedules();
-      
-      setTimeout(() => {
-        loadIndividualSchedules();
-      }, 500);
     }, 30000);
     
     return () => {
       window.removeEventListener('schedulesChanged', handleSchedulesChange);
       clearInterval(intervalTimer);
-      clearTimeout(timer);
     };
   }, []);
 
@@ -172,15 +154,7 @@ const UserSchedules = () => {
 
   const deleteUserSchedules = (email: string) => {
     try {
-      // First remove from combined storage
-      const storedSchedules = localStorage.getItem('userSchedules');
-      if (storedSchedules) {
-        const parsedSchedules = JSON.parse(storedSchedules);
-        const updatedSchedules = parsedSchedules.filter((s: any) => s.email !== email);
-        localStorage.setItem('userSchedules', JSON.stringify(updatedSchedules));
-      }
-
-      // Then remove individual user schedules
+      // Remove individual user schedules
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith(`userSchedule_${email}`)) {
@@ -190,6 +164,7 @@ const UserSchedules = () => {
 
       // Update UI state
       setSchedules(prev => prev.filter(schedule => schedule.email !== email));
+      setUserEmails(prev => prev.filter(e => e !== email));
       setSelectedUsers(prev => prev.filter(e => e !== email));
 
       // Notify other components
@@ -291,13 +266,14 @@ const UserSchedules = () => {
           dateInfo.shifts.map((shift: string) => 
             shift === "manha" ? "Manhã" : 
             shift === "tarde" ? "Tarde" : "Noite"
-          ).join(", ")
+          ).join(", "),
+          dateInfo.notes || ""
         ]);
         
         // Generate schedule table
         autoTable(doc, {
           startY: 75,
-          head: [['Data', 'Turnos']],
+          head: [['Data', 'Turnos', 'Notas Pessoais']],
           body: tableData,
           theme: 'grid',
           headStyles: { 
@@ -309,8 +285,9 @@ const UserSchedules = () => {
             fontSize: 10
           },
           columnStyles: {
-            0: { cellWidth: 80 },
-            1: { cellWidth: 70 }
+            0: { cellWidth: 60 },
+            1: { cellWidth: 50 },
+            2: { cellWidth: 80 }
           }
         });
       });
@@ -352,132 +329,194 @@ const UserSchedules = () => {
         </div>
       )}
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Escalas dos Utilizadores</CardTitle>
-          <CardDescription>Visualize todas as escalas submetidas pelos utilizadores</CardDescription>
-        </CardHeader>
-        
-        <CardContent>
-          {isLoading ? (
-            <div className="py-10 text-center">
-              <div className="animate-pulse text-gray-500">A carregar escalas...</div>
+      {viewingUserSchedule ? (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Escala de {viewingUserSchedule}</CardTitle>
+              <CardDescription>Visualize a escala detalhada deste utilizador</CardDescription>
             </div>
-          ) : schedules.length === 0 ? (
-            <div className="py-10 text-center">
-              <div className="text-gray-500">Não existem escalas submetidas.</div>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {userInfo && userInfo.role === 'admin' && (
-                    <TableHead className="w-[50px]"></TableHead>
-                  )}
-                  <TableHead>Utilizador</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Mês</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Turnos</TableHead>
-                  {userInfo && userInfo.role === 'admin' && (
-                    <TableHead className="w-[150px] text-right">Ações</TableHead>
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {schedules.flatMap((schedule) => 
-                  schedule.dates.map((dateInfo: any, dateIndex: number) => (
-                    <TableRow key={`${schedule.email}-${dateIndex}-${schedule.month}`}>
-                      {dateIndex === 0 && userInfo && userInfo.role === 'admin' && (
-                        <TableCell rowSpan={schedule.dates.length} className="align-middle">
-                          <Checkbox 
-                            checked={selectedUsers.includes(schedule.email)}
-                            onCheckedChange={() => toggleUserSelection(schedule.email)}
-                            className="ml-1"
-                          />
+            <Button 
+              variant="outline" 
+              onClick={() => setViewingUserSchedule(null)}
+            >
+              Voltar à lista
+            </Button>
+          </CardHeader>
+          
+          <CardContent>
+            <ScheduleCalendar 
+              userEmail={viewingUserSchedule} 
+              isAdmin={false} 
+              readOnly={true}
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>Escalas dos Utilizadores</CardTitle>
+            <CardDescription>Visualize os utilizadores que submeteram escalas</CardDescription>
+          </CardHeader>
+          
+          <CardContent>
+            {isLoading ? (
+              <div className="py-10 text-center">
+                <div className="animate-pulse text-gray-500">A carregar escalas...</div>
+              </div>
+            ) : userEmails.length === 0 ? (
+              <div className="py-10 text-center">
+                <div className="text-gray-500">Não existem escalas submetidas.</div>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {userInfo && userInfo.role === 'admin' && (
+                      <TableHead className="w-[50px]"></TableHead>
+                    )}
+                    <TableHead>Utilizador</TableHead>
+                    <TableHead>Meses com Escalas</TableHead>
+                    {userInfo && userInfo.role === 'admin' && (
+                      <TableHead className="w-[200px] text-right">Ações</TableHead>
+                    )}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {userEmails.map((email) => {
+                    // Get user name if available
+                    let userName = email;
+                    const userDataKey = `userInfo_${email}`;
+                    if (localStorage.getItem(userDataKey)) {
+                      try {
+                        const userData = JSON.parse(localStorage.getItem(userDataKey) || '{}');
+                        if (userData.name) {
+                          userName = userData.name;
+                        }
+                      } catch (e) {
+                        console.error(`Error parsing user info for ${email}:`, e);
+                      }
+                    }
+                    
+                    // Get months for this user
+                    const userMonths = new Set();
+                    for (let i = 0; i < localStorage.length; i++) {
+                      const key = localStorage.key(i);
+                      if (key && key.startsWith(`userSchedule_${email}`)) {
+                        const monthInfo = key.split('_')[2];
+                        if (monthInfo) {
+                          userMonths.add(monthInfo.replace('-', ' '));
+                        }
+                      }
+                    }
+                    
+                    return (
+                      <TableRow key={email}>
+                        {userInfo && userInfo.role === 'admin' && (
+                          <TableCell>
+                            <Checkbox 
+                              checked={selectedUsers.includes(email)}
+                              onCheckedChange={() => toggleUserSelection(email)}
+                              className="ml-1"
+                            />
+                          </TableCell>
+                        )}
+                        <TableCell className="font-medium">
+                          <Button 
+                            variant="link" 
+                            className="p-0 h-auto font-medium"
+                            onClick={() => setViewingUserSchedule(email)}
+                          >
+                            {userName}
+                          </Button>
                         </TableCell>
-                      )}
-                      {dateIndex === 0 ? (
-                        <>
-                          <TableCell rowSpan={schedule.dates.length} className="font-medium">{schedule.user}</TableCell>
-                          <TableCell rowSpan={schedule.dates.length}>{schedule.email}</TableCell>
-                          <TableCell rowSpan={schedule.dates.length}>{schedule.month}</TableCell>
-                        </>
-                      ) : null}
-                      <TableCell>{format(new Date(dateInfo.date), "d 'de' MMMM", { locale: pt })}</TableCell>
-                      <TableCell>
-                        {dateInfo.shifts.map((shift: string) => (
-                          <span key={shift} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-1">
-                            {shift === "manha" ? "Manhã" : shift === "tarde" ? "Tarde" : "Noite"}
-                          </span>
-                        ))}
-                      </TableCell>
-                      {dateIndex === 0 && userInfo && userInfo.role === 'admin' && (
-                        <TableCell rowSpan={schedule.dates.length} className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button 
-                                  variant="destructive" 
-                                  size="sm" 
-                                  className="h-8 flex items-center"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-1" />
-                                  Eliminar
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Confirmar eliminação</DialogTitle>
-                                </DialogHeader>
-                                <p>Tem a certeza que deseja eliminar as escalas de {schedule.email}?</p>
-                                <DialogFooter>
+                        <TableCell>
+                          {Array.from(userMonths).map((month, index) => (
+                            <span 
+                              key={`${email}-${month}`}
+                              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-1"
+                            >
+                              {month}
+                            </span>
+                          ))}
+                        </TableCell>
+                        {userInfo && userInfo.role === 'admin' && (
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => setViewingUserSchedule(email)}
+                                className="h-8 flex items-center"
+                              >
+                                <Calendar className="h-4 w-4 mr-1" />
+                                Ver Escala
+                              </Button>
+                              
+                              <Dialog>
+                                <DialogTrigger asChild>
                                   <Button 
                                     variant="destructive" 
-                                    onClick={() => deleteUserSchedules(schedule.email)}
+                                    size="sm" 
+                                    className="h-8 flex items-center"
                                   >
+                                    <Trash2 className="h-4 w-4 mr-1" />
                                     Eliminar
                                   </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                            
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="h-8 flex items-center"
-                                >
-                                  <RotateCcw className="h-4 w-4 mr-1" />
-                                  Resetar
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Reiniciar contador</DialogTitle>
-                                </DialogHeader>
-                                <p>Deseja reiniciar o contador de edições para {schedule.email}?</p>
-                                <DialogFooter>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Confirmar eliminação</DialogTitle>
+                                  </DialogHeader>
+                                  <p>Tem a certeza que deseja eliminar as escalas de {email}?</p>
+                                  <DialogFooter>
+                                    <Button 
+                                      variant="destructive" 
+                                      onClick={() => deleteUserSchedules(email)}
+                                    >
+                                      Eliminar
+                                    </Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                              
+                              <Dialog>
+                                <DialogTrigger asChild>
                                   <Button 
-                                    onClick={() => resetEditCounter(schedule.email)}
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-8 flex items-center"
                                   >
-                                    Reiniciar (0/2)
+                                    <RotateCcw className="h-4 w-4 mr-1" />
+                                    Resetar
                                   </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Reiniciar contador</DialogTitle>
+                                  </DialogHeader>
+                                  <p>Deseja reiniciar o contador de edições para {email}?</p>
+                                  <DialogFooter>
+                                    <Button 
+                                      onClick={() => resetEditCounter(email)}
+                                    >
+                                      Reiniciar (0/2)
+                                    </Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

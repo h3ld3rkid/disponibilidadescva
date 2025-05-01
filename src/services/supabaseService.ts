@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 
@@ -57,20 +56,47 @@ export const supabaseService = {
   },
   
   // Delete a user
-  async deleteUser(userId: string): Promise<{ success: boolean }> {
-    console.log('Supabase: Deleting user', userId);
-    
-    const { error } = await supabase
-      .from('users')
-      .delete()
-      .eq('id', userId);
-    
-    if (error) {
-      console.error('Error deleting user:', error);
-      throw error;
+  async deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      // First check if the user exists
+      const { data: user, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching user:', fetchError);
+        return { success: false, message: 'User not found' };
+      }
+
+      // Delete the user
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Error deleting user:', error);
+        return { success: false, message: error.message };
+      }
+
+      // Check if the user was actually deleted
+      const { data: checkUser, error: checkError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (checkUser) {
+        return { success: false, message: 'Failed to delete user' };
+      }
+
+      return { success: true, message: 'User deleted successfully' };
+    } catch (error) {
+      console.error('Error in deleteUser:', error);
+      return { success: false, message: 'An unexpected error occurred' };
     }
-    
-    return { success: true };
   },
   
   // Update an existing user
