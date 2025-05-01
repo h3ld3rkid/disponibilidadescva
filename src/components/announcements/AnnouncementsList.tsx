@@ -54,7 +54,11 @@ const AnnouncementsList = () => {
     };
 
     loadAnnouncements();
+    
+    // Listen for the custom event
     window.addEventListener('announcementsChanged', loadAnnouncements);
+    
+    // Refresh announcements every minute to check for expiry
     const interval = setInterval(loadAnnouncements, 60000);
 
     return () => {

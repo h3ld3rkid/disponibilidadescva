@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -10,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save, Lock } from "lucide-react";
 import { supabaseService } from "@/services/supabaseService";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 // Form validation schemas
 const profileSchema = z.object({
@@ -34,6 +37,7 @@ interface UserData {
   email: string;
   role: string;
   mechanographic_number: string;
+  needs_password_change?: boolean;
 }
 
 const ProfileEdit = () => {
@@ -41,6 +45,8 @@ const ProfileEdit = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
+  const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
+  const [defaultTab, setDefaultTab] = useState('profile');
 
   // Profile form
   const profileForm = useForm<ProfileFormValues>({
@@ -77,8 +83,15 @@ const ProfileEdit = () => {
               name: currentUser.name,
               email: currentUser.email,
               role: currentUser.role,
-              mechanographic_number: currentUser.mechanographic_number
+              mechanographic_number: currentUser.mechanographic_number,
+              needs_password_change: currentUser.needs_password_change
             });
+
+            // Set needs password change state
+            if (currentUser.needs_password_change) {
+              setNeedsPasswordChange(true);
+              setDefaultTab('password');
+            }
 
             // Set form default values
             profileForm.reset({
@@ -146,23 +159,37 @@ const ProfileEdit = () => {
     setIsPasswordLoading(true);
     
     try {
-      // In a real app, you would validate the current password and update the password in your backend
-      console.log("Password update data:", data);
+      // Get user info from localStorage
+      const userConnection = localStorage.getItem('mysqlConnection');
+      if (!userConnection) {
+        throw new Error("User session not found");
+      }
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const userInfo = JSON.parse(userConnection);
       
-      // Clear password fields
-      passwordForm.reset({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
+      // Call the supabaseService to change the password
+      const result = await supabaseService.changePassword(userInfo.email, data.newPassword);
       
-      toast({
-        title: "Password atualizada",
-        description: "A sua password foi atualizada com sucesso",
-      });
+      if (result.success) {
+        // Clear password fields
+        passwordForm.reset({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+        
+        // Update needs password change flag
+        if (needsPasswordChange) {
+          setNeedsPasswordChange(false);
+        }
+        
+        toast({
+          title: "Password atualizada",
+          description: "A sua password foi atualizada com sucesso",
+        });
+      } else {
+        throw new Error("Failed to update password");
+      }
     } catch (error) {
       console.error("Error updating password:", error);
       toast({
@@ -187,7 +214,17 @@ const ProfileEdit = () => {
           <CardDescription>Visualize e atualize as suas informações pessoais</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="profile" className="w-full">
+          {needsPasswordChange && (
+            <Alert className="mb-6 bg-amber-50 border-amber-200">
+              <InfoIcon className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-800">Necessário alterar password</AlertTitle>
+              <AlertDescription className="text-amber-700">
+                Por motivos de segurança, deve alterar a sua password padrão antes de continuar a utilizar o sistema.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          <Tabs defaultValue={defaultTab} className="w-full">
             <TabsList className="grid w-full max-w-md grid-cols-2">
               <TabsTrigger value="profile">Perfil</TabsTrigger>
               <TabsTrigger value="password">Password</TabsTrigger>

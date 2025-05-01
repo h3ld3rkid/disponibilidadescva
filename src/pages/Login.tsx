@@ -46,9 +46,14 @@ const Login = () => {
           variant: "default",
         });
         
-        // Redirect to change password page if needed
+        // Redirect to profile page if needs password change
         if (response.user.needsPasswordChange) {
           navigate('/dashboard/profile');
+          toast({
+            title: "Alteração de password necessária",
+            description: "Por favor altere a sua password padrão.",
+            variant: "default",
+          });
         } else {
           // Redirect to dashboard
           navigate('/dashboard');
