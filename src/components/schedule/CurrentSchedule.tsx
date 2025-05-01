@@ -82,10 +82,15 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
           {pdfUrl ? (
             <div className="w-full rounded-md overflow-hidden shadow-md">
               <iframe 
-                src={pdfUrl} 
+                src={`${pdfUrl}&embedded=true&rm=minimal`} 
                 className="w-full h-[600px] border-0" 
                 title="Escala Atual"
+                sandbox="allow-scripts allow-same-origin"
+                style={{ pointerEvents: 'auto' }}
               />
+              <div className="mt-2 text-center text-sm text-gray-500">
+                Este documento está disponível apenas para visualização. Não é permitido fazer download ou imprimir.
+              </div>
             </div>
           ) : (
             <div className="py-10 text-center">
