@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 
@@ -55,11 +56,34 @@ export const supabaseService = {
     };
   },
   
-  // Delete a user - Fixed to properly delete from Supabase
+  // Delete a user - New implementation for reliable deletion
   async deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
+    console.log('Supabase: Attempting to delete user with ID:', userId);
+    
     try {
-      console.log('Supabase: Deleting user', userId);
+      // First, clear any password reset requests for this user
+      const userEmailResult = await supabase
+        .from('users')
+        .select('email')
+        .eq('id', userId)
+        .single();
       
+      if (userEmailResult.error) {
+        console.error('Error fetching user email for deletion:', userEmailResult.error);
+      } else if (userEmailResult.data?.email) {
+        const email = userEmailResult.data.email;
+        
+        const resetRequestResult = await supabase
+          .from('password_reset_requests')
+          .delete()
+          .eq('email', email);
+        
+        if (resetRequestResult.error) {
+          console.error('Error deleting password reset requests:', resetRequestResult.error);
+        }
+      }
+      
+      // Now delete the user record
       const { error } = await supabase
         .from('users')
         .delete()
@@ -67,13 +91,23 @@ export const supabaseService = {
       
       if (error) {
         console.error('Error deleting user:', error);
-        return { success: false, message: error.message };
+        return { 
+          success: false, 
+          message: `Failed to delete user: ${error.message}` 
+        };
       }
       
-      return { success: true, message: 'User deleted successfully' };
+      console.log('User deleted successfully:', userId);
+      return { 
+        success: true, 
+        message: 'User deleted successfully' 
+      };
     } catch (error: any) {
-      console.error('Error in deleteUser:', error);
-      return { success: false, message: error.message || 'An unexpected error occurred' };
+      console.error('Unexpected error in deleteUser:', error);
+      return { 
+        success: false, 
+        message: `An unexpected error occurred: ${error.message || 'Unknown error'}` 
+      };
     }
   },
   

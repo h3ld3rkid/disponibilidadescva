@@ -42,27 +42,9 @@ const UserManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [userToDelete, setUserToDelete] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const userData = await supabaseService.getAllUsers();
-        setUsers(userData);
-        
-        const requests = await supabaseService.getPasswordResetRequests();
-        setResetRequests(requests);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        toast({
-          title: "Falha ao obter dados",
-          description: "Ocorreu um erro ao carregar os dados",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchData();
     
     const timer = setInterval(async () => {
@@ -77,6 +59,26 @@ const UserManagement = () => {
     return () => clearInterval(timer);
   }, [toast]);
 
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      const userData = await supabaseService.getAllUsers();
+      setUsers(userData);
+      
+      const requests = await supabaseService.getPasswordResetRequests();
+      setResetRequests(requests);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      toast({
+        title: "Falha ao obter dados",
+        description: "Ocorreu um erro ao carregar os dados",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleCreateUser: UserFormSubmitFunction = async (userData) => {
     try {
       setIsLoading(true);
@@ -88,7 +90,7 @@ const UserManagement = () => {
         password: "CVAmares"
       });
       
-      setUsers([...users, newUser]);
+      setUsers(prev => [...prev, newUser]);
       
       toast({
         title: "Utilizador criado",
@@ -120,11 +122,9 @@ const UserManagement = () => {
         role: userData.role
       });
       
-      const updatedUsers = users.map(user => 
+      setUsers(prev => prev.map(user => 
         user.id === selectedUser.id ? updatedUser : user
-      );
-      
-      setUsers(updatedUsers);
+      ));
       setIsEditSheetOpen(false);
       
       const storedUser = localStorage.getItem('mysqlConnection');
@@ -165,13 +165,11 @@ const UserManagement = () => {
       const result = await supabaseService.toggleUserStatus(userId);
       
       if (result.success) {
-        const updatedUsers = users.map(user => 
+        setUsers(prev => prev.map(user => 
           user.id === userId 
             ? { ...user, active: result.active }
             : user
-        );
-        
-        setUsers(updatedUsers);
+        ));
         
         toast({
           title: result.active ? "Utilizador ativado" : "Utilizador desativado",
@@ -195,7 +193,7 @@ const UserManagement = () => {
       setIsLoading(true);
       await supabaseService.resetPassword(email);
       
-      setResetRequests(resetRequests.filter(e => e !== email));
+      setResetRequests(prev => prev.filter(e => e !== email));
       
       toast({
         title: "Password redefinida",
@@ -214,27 +212,69 @@ const UserManagement = () => {
   };
 
   const deleteUser = async (userId: string) => {
+    if (!userId) {
+      toast({
+        title: "Erro",
+        description: "ID de utilizador inválido",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
-      setIsLoading(true);
+      setDeleteInProgress(true);
+      
+      // Save user information before deletion for cleanup
+      const userToBeDeleted = users.find(user => user.id === userId);
+      if (!userToBeDeleted) {
+        throw new Error("User not found");
+      }
+      
+      // Delete from database
       const result = await supabaseService.deleteUser(userId);
       
       if (result.success) {
-        setUsers(users.filter(user => user.id !== userId));
+        // Remove from UI state
+        setUsers(prev => prev.filter(user => user.id !== userId));
+        
+        // Clean up any local storage data for this user
+        const userEmail = userToBeDeleted.email;
+        if (userEmail) {
+          // Remove stored schedules
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(`userSchedule_${userEmail}`)) {
+              localStorage.removeItem(key);
+            }
+            if (key && key === `userInfo_${userEmail}`) {
+              localStorage.removeItem(key);
+            }
+            if (key && key.startsWith(`editCount_${userEmail}`)) {
+              localStorage.removeItem(key);
+            }
+          }
+        }
         
         toast({
           title: "Utilizador eliminado",
           description: "Utilizador foi eliminado com sucesso",
         });
+        
+        // Trigger UI updates in other components
+        const event = new CustomEvent('schedulesChanged');
+        window.dispatchEvent(event);
+      } else {
+        throw new Error(result.message || "Failed to delete user");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting user:", error);
       toast({
         title: "Falha ao eliminar utilizador",
-        description: "Ocorreu um erro ao eliminar o utilizador",
+        description: error.message || "Ocorreu um erro ao eliminar o utilizador",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setDeleteInProgress(false);
       setIsDeleteDialogOpen(false);
     }
   };
@@ -326,100 +366,108 @@ const UserManagement = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.mechanographic_number}</TableCell>
-                    <TableCell>
-                      <span className={user.role === 'admin' ? 'text-brand-indigo font-medium' : ''}>
-                        {user.role === 'admin' ? 'Administrador' : 'Utilizador'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {user.active ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Ativo
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                          Inativo
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Sheet open={isEditSheetOpen && selectedUser?.id === user.id} onOpenChange={(open) => {
-                          if (open) {
-                            setSelectedUser(user);
-                          }
-                          setIsEditSheetOpen(open);
-                        }}>
-                          <SheetTrigger asChild>
-                            <Button variant="outline" size="sm" onClick={() => {
-                              setSelectedUser(user);
-                              setIsEditSheetOpen(true);
-                            }}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </SheetTrigger>
-                          <SheetContent>
-                            <SheetHeader>
-                              <SheetTitle>Editar Utilizador</SheetTitle>
-                              <SheetDescription>
-                                Atualizar informações do utilizador
-                              </SheetDescription>
-                            </SheetHeader>
-                            {selectedUser && (
-                              <div className="py-4">
-                                <UserForm 
-                                  onSubmit={handleEditUser} 
-                                  defaultValues={{
-                                    name: selectedUser.name,
-                                    email: selectedUser.email,
-                                    mechanographicNumber: selectedUser.mechanographic_number,
-                                    role: selectedUser.role,
-                                  }}
-                                  isEdit={true}
-                                />
-                              </div>
-                            )}
-                          </SheetContent>
-                        </Sheet>
-                        
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => resetPassword(user.email)}
-                        >
-                          <KeyRound className="h-4 w-4" />
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => toggleUserStatus(user.id)}
-                          className={user.active ? "text-red-500 hover:text-red-600" : "text-green-500 hover:text-green-600"}
-                        >
-                          {user.active ? (
-                            <UserX className="h-4 w-4" />
-                          ) : (
-                            <UserCheck className="h-4 w-4" />
-                          )}
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => openDeleteDialog(user)}
-                          className="text-red-500 hover:text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                {users.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                      Nenhum utilizador encontrado
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.mechanographic_number}</TableCell>
+                      <TableCell>
+                        <span className={user.role === 'admin' ? 'text-brand-indigo font-medium' : ''}>
+                          {user.role === 'admin' ? 'Administrador' : 'Utilizador'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {user.active ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Ativo
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Inativo
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Sheet open={isEditSheetOpen && selectedUser?.id === user.id} onOpenChange={(open) => {
+                            if (open) {
+                              setSelectedUser(user);
+                            }
+                            setIsEditSheetOpen(open);
+                          }}>
+                            <SheetTrigger asChild>
+                              <Button variant="outline" size="sm" onClick={() => {
+                                setSelectedUser(user);
+                                setIsEditSheetOpen(true);
+                              }}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </SheetTrigger>
+                            <SheetContent>
+                              <SheetHeader>
+                                <SheetTitle>Editar Utilizador</SheetTitle>
+                                <SheetDescription>
+                                  Atualizar informações do utilizador
+                                </SheetDescription>
+                              </SheetHeader>
+                              {selectedUser && (
+                                <div className="py-4">
+                                  <UserForm 
+                                    onSubmit={handleEditUser} 
+                                    defaultValues={{
+                                      name: selectedUser.name,
+                                      email: selectedUser.email,
+                                      mechanographicNumber: selectedUser.mechanographic_number,
+                                      role: selectedUser.role,
+                                    }}
+                                    isEdit={true}
+                                  />
+                                </div>
+                              )}
+                            </SheetContent>
+                          </Sheet>
+                          
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => resetPassword(user.email)}
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
+                          
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => toggleUserStatus(user.id)}
+                            className={user.active ? "text-red-500 hover:text-red-600" : "text-green-500 hover:text-green-600"}
+                          >
+                            {user.active ? (
+                              <UserX className="h-4 w-4" />
+                            ) : (
+                              <UserCheck className="h-4 w-4" />
+                            )}
+                          </Button>
+                          
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => openDeleteDialog(user)}
+                            className="text-red-500 hover:text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           )}
@@ -444,15 +492,19 @@ const UserManagement = () => {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={deleteInProgress}
+            >
               Cancelar
             </Button>
             <Button 
               variant="destructive" 
               onClick={() => userToDelete && deleteUser(userToDelete.id)}
-              disabled={isLoading}
+              disabled={deleteInProgress}
             >
-              {isLoading ? 'A processar...' : 'Eliminar'}
+              {deleteInProgress ? 'A eliminar...' : 'Eliminar'}
             </Button>
           </DialogFooter>
         </DialogContent>

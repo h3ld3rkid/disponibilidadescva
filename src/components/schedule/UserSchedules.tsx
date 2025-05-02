@@ -13,7 +13,7 @@ import { FileText, Trash2, RotateCcw, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ScheduleCalendar from './ScheduleCalendar';
 
 const UserSchedules = () => {
@@ -31,7 +31,25 @@ const UserSchedules = () => {
     // Get unique users with schedules
     const uniqueUsers: string[] = [];
     const processedUsers = new Set();
+    const userInfoMap = new Map(); // Store user info for each email
     
+    // First, gather all user info from localStorage
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('userInfo_')) {
+        try {
+          const userEmail = key.split('_')[1];
+          const userData = JSON.parse(localStorage.getItem(key) || '{}');
+          if (userData.name) {
+            userInfoMap.set(userEmail, userData);
+          }
+        } catch (error) {
+          console.error(`Error processing user info key ${key}:`, error);
+        }
+      }
+    }
+    
+    // Then find all users with schedules
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith('userSchedule_')) {
@@ -42,7 +60,7 @@ const UserSchedules = () => {
             uniqueUsers.push(userEmail);
           }
         } catch (error) {
-          console.error(`Error processing key ${key}:`, error);
+          console.error(`Error processing schedule key ${key}:`, error);
         }
       }
     }
@@ -67,17 +85,22 @@ const UserSchedules = () => {
           const monthInfo = key.split('_')[2];
           const scheduleData = JSON.parse(localStorage.getItem(key) || '[]');
           
-          // Find other user info if available
+          // Use stored user info if available, otherwise just use email
           let userName = email;
-          const userDataKey = `userInfo_${email}`;
-          if (localStorage.getItem(userDataKey)) {
-            try {
-              const userData = JSON.parse(localStorage.getItem(userDataKey) || '{}');
-              if (userData.name) {
-                userName = userData.name;
+          const userInfo = userInfoMap.get(email);
+          if (userInfo && userInfo.name) {
+            userName = userInfo.name;
+          } else {
+            const userDataKey = `userInfo_${email}`;
+            if (localStorage.getItem(userDataKey)) {
+              try {
+                const userData = JSON.parse(localStorage.getItem(userDataKey) || '{}');
+                if (userData.name) {
+                  userName = userData.name;
+                }
+              } catch (e) {
+                console.error(`Error parsing user info for ${email}:`, e);
               }
-            } catch (e) {
-              console.error(`Error parsing user info for ${email}:`, e);
             }
           }
           
@@ -174,7 +197,7 @@ const UserSchedules = () => {
 
       toast({
         title: "Escalas eliminadas",
-        description: `As escalas de ${email} foram eliminadas com sucesso.`,
+        description: `As escalas foram eliminadas com sucesso.`,
       });
     } catch (error) {
       console.error("Error deleting schedules:", error);
@@ -198,7 +221,7 @@ const UserSchedules = () => {
 
       toast({
         title: "Contador reiniciado",
-        description: `O contador de edições de ${email} foi reiniciado com sucesso.`,
+        description: `O contador de edições foi reiniciado com sucesso.`,
       });
 
       // Notify other components
@@ -310,6 +333,23 @@ const UserSchedules = () => {
     }
   };
 
+  // Get user name from email
+  const getUserNameFromEmail = (email: string): string => {
+    // Try to find user info in localStorage
+    const userDataKey = `userInfo_${email}`;
+    if (localStorage.getItem(userDataKey)) {
+      try {
+        const userData = JSON.parse(localStorage.getItem(userDataKey) || '{}');
+        if (userData.name) {
+          return userData.name;
+        }
+      } catch (e) {
+        console.error(`Error parsing user info for ${email}:`, e);
+      }
+    }
+    return email;
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       {userInfo && userInfo.role === 'admin' && (
@@ -334,7 +374,7 @@ const UserSchedules = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Escala de {viewingUserName || viewingUserSchedule}</CardTitle>
+              <CardTitle>Escala de {viewingUserName || getUserNameFromEmail(viewingUserSchedule)}</CardTitle>
               <CardDescription>Visualize a escala detalhada deste utilizador</CardDescription>
             </div>
             <Button 
@@ -387,19 +427,8 @@ const UserSchedules = () => {
                 </TableHeader>
                 <TableBody>
                   {userEmails.map((email) => {
-                    // Get user name if available
-                    let userName = email;
-                    const userDataKey = `userInfo_${email}`;
-                    if (localStorage.getItem(userDataKey)) {
-                      try {
-                        const userData = JSON.parse(localStorage.getItem(userDataKey) || '{}');
-                        if (userData.name) {
-                          userName = userData.name;
-                        }
-                      } catch (e) {
-                        console.error(`Error parsing user info for ${email}:`, e);
-                      }
-                    }
+                    // Get user name from email
+                    const userName = getUserNameFromEmail(email);
                     
                     // Get months for this user
                     const userMonths = new Set();
@@ -477,7 +506,7 @@ const UserSchedules = () => {
                                   <DialogHeader>
                                     <DialogTitle>Confirmar eliminação</DialogTitle>
                                   </DialogHeader>
-                                  <p>Tem a certeza que deseja eliminar as escalas de {userName || email}?</p>
+                                  <p>Tem a certeza que deseja eliminar as escalas de {userName}?</p>
                                   <DialogFooter>
                                     <Button 
                                       variant="destructive" 
@@ -504,7 +533,7 @@ const UserSchedules = () => {
                                   <DialogHeader>
                                     <DialogTitle>Reiniciar contador</DialogTitle>
                                   </DialogHeader>
-                                  <p>Deseja reiniciar o contador de edições para {userName || email}?</p>
+                                  <p>Deseja reiniciar o contador de edições para {userName}?</p>
                                   <DialogFooter>
                                     <Button 
                                       onClick={() => resetEditCounter(email)}
