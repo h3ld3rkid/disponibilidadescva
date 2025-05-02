@@ -12,7 +12,7 @@ interface CurrentScheduleProps {
 
 const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [googleDriveUrl, setGoogleDriveUrl] = useState<string>('');
+  const [pdfLinkUrl, setPdfLinkUrl] = useState<string>('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -23,23 +23,36 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
     }
   }, []);
 
-  const handleSaveGoogleDriveLink = () => {
+  const handleSavePdfLink = () => {
     // Validate the URL (simple validation)
-    if (!googleDriveUrl || !googleDriveUrl.includes('drive.google.com')) {
+    if (!pdfLinkUrl) {
       toast({
         title: "URL inválido",
-        description: "Por favor, insira um URL válido do Google Drive.",
+        description: "Por favor, insira um URL válido para o PDF.",
         variant: "destructive",
       });
       return;
     }
 
-    // Convert to embed URL if it's a standard view URL
-    let embedUrl = googleDriveUrl;
+    // Simple validation to check if it's a PDF link or ends with .pdf
+    if (!pdfLinkUrl.toLowerCase().includes('.pdf') && 
+        !pdfLinkUrl.includes('drive.google.com') && 
+        !pdfLinkUrl.includes('docs.google.com')) {
+      toast({
+        title: "URL possivelmente inválido",
+        description: "O URL inserido pode não ser um PDF válido. Verifique se o link é correto.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Convert Google Drive URLs to embed format if applicable
+    let embedUrl = pdfLinkUrl;
     
-    // If it's a standard view URL, convert it to an embed URL
-    if (googleDriveUrl.includes('/view') && !googleDriveUrl.includes('embedded=true')) {
-      embedUrl = googleDriveUrl.replace('/view', '/preview');
+    // If it's a standard Google Drive view URL, convert it to an embed URL
+    if (pdfLinkUrl.includes('drive.google.com/file/d/') && !pdfLinkUrl.includes('embedded=true')) {
+      const fileId = pdfLinkUrl.split('/file/d/')[1].split('/')[0];
+      embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
     }
 
     // Save the URL to localStorage
@@ -65,20 +78,20 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
         <CardContent>
           {isAdmin && (
             <div className="mb-6 p-4 border rounded-md bg-slate-50">
-              <h3 className="font-medium mb-2">Adicionar link do Google Drive</h3>
+              <h3 className="font-medium mb-2">Adicionar link do PDF</h3>
               <div className="space-y-3">
                 <div>
-                  <Label htmlFor="drive-link">Link para o PDF da escala:</Label>
+                  <Label htmlFor="pdf-link">Link para o PDF da escala:</Label>
                   <Input
-                    id="drive-link"
-                    value={googleDriveUrl}
-                    onChange={(e) => setGoogleDriveUrl(e.target.value)}
-                    placeholder="https://drive.google.com/file/d/..."
+                    id="pdf-link"
+                    value={pdfLinkUrl}
+                    onChange={(e) => setPdfLinkUrl(e.target.value)}
+                    placeholder="https://exemplo.com/escala.pdf"
                     className="mt-1"
                   />
                 </div>
                 <Button 
-                  onClick={handleSaveGoogleDriveLink} 
+                  onClick={handleSavePdfLink} 
                   className="bg-[#6E59A5] hover:bg-[#5d4a8b]"
                 >
                   Guardar Link
@@ -103,7 +116,7 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
             <div className="py-10 text-center">
               <div className="text-gray-500">
                 {isAdmin 
-                  ? "Nenhuma escala disponível. Por favor, adicione um link para a escala no Google Drive." 
+                  ? "Nenhuma escala disponível. Por favor, adicione um link para a escala." 
                   : "Nenhuma escala disponível para visualização de momento."}
               </div>
             </div>
