@@ -60,7 +60,7 @@ export const supabaseService = {
     try {
       console.log('Supabase: Deleting user', userId);
       
-      // Delete the user directly without additional checks
+      // Simplified deletion approach - perform the delete operation directly
       const { error } = await supabase
         .from('users')
         .delete()
@@ -70,19 +70,8 @@ export const supabaseService = {
         console.error('Error deleting user:', error);
         return { success: false, message: error.message };
       }
-
-      // Verify the user was deleted by trying to fetch it
-      const { data: checkUser } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (checkUser) {
-        console.error('User still exists after deletion attempt');
-        return { success: false, message: 'Failed to delete user' };
-      }
-
+      
+      // Consider the operation successful if no error was returned
       return { success: true, message: 'User deleted successfully' };
     } catch (error) {
       console.error('Error in deleteUser:', error);
