@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -347,8 +346,7 @@ const UserSchedules = () => {
           <CardContent>
             <ScheduleCalendar 
               userEmail={viewingUserSchedule} 
-              isAdmin={false} 
-              readOnly={true}
+              isAdmin={false}
             />
           </CardContent>
         </Card>
@@ -436,7 +434,7 @@ const UserSchedules = () => {
                               key={`${email}-${month}`}
                               className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-1"
                             >
-                              {month}
+                              {String(month)}
                             </span>
                           ))}
                         </TableCell>

@@ -58,19 +58,9 @@ export const supabaseService = {
   // Delete a user
   async deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
     try {
-      // First check if the user exists
-      const { data: user, error: fetchError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (fetchError) {
-        console.error('Error fetching user:', fetchError);
-        return { success: false, message: 'User not found' };
-      }
-
-      // Delete the user
+      console.log('Supabase: Deleting user', userId);
+      
+      // Delete the user directly without additional checks
       const { error } = await supabase
         .from('users')
         .delete()
@@ -81,14 +71,15 @@ export const supabaseService = {
         return { success: false, message: error.message };
       }
 
-      // Check if the user was actually deleted
-      const { data: checkUser, error: checkError } = await supabase
+      // Verify the user was deleted by trying to fetch it
+      const { data: checkUser } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single();
 
       if (checkUser) {
+        console.error('User still exists after deletion attempt');
         return { success: false, message: 'Failed to delete user' };
       }
 
