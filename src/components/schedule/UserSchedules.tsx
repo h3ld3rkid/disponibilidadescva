@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -22,6 +23,7 @@ const UserSchedules = () => {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [userEmails, setUserEmails] = useState<string[]>([]);
   const [viewingUserSchedule, setViewingUserSchedule] = useState<string | null>(null);
+  const [viewingUserName, setViewingUserName] = useState<string | null>(null);
   const { toast } = useToast();
 
   const loadAllSchedules = () => {
@@ -332,12 +334,15 @@ const UserSchedules = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Escala de {viewingUserSchedule}</CardTitle>
+              <CardTitle>Escala de {viewingUserName || viewingUserSchedule}</CardTitle>
               <CardDescription>Visualize a escala detalhada deste utilizador</CardDescription>
             </div>
             <Button 
               variant="outline" 
-              onClick={() => setViewingUserSchedule(null)}
+              onClick={() => {
+                setViewingUserSchedule(null);
+                setViewingUserName(null);
+              }}
             >
               Voltar à lista
             </Button>
@@ -346,7 +351,7 @@ const UserSchedules = () => {
           <CardContent>
             <ScheduleCalendar 
               userEmail={viewingUserSchedule} 
-              isAdmin={false}
+              isAdmin={userInfo?.role === 'admin' || false}
             />
           </CardContent>
         </Card>
@@ -423,7 +428,10 @@ const UserSchedules = () => {
                           <Button 
                             variant="link" 
                             className="p-0 h-auto font-medium"
-                            onClick={() => setViewingUserSchedule(email)}
+                            onClick={() => {
+                              setViewingUserSchedule(email);
+                              setViewingUserName(userName);
+                            }}
                           >
                             {userName}
                           </Button>
@@ -444,7 +452,10 @@ const UserSchedules = () => {
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => setViewingUserSchedule(email)}
+                                onClick={() => {
+                                  setViewingUserSchedule(email);
+                                  setViewingUserName(userName);
+                                }}
                                 className="h-8 flex items-center"
                               >
                                 <Calendar className="h-4 w-4 mr-1" />
@@ -466,7 +477,7 @@ const UserSchedules = () => {
                                   <DialogHeader>
                                     <DialogTitle>Confirmar eliminação</DialogTitle>
                                   </DialogHeader>
-                                  <p>Tem a certeza que deseja eliminar as escalas de {email}?</p>
+                                  <p>Tem a certeza que deseja eliminar as escalas de {userName || email}?</p>
                                   <DialogFooter>
                                     <Button 
                                       variant="destructive" 
@@ -493,7 +504,7 @@ const UserSchedules = () => {
                                   <DialogHeader>
                                     <DialogTitle>Reiniciar contador</DialogTitle>
                                   </DialogHeader>
-                                  <p>Deseja reiniciar o contador de edições para {email}?</p>
+                                  <p>Deseja reiniciar o contador de edições para {userName || email}?</p>
                                   <DialogFooter>
                                     <Button 
                                       onClick={() => resetEditCounter(email)}

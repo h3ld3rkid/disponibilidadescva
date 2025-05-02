@@ -55,27 +55,25 @@ export const supabaseService = {
     };
   },
   
-  // Delete a user
+  // Delete a user - Fixed to properly delete from Supabase
   async deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
     try {
       console.log('Supabase: Deleting user', userId);
       
-      // Simplified deletion approach - perform the delete operation directly
       const { error } = await supabase
         .from('users')
         .delete()
         .eq('id', userId);
-
+      
       if (error) {
         console.error('Error deleting user:', error);
         return { success: false, message: error.message };
       }
       
-      // Consider the operation successful if no error was returned
       return { success: true, message: 'User deleted successfully' };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in deleteUser:', error);
-      return { success: false, message: 'An unexpected error occurred' };
+      return { success: false, message: error.message || 'An unexpected error occurred' };
     }
   },
   

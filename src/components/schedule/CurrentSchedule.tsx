@@ -34,13 +34,15 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
       return;
     }
 
-    // Simple validation to check if it's a PDF link or ends with .pdf
-    if (!pdfLinkUrl.toLowerCase().includes('.pdf') && 
-        !pdfLinkUrl.includes('drive.google.com') && 
-        !pdfLinkUrl.includes('docs.google.com')) {
+    // Simple validation to check if it's a PDF link
+    const isPdfUrl = pdfLinkUrl.toLowerCase().includes('.pdf');
+    const isGoogleDriveUrl = pdfLinkUrl.includes('drive.google.com');
+    const isGoogleDocsUrl = pdfLinkUrl.includes('docs.google.com');
+    
+    if (!isPdfUrl && !isGoogleDriveUrl && !isGoogleDocsUrl) {
       toast({
         title: "URL possivelmente inválido",
-        description: "O URL inserido pode não ser um PDF válido. Verifique se o link é correto.",
+        description: "O URL inserido pode não ser um PDF. Verifique se o link é correto.",
         variant: "destructive",
       });
       return;
@@ -50,7 +52,7 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
     let embedUrl = pdfLinkUrl;
     
     // If it's a standard Google Drive view URL, convert it to an embed URL
-    if (pdfLinkUrl.includes('drive.google.com/file/d/') && !pdfLinkUrl.includes('embedded=true')) {
+    if (isGoogleDriveUrl && pdfLinkUrl.includes('/file/d/') && !pdfLinkUrl.includes('embedded=true')) {
       const fileId = pdfLinkUrl.split('/file/d/')[1].split('/')[0];
       embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
     }
@@ -86,7 +88,7 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
                     id="pdf-link"
                     value={pdfLinkUrl}
                     onChange={(e) => setPdfLinkUrl(e.target.value)}
-                    placeholder="https://exemplo.com/escala.pdf"
+                    placeholder="Insira o URL do PDF da escala"
                     className="mt-1"
                   />
                 </div>
