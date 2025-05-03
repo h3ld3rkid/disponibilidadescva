@@ -52,7 +52,7 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
     let embedUrl = pdfLinkUrl;
     
     // If it's a standard Google Drive view URL, convert it to an embed URL
-    if (isGoogleDriveUrl && pdfLinkUrl.includes('/file/d/') && !pdfLinkUrl.includes('embedded=true')) {
+    if (isGoogleDriveUrl && pdfLinkUrl.includes('/file/d/')) {
       const fileId = pdfLinkUrl.split('/file/d/')[1].split('/')[0];
       embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
     }
@@ -108,10 +108,22 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
                 src={pdfUrl} 
                 className="w-full h-[600px] border-0" 
                 title="Escala Atual"
-                sandbox="allow-scripts allow-same-origin allow-popups"
+                allow="fullscreen"
+                referrerPolicy="no-referrer"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-downloads"
               />
               <div className="mt-2 text-center text-sm text-gray-500">
-                Este documento está disponível apenas para visualização. Não é permitido fazer download ou imprimir.
+                Este documento está disponível apenas para visualização.
+              </div>
+              <div className="mt-2 text-center">
+                <a 
+                  href={pdfUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-brand-indigo hover:text-brand-darkblue underline text-sm"
+                >
+                  Abrir em nova janela
+                </a>
               </div>
             </div>
           ) : (

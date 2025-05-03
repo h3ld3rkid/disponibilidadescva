@@ -55,17 +55,20 @@ export const supabaseService = {
     };
   },
   
-  // Delete a user - Completely revised implementation
+  // Delete a user - Enhanced with detailed logging
   async deleteUser(userId: string): Promise<{ success: boolean; message?: string; email?: string }> {
     console.log('Supabase: Attempting to delete user with ID:', userId);
     
     try {
       // First, get the user email which we'll need for local storage cleanup
+      console.log('Supabase: Fetching user data before deletion');
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('email')
         .eq('id', userId)
         .single();
+      
+      console.log('Supabase: User fetch result:', { userData, error: userError?.message });
       
       if (userError) {
         console.error('Error fetching user before deletion:', userError);
@@ -76,6 +79,7 @@ export const supabaseService = {
       }
       
       if (!userData) {
+        console.log('Supabase: User not found for ID:', userId);
         return {
           success: false,
           message: 'User not found'
@@ -83,10 +87,13 @@ export const supabaseService = {
       }
       
       // Delete user from the database
+      console.log('Supabase: Attempting to delete user from database');
       const { error: deleteError } = await supabase
         .from('users')
         .delete()
         .eq('id', userId);
+      
+      console.log('Supabase: Delete operation result:', { error: deleteError?.message });
       
       if (deleteError) {
         console.error('Error deleting user:', deleteError);
@@ -96,7 +103,7 @@ export const supabaseService = {
         };
       }
       
-      console.log('User successfully deleted from database:', userId);
+      console.log('User successfully deleted from database:', userId, 'Email:', userData.email);
       return {
         success: true,
         message: 'User deleted successfully',
