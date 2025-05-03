@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 
@@ -57,7 +56,7 @@ export const supabaseService = {
   },
   
   // Delete a user - Completely revised implementation
-  async deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
+  async deleteUser(userId: string): Promise<{ success: boolean; message?: string; email?: string }> {
     console.log('Supabase: Attempting to delete user with ID:', userId);
     
     try {
