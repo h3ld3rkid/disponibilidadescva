@@ -94,23 +94,7 @@ const UserSchedules = () => {
           const scheduleData = JSON.parse(localStorage.getItem(key) || '[]');
           
           // Use stored user info if available, otherwise just use email
-          let userName = email;
-          const userInfo = userInfoMap.get(email);
-          if (userInfo && userInfo.name) {
-            userName = userInfo.name;
-          } else {
-            const userDataKey = `userInfo_${email}`;
-            if (localStorage.getItem(userDataKey)) {
-              try {
-                const userData = JSON.parse(localStorage.getItem(userDataKey) || '{}');
-                if (userData.name) {
-                  userName = userData.name;
-                }
-              } catch (e) {
-                console.error(`Error parsing user info for ${email}:`, e);
-              }
-            }
-          }
+          let userName = getUserNameFromEmail(email);
           
           // Create a schedule entry for this user and month
           const userSchedule = {
@@ -301,7 +285,7 @@ const UserSchedules = () => {
         doc.setTextColor(0, 0, 0);
         doc.text(`Utilizador: ${schedule.user}`, 14, 35);
         // Changed to display username instead of email in PDF export
-        doc.text(`Nome de utilizador: ${schedule.email}`, 14, 45);
+        doc.text(`Nome de utilizador: ${schedule.user}`, 14, 45);
         doc.text(`Mês: ${schedule.month}`, 14, 55);
         
         // Date and export info
