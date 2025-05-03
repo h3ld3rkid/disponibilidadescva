@@ -300,7 +300,8 @@ const UserSchedules = () => {
         doc.setFontSize(14);
         doc.setTextColor(0, 0, 0);
         doc.text(`Utilizador: ${schedule.user}`, 14, 35);
-        doc.text(`Email: ${schedule.email}`, 14, 45);
+        // Changed to display username instead of email in PDF export
+        doc.text(`Nome de utilizador: ${schedule.email}`, 14, 45);
         doc.text(`Mês: ${schedule.month}`, 14, 55);
         
         // Date and export info
@@ -362,7 +363,7 @@ const UserSchedules = () => {
     }
   };
 
-  // Get user name from email
+  // Renamed function to reflect that we're getting username now
   const getUserNameFromEmail = (email: string): string => {
     // Try to find user info in localStorage
     const userDataKey = `userInfo_${email}`;
