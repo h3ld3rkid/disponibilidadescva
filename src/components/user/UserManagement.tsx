@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import UserForm from "./UserForm";
-import { supabaseService } from "../../services/supabaseService";
+// Updated import
+import { supabaseService } from "../../services/supabase";
 import { 
   Popover, PopoverContent, PopoverTrigger 
 } from "@/components/ui/popover";
