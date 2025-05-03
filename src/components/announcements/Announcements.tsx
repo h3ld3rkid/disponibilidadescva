@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { BellRing, Edit, Trash2 } from "lucide-react";
@@ -25,7 +25,7 @@ const Announcements = () => {
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const { toast } = useToast();
 
-  React.useEffect(() => {
+  useEffect(() => {
     loadAnnouncements();
   }, []);
 
@@ -40,20 +40,23 @@ const Announcements = () => {
           endDate: new Date(announcement.endDate)
         }));
         setAnnouncements(processedAnnouncements);
-        console.log('Loaded announcements in Announcements component:', processedAnnouncements);
+        console.log('Loaded announcements in Announcements component:', processedAnnouncements.length);
       } catch (error) {
         console.error('Error loading announcements:', error);
         setAnnouncements([]);
       }
+    } else {
+      console.log('No announcements found in localStorage');
     }
   };
 
   const saveAnnouncements = (newAnnouncements: Announcement[]) => {
     localStorage.setItem('announcements', JSON.stringify(newAnnouncements));
     setAnnouncements(newAnnouncements);
+    
     // Dispatch a custom event to notify other components that announcements have changed
     window.dispatchEvent(new Event('announcementsChanged'));
-    console.log('Announcements saved and event dispatched:', newAnnouncements);
+    console.log('Announcements saved and event dispatched:', newAnnouncements.length, 'announcements');
   };
 
   const handleCreateAnnouncement = (data: {

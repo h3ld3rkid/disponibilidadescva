@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -34,6 +35,7 @@ const UserSchedules = () => {
 
   const loadAllSchedules = () => {
     console.log("Loading all schedules for admin view");
+    
     // Get unique users with schedules
     const uniqueUsers: string[] = [];
     const processedUsers = new Set();
@@ -147,7 +149,28 @@ const UserSchedules = () => {
     // Get user info
     const storedUser = localStorage.getItem('mysqlConnection');
     if (storedUser) {
-      setUserInfo(JSON.parse(storedUser));
+      const parsedUserInfo = JSON.parse(storedUser);
+      setUserInfo(parsedUserInfo);
+      
+      // If user is not admin, and has submitted a schedule, show their own schedule immediately
+      if (parsedUserInfo.role !== 'admin') {
+        const userEmail = parsedUserInfo.email;
+        
+        // Check if this user has any schedules
+        let hasSchedule = false;
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith(`userSchedule_${userEmail}`)) {
+            hasSchedule = true;
+            break;
+          }
+        }
+        
+        if (hasSchedule) {
+          setViewingUserSchedule(userEmail);
+          setViewingUserName(parsedUserInfo.name || userEmail);
+        }
+      }
     }
     
     // Load all schedules from localStorage

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { BellRing } from "lucide-react";
@@ -23,9 +23,9 @@ interface Announcement {
 }
 
 const AnnouncementsList = () => {
-  const [announcements, setAnnouncements] = React.useState<Announcement[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const loadAnnouncements = () => {
       const storedAnnouncements = localStorage.getItem('announcements');
       if (storedAnnouncements) {
@@ -44,15 +44,18 @@ const AnnouncementsList = () => {
               now >= announcement.startDate && now <= announcement.endDate
             );
           
+          console.log('Loaded announcements in AnnouncementsList:', activeAnnouncements.length, 'active announcements');
           setAnnouncements(activeAnnouncements);
-          console.log('Loaded announcements in AnnouncementsList:', activeAnnouncements);
         } catch (error) {
           console.error('Error loading announcements:', error);
           setAnnouncements([]);
         }
+      } else {
+        console.log('No announcements found in localStorage');
       }
     };
 
+    // Load announcements immediately
     loadAnnouncements();
     
     // Listen for the custom event

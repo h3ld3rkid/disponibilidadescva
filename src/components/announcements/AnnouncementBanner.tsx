@@ -32,6 +32,7 @@ const AnnouncementBanner = () => {
           const parsedAnnouncements = JSON.parse(storedAnnouncements);
           const now = new Date();
           
+          // Process announcements - make sure dates are correctly parsed
           const activeAnnouncements = parsedAnnouncements
             .map((announcement: any) => ({
               ...announcement,
@@ -42,16 +43,24 @@ const AnnouncementBanner = () => {
               now >= announcement.startDate && now <= announcement.endDate
             );
           
+          console.log('Loaded active announcements in banner:', activeAnnouncements);
           setAnnouncements(activeAnnouncements);
         } catch (error) {
           console.error('Error loading announcements:', error);
           setAnnouncements([]);
         }
+      } else {
+        console.log('No announcements found in localStorage');
       }
     };
 
+    // Initial load
     loadAnnouncements();
+    
+    // Set up listeners for announcement changes
     window.addEventListener('announcementsChanged', loadAnnouncements);
+    
+    // Check for new announcements every minute
     const interval = setInterval(loadAnnouncements, 60000);
 
     return () => {

@@ -56,57 +56,58 @@ export const supabaseService = {
     };
   },
   
-  // Delete a user - New implementation for reliable deletion
+  // Delete a user - Completely revised implementation
   async deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
     console.log('Supabase: Attempting to delete user with ID:', userId);
     
     try {
-      // First, clear any password reset requests for this user
-      const userEmailResult = await supabase
+      // First, get the user email which we'll need for local storage cleanup
+      const { data: userData, error: userError } = await supabase
         .from('users')
         .select('email')
         .eq('id', userId)
         .single();
       
-      if (userEmailResult.error) {
-        console.error('Error fetching user email for deletion:', userEmailResult.error);
-      } else if (userEmailResult.data?.email) {
-        const email = userEmailResult.data.email;
-        
-        const resetRequestResult = await supabase
-          .from('password_reset_requests')
-          .delete()
-          .eq('email', email);
-        
-        if (resetRequestResult.error) {
-          console.error('Error deleting password reset requests:', resetRequestResult.error);
-        }
+      if (userError) {
+        console.error('Error fetching user before deletion:', userError);
+        return {
+          success: false,
+          message: `Could not find user: ${userError.message}`
+        };
       }
       
-      // Now delete the user record
-      const { error } = await supabase
+      if (!userData) {
+        return {
+          success: false,
+          message: 'User not found'
+        };
+      }
+      
+      // Delete user from the database
+      const { error: deleteError } = await supabase
         .from('users')
         .delete()
         .eq('id', userId);
       
-      if (error) {
-        console.error('Error deleting user:', error);
-        return { 
-          success: false, 
-          message: `Failed to delete user: ${error.message}` 
+      if (deleteError) {
+        console.error('Error deleting user:', deleteError);
+        return {
+          success: false,
+          message: `Failed to delete user: ${deleteError.message}`
         };
       }
       
-      console.log('User deleted successfully:', userId);
-      return { 
-        success: true, 
-        message: 'User deleted successfully' 
+      console.log('User successfully deleted from database:', userId);
+      return {
+        success: true,
+        message: 'User deleted successfully',
+        email: userData.email // Return email for client-side cleanup
       };
     } catch (error: any) {
       console.error('Unexpected error in deleteUser:', error);
-      return { 
-        success: false, 
-        message: `An unexpected error occurred: ${error.message || 'Unknown error'}` 
+      return {
+        success: false,
+        message: `An unexpected error occurred: ${error.message || 'Unknown error'}`
       };
     }
   },
@@ -220,9 +221,17 @@ export const supabaseService = {
   },
   
   // Save user schedule
-  async saveUserSchedule(userEmail: string, scheduleData: any): Promise<{ success: boolean }> {
+  async saveUserSchedule(userEmail: string, scheduleData: any, userData?: { name: string }): Promise<{ success: boolean }> {
     console.log('Supabase: Saving schedule for user', userEmail, scheduleData);
-    // This would be implemented with a schedules table
+    
+    // Save user info for reference in admin views
+    if (userData && userData.name) {
+      localStorage.setItem(`userInfo_${userEmail}`, JSON.stringify(userData));
+    }
+    
+    // Trigger an event to notify other components that schedules have changed
+    window.dispatchEvent(new Event('schedulesChanged'));
+    
     return { success: true };
   },
   
@@ -326,14 +335,14 @@ export const supabaseService = {
   },
   
   // Check login credentials
-  async checkLogin(email: string, password: string): Promise<{ success: boolean; user?: { email: string; role: string; needsPasswordChange: boolean } }> {
+  async checkLogin(email: string, password: string): Promise<{ success: boolean; user?: { email: string; role: string; needsPasswordChange: boolean; name: string } }> {
     console.log('Supabase: Checking login for', email);
     
     // In a real implementation, you would verify the password hash
     // For this example, we're just checking if the user exists
     const { data, error } = await supabase
       .from('users')
-      .select('email, role, needs_password_change, password_hash, active')
+      .select('email, role, needs_password_change, password_hash, active, name')
       .eq('email', email)
       .single();
     
@@ -362,6 +371,7 @@ export const supabaseService = {
       user: {
         email: data.email,
         role: data.role,
+        name: data.name,
         needsPasswordChange: data.needs_password_change
       }
     };
