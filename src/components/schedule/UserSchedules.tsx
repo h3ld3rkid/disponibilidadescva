@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -9,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-import { FileText, Trash2, RotateCcw, Calendar } from "lucide-react";
+import { FileText, Trash2, RotateCcw, Calendar, Database } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -22,6 +21,7 @@ import {
   DialogTrigger 
 } from "@/components/ui/dialog";
 import ScheduleCalendar from './ScheduleCalendar';
+import { scheduleService } from "@/services/supabase/scheduleService";
 
 const UserSchedules = () => {
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -31,102 +31,39 @@ const UserSchedules = () => {
   const [userEmails, setUserEmails] = useState<string[]>([]);
   const [viewingUserSchedule, setViewingUserSchedule] = useState<string | null>(null);
   const [viewingUserName, setViewingUserName] = useState<string | null>(null);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migrationDone, setMigrationDone] = useState(false);
+  const [migrationCount, setMigrationCount] = useState(0);
   const { toast } = useToast();
 
-  const loadAllSchedules = () => {
+  const loadAllSchedules = async () => {
     console.log("Loading all schedules for admin view");
+    setIsLoading(true);
     
-    // Get unique users with schedules
-    const uniqueUsers: string[] = [];
-    const processedUsers = new Set();
-    const userInfoMap = new Map(); // Store user info for each email
-    
-    // First, gather all user info from localStorage
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('userInfo_')) {
-        try {
-          const userEmail = key.split('_')[1];
-          const userData = JSON.parse(localStorage.getItem(key) || '{}');
-          if (userData.name) {
-            userInfoMap.set(userEmail, userData);
-          }
-        } catch (error) {
-          console.error(`Error processing user info key ${key}:`, error);
-        }
-      }
-    }
-    
-    // Then find all users with schedules
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('userSchedule_')) {
-        try {
-          const userEmail = key.split('_')[1];
-          if (!processedUsers.has(userEmail)) {
-            processedUsers.add(userEmail);
-            uniqueUsers.push(userEmail);
-          }
-        } catch (error) {
-          console.error(`Error processing schedule key ${key}:`, error);
-        }
-      }
-    }
-    
-    setUserEmails(uniqueUsers);
-    
-    // Get schedule data for these users
-    const userScheduleData: any[] = [];
-    uniqueUsers.forEach(email => {
-      // For each user, find all their schedule keys
-      const userScheduleKeys = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith(`userSchedule_${email}`)) {
-          userScheduleKeys.push(key);
-        }
-      }
+    try {
+      // Get schedules from Supabase
+      const scheduleData = await scheduleService.getUserSchedules();
       
-      // For each user's schedule key, get the schedule data
-      userScheduleKeys.forEach(key => {
-        try {
-          const monthInfo = key.split('_')[2];
-          const scheduleData = JSON.parse(localStorage.getItem(key) || '[]');
-          
-          // Use stored user info if available, otherwise just use email
-          let userName = getUserNameFromEmail(email);
-          
-          // Create a schedule entry for this user and month
-          const userSchedule = {
-            user: userName,
-            email: email,
-            month: monthInfo.replace('-', ' '),
-            dates: scheduleData.map((item: any) => ({
-              date: new Date(item.date),
-              shifts: Object.entries(item.shifts)
-                .filter(([_, isSelected]) => isSelected === true)
-                .map(([shiftName]) => shiftName),
-              notes: item.notes || ""
-            }))
-          };
-          
-          // Check if this user has any selected shifts
-          const hasSelectedShifts = userSchedule.dates.some((dateInfo: any) => 
-            dateInfo.shifts && dateInfo.shifts.length > 0
-          );
-          
-          // Only add if user has selected shifts
-          if (hasSelectedShifts) {
-            userScheduleData.push(userSchedule);
-          }
-        } catch (error) {
-          console.error(`Error processing schedule for key ${key}:`, error);
-        }
+      if (scheduleData && scheduleData.length > 0) {
+        setSchedules(scheduleData);
+        
+        // Extract unique user emails
+        const uniqueEmails = Array.from(new Set(scheduleData.map(schedule => schedule.email)));
+        setUserEmails(uniqueEmails);
+      } else {
+        setSchedules([]);
+        setUserEmails([]);
+      }
+    } catch (error) {
+      console.error("Error loading schedules:", error);
+      toast({
+        title: "Erro ao carregar",
+        description: "Ocorreu um erro ao carregar as escalas.",
+        variant: "destructive",
       });
-    });
-    
-    setSchedules(userScheduleData);
-    setIsLoading(false);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -157,7 +94,7 @@ const UserSchedules = () => {
       }
     }
     
-    // Load all schedules from localStorage
+    // Load all schedules from Supabase
     loadAllSchedules();
     
     // Set up listener for schedule changes
@@ -189,29 +126,23 @@ const UserSchedules = () => {
     });
   };
 
-  const deleteUserSchedules = (email: string) => {
+  const deleteUserSchedules = async (email: string) => {
     try {
-      // Remove individual user schedules
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith(`userSchedule_${email}`)) {
-          localStorage.removeItem(key);
-        }
+      const result = await scheduleService.deleteUserSchedule(email);
+      
+      if (result.success) {
+        // Update UI state
+        setSchedules(prev => prev.filter(schedule => schedule.email !== email));
+        setUserEmails(prev => prev.filter(e => e !== email));
+        setSelectedUsers(prev => prev.filter(e => e !== email));
+        
+        toast({
+          title: "Escalas eliminadas",
+          description: `As escalas foram eliminadas com sucesso.`,
+        });
+      } else {
+        throw new Error("Failed to delete schedules");
       }
-
-      // Update UI state
-      setSchedules(prev => prev.filter(schedule => schedule.email !== email));
-      setUserEmails(prev => prev.filter(e => e !== email));
-      setSelectedUsers(prev => prev.filter(e => e !== email));
-
-      // Notify other components
-      const event = new CustomEvent('schedulesChanged');
-      window.dispatchEvent(event);
-
-      toast({
-        title: "Escalas eliminadas",
-        description: `As escalas foram eliminadas com sucesso.`,
-      });
     } catch (error) {
       console.error("Error deleting schedules:", error);
       toast({
@@ -222,24 +153,20 @@ const UserSchedules = () => {
     }
   };
 
-  const resetEditCounter = (email: string) => {
+  const resetEditCounter = async (email: string) => {
     try {
-      // Find all edit counters for this user
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith(`editCount_${email}`)) {
-          localStorage.setItem(key, '0');
-        }
+      const result = await scheduleService.resetEditCounter(email);
+      
+      if (result.success) {
+        loadAllSchedules();
+        
+        toast({
+          title: "Contador reiniciado",
+          description: `O contador de edições foi reiniciado com sucesso.`,
+        });
+      } else {
+        throw new Error("Failed to reset edit counter");
       }
-
-      toast({
-        title: "Contador reiniciado",
-        description: `O contador de edições foi reiniciado com sucesso.`,
-      });
-
-      // Notify other components
-      const event = new CustomEvent('schedulesChanged');
-      window.dispatchEvent(event);
     } catch (error) {
       console.error("Error resetting edit counter:", error);
       toast({
@@ -347,6 +274,36 @@ const UserSchedules = () => {
     }
   };
 
+  const migrateDataToSupabase = async () => {
+    setIsMigrating(true);
+    try {
+      const result = await scheduleService.migrateLocalStorageToSupabase();
+      
+      if (result.success) {
+        setMigrationDone(true);
+        setMigrationCount(result.migratedCount);
+        toast({
+          title: "Migração concluída",
+          description: `Foram migrados ${result.migratedCount} registros para o Supabase.`,
+        });
+        
+        // Reload schedules
+        loadAllSchedules();
+      } else {
+        throw new Error("Failed to migrate data");
+      }
+    } catch (error) {
+      console.error("Error migrating data:", error);
+      toast({
+        title: "Erro na migração",
+        description: "Ocorreu um erro ao migrar os dados para o Supabase.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
   // Renamed function to reflect that we're getting username now
   const getUserNameFromEmail = (email: string): string => {
     // Try to find user info in localStorage
@@ -381,6 +338,32 @@ const UserSchedules = () => {
               {selectedUsers.length} utilizador(es) selecionado(s)
             </span>
           </div>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={migrateDataToSupabase}
+              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+              disabled={isMigrating || migrationDone}
+            >
+              <Database className="h-4 w-4" />
+              {isMigrating ? 'Migrando...' : 'Migrar dados para Supabase'}
+            </Button>
+            <Button 
+              onClick={loadAllSchedules}
+              variant="outline" 
+              className="flex items-center gap-2"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Atualizar
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      {migrationDone && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md text-green-800">
+          <p className="font-medium">Migração concluída com sucesso!</p>
+          <p>Foram migrados {migrationCount} registros do localStorage para o Supabase.</p>
         </div>
       )}
       
@@ -445,16 +428,11 @@ const UserSchedules = () => {
                     const userName = getUserNameFromEmail(email);
                     
                     // Get months for this user
-                    const userMonths = new Set();
-                    for (let i = 0; i < localStorage.length; i++) {
-                      const key = localStorage.key(i);
-                      if (key && key.startsWith(`userSchedule_${email}`)) {
-                        const monthInfo = key.split('_')[2];
-                        if (monthInfo) {
-                          userMonths.add(monthInfo.replace('-', ' '));
-                        }
-                      }
-                    }
+                    const userMonths = Array.from(new Set(
+                      schedules
+                        .filter(s => s.email === email)
+                        .map(s => s.month)
+                    ));
                     
                     return (
                       <TableRow key={email}>
@@ -480,7 +458,7 @@ const UserSchedules = () => {
                           </Button>
                         </TableCell>
                         <TableCell>
-                          {Array.from(userMonths).map((month, index) => (
+                          {userMonths.map((month) => (
                             <span 
                               key={`${email}-${month}`}
                               className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-1"

@@ -2,6 +2,105 @@
 import { supabase } from "./client";
 
 export const scheduleService = {
+  // Migrate existing localStorage data to Supabase
+  async migrateLocalStorageToSupabase(): Promise<{ success: boolean, migratedCount: number }> {
+    console.log('Starting migration of localStorage data to Supabase');
+    let migratedCount = 0;
+    
+    try {
+      // Get all keys from localStorage
+      const scheduleKeys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('userSchedule_')) {
+          scheduleKeys.push(key);
+        }
+      }
+      
+      console.log(`Found ${scheduleKeys.length} schedule records in localStorage`);
+      
+      // Process each schedule
+      for (const key of scheduleKeys) {
+        try {
+          const parts = key.split('_');
+          const userEmail = parts[1];
+          const month = parts[2] || 'default';
+          const scheduleData = JSON.parse(localStorage.getItem(key) || '[]');
+          
+          // Get user info (name) if available
+          let userName = userEmail;
+          const userInfoKey = `userInfo_${userEmail}`;
+          const userInfoData = localStorage.getItem(userInfoKey);
+          if (userInfoData) {
+            try {
+              const userData = JSON.parse(userInfoData);
+              if (userData && userData.name) {
+                userName = userData.name;
+              }
+            } catch (e) {
+              console.error(`Error parsing user info for ${userEmail}:`, e);
+            }
+          }
+          
+          // Get notes if available
+          let notes = '';
+          const notesKey = `userNotes_${userEmail}_${month}`;
+          const notesData = localStorage.getItem(notesKey);
+          if (notesData) {
+            notes = notesData;
+          }
+          
+          // Get edit count if available
+          let editCount = 0;
+          const editCountKey = `editCount_${userEmail}_${month}`;
+          const editCountData = localStorage.getItem(editCountKey);
+          if (editCountData) {
+            editCount = parseInt(editCountData);
+          }
+          
+          // Check if this data already exists in Supabase
+          const { data: existingData } = await supabase
+            .from('schedules')
+            .select('id')
+            .eq('user_email', userEmail)
+            .eq('month', month)
+            .maybeSingle();
+            
+          if (!existingData) {
+            // Insert new record into Supabase
+            const { error } = await supabase
+              .from('schedules')
+              .insert({
+                user_email: userEmail,
+                user_name: userName,
+                month: month,
+                dates: scheduleData,
+                notes: notes,
+                edit_count: editCount
+              });
+              
+            if (error) {
+              console.error(`Error migrating data for ${userEmail} (${month}):`, error);
+            } else {
+              migratedCount++;
+              console.log(`Migrated data for ${userEmail} (${month}) to Supabase`);
+            }
+          } else {
+            console.log(`Data for ${userEmail} (${month}) already exists in Supabase, skipping`);
+          }
+        } catch (error) {
+          console.error(`Error processing localStorage key ${key}:`, error);
+        }
+      }
+      
+      console.log(`Migration completed. Migrated ${migratedCount} records to Supabase.`);
+      return { success: true, migratedCount };
+    } catch (error) {
+      console.error('Error migrating data to Supabase:', error);
+      return { success: false, migratedCount };
+    }
+  },
+  
   // Save user schedule
   async saveUserSchedule(userEmail: string, scheduleData: any, userData?: { name: string }): Promise<{ success: boolean }> {
     console.log('Supabase: Saving schedule for user', userEmail, scheduleData);
@@ -50,7 +149,7 @@ export const scheduleService = {
         if (error) throw error;
       }
       
-      // Save user info for reference (for backward compatibility)
+      // For backward compatibility, also save user info to localStorage
       if (userData && userData.name) {
         localStorage.setItem(`userInfo_${userEmail}`, JSON.stringify(userData));
       }
@@ -82,6 +181,7 @@ export const scheduleService = {
       if (error) throw error;
       
       if (supabaseSchedules && supabaseSchedules.length > 0) {
+        console.log(`Retrieved ${supabaseSchedules.length} schedules from Supabase`);
         return supabaseSchedules.map(schedule => ({
           email: schedule.user_email,
           user: schedule.user_name,
@@ -93,6 +193,7 @@ export const scheduleService = {
       }
       
       // Fallback to localStorage for backward compatibility
+      console.log('No schedules found in Supabase, checking localStorage');
       const schedules: any[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
