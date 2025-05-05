@@ -1,4 +1,3 @@
-
 import { supabase } from "./client";
 import { Database } from "@/integrations/supabase/types";
 
@@ -55,59 +54,38 @@ export const userService = {
     };
   },
 
-  // Delete a user - Enhanced with detailed logging
+  // Delete a user - Enhanced to use the Edge Function
   async deleteUser(userId: string): Promise<{ success: boolean; message?: string; email?: string }> {
     console.log('Supabase: Attempting to delete user with ID:', userId);
     
     try {
-      // First, get the user email which we'll need for local storage cleanup
-      console.log('Supabase: Fetching user data before deletion');
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('email')
-        .eq('id', userId)
-        .single();
+      // Call the Edge Function to delete the user
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId }
+      });
       
-      console.log('Supabase: User fetch result:', { userData, error: userError?.message });
+      console.log('Supabase: Delete user function response:', data, error);
       
-      if (userError) {
-        console.error('Error fetching user before deletion:', userError);
+      if (error) {
+        console.error('Error calling delete-user function:', error);
         return {
           success: false,
-          message: `Could not find user: ${userError.message}`
+          message: `Function error: ${error.message}`
         };
       }
       
-      if (!userData) {
-        console.log('Supabase: User not found for ID:', userId);
+      if (!data || !data.success) {
+        console.log('Function returned unsuccessful response:', data);
         return {
           success: false,
-          message: 'User not found'
+          message: data?.message || 'Unknown error'
         };
       }
       
-      // Delete user from the database
-      console.log('Supabase: Attempting to delete user from database');
-      const { error: deleteError } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', userId);
-      
-      console.log('Supabase: Delete operation result:', { error: deleteError?.message });
-      
-      if (deleteError) {
-        console.error('Error deleting user:', deleteError);
-        return {
-          success: false,
-          message: `Failed to delete user: ${deleteError.message}`
-        };
-      }
-      
-      console.log('User successfully deleted from database:', userId, 'Email:', userData.email);
       return {
         success: true,
-        message: 'User deleted successfully',
-        email: userData.email // Return email for client-side cleanup
+        message: data.message || 'User deleted successfully',
+        email: data.email // Return email for client-side cleanup
       };
     } catch (error: any) {
       console.error('Unexpected error in deleteUser:', error);

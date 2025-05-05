@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -9,6 +8,7 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import AnnouncementForm from './AnnouncementForm';
+import { supabase } from "@/services/supabase/client";
 
 interface Announcement {
   id: number;
@@ -27,7 +27,20 @@ const Announcements = () => {
 
   useEffect(() => {
     loadAnnouncements();
+    
+    // Set up subscription for real-time updates
+    setupRealtimeSubscription();
   }, []);
+
+  const setupRealtimeSubscription = () => {
+    // In the future, this would use Supabase's realtime functionality
+    // For now, we'll poll for updates every minute
+    const interval = setInterval(() => {
+      loadAnnouncements();
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  };
 
   const loadAnnouncements = () => {
     const storedAnnouncements = localStorage.getItem('announcements');
