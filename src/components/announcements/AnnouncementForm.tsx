@@ -19,7 +19,7 @@ interface AnnouncementFormProps {
     endDate: Date;
   }) => void;
   editingAnnouncement?: {
-    id: number;
+    id?: string; // Updated from number to string | undefined to match Supabase type
     title: string;
     content: string;
     startDate: Date;
