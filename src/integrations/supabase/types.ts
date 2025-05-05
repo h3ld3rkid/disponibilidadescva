@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      announcements: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          end_date: string
+          id: string
+          start_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          end_date: string
+          id?: string
+          start_date: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          end_date?: string
+          id?: string
+          start_date?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       password_reset_requests: {
         Row: {
           email: string
@@ -37,6 +70,42 @@ export type Database = {
             referencedColumns: ["email"]
           },
         ]
+      }
+      schedules: {
+        Row: {
+          created_at: string
+          dates: Json
+          edit_count: number | null
+          id: string
+          month: string
+          notes: string | null
+          updated_at: string
+          user_email: string
+          user_name: string
+        }
+        Insert: {
+          created_at?: string
+          dates: Json
+          edit_count?: number | null
+          id?: string
+          month: string
+          notes?: string | null
+          updated_at?: string
+          user_email: string
+          user_name: string
+        }
+        Update: {
+          created_at?: string
+          dates?: Json
+          edit_count?: number | null
+          id?: string
+          month?: string
+          notes?: string | null
+          updated_at?: string
+          user_email?: string
+          user_name?: string
+        }
+        Relationships: []
       }
       users: {
         Row: {

@@ -12,46 +12,24 @@ import {
   CarouselNext,
   CarouselPrevious
 } from "@/components/ui/carousel";
-
-interface Announcement {
-  id: number;
-  title: string;
-  content: string;
-  startDate: Date;
-  endDate: Date;
-  createdBy: string;
-}
+import { announcementService, Announcement } from "@/services/supabase/announcementService";
 
 const AnnouncementsList = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadAnnouncements = () => {
-      const storedAnnouncements = localStorage.getItem('announcements');
-      if (storedAnnouncements) {
-        try {
-          const parsedAnnouncements = JSON.parse(storedAnnouncements);
-          const now = new Date();
-          
-          // Filter to show only current announcements
-          const activeAnnouncements = parsedAnnouncements
-            .map((announcement: any) => ({
-              ...announcement,
-              startDate: new Date(announcement.startDate),
-              endDate: new Date(announcement.endDate)
-            }))
-            .filter((announcement: Announcement) => 
-              now >= announcement.startDate && now <= announcement.endDate
-            );
-          
-          console.log('Loaded announcements in AnnouncementsList:', activeAnnouncements.length, 'active announcements');
-          setAnnouncements(activeAnnouncements);
-        } catch (error) {
-          console.error('Error loading announcements:', error);
-          setAnnouncements([]);
-        }
-      } else {
-        console.log('No announcements found in localStorage');
+    const loadAnnouncements = async () => {
+      setIsLoading(true);
+      try {
+        const activeAnnouncements = await announcementService.getActiveAnnouncements();
+        console.log('Loaded announcements in AnnouncementsList:', activeAnnouncements.length, 'active announcements');
+        setAnnouncements(activeAnnouncements);
+      } catch (error) {
+        console.error('Error loading announcements:', error);
+        setAnnouncements([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -69,6 +47,25 @@ const AnnouncementsList = () => {
       clearInterval(interval);
     };
   }, []);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BellRing className="h-5 w-5" />
+            Avisos Importantes
+          </CardTitle>
+          <CardDescription>A carregar avisos...</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (announcements.length === 0) {
     return (

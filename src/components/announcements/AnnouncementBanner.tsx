@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Carousel,
   CarouselContent,
@@ -11,46 +11,24 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { BellRing } from "lucide-react";
-
-interface Announcement {
-  id: number;
-  title: string;
-  content: string;
-  startDate: Date;
-  endDate: Date;
-  createdBy: string;
-}
+import { announcementService, Announcement } from "@/services/supabase/announcementService";
 
 const AnnouncementBanner = () => {
-  const [announcements, setAnnouncements] = React.useState<Announcement[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  React.useEffect(() => {
-    const loadAnnouncements = () => {
-      const storedAnnouncements = localStorage.getItem('announcements');
-      if (storedAnnouncements) {
-        try {
-          const parsedAnnouncements = JSON.parse(storedAnnouncements);
-          const now = new Date();
-          
-          // Process announcements - make sure dates are correctly parsed
-          const activeAnnouncements = parsedAnnouncements
-            .map((announcement: any) => ({
-              ...announcement,
-              startDate: new Date(announcement.startDate),
-              endDate: new Date(announcement.endDate)
-            }))
-            .filter((announcement: Announcement) => 
-              now >= announcement.startDate && now <= announcement.endDate
-            );
-          
-          console.log('Loaded active announcements in banner:', activeAnnouncements);
-          setAnnouncements(activeAnnouncements);
-        } catch (error) {
-          console.error('Error loading announcements:', error);
-          setAnnouncements([]);
-        }
-      } else {
-        console.log('No announcements found in localStorage');
+  useEffect(() => {
+    const loadAnnouncements = async () => {
+      setIsLoading(true);
+      try {
+        const activeAnnouncements = await announcementService.getActiveAnnouncements();
+        console.log('Loaded active announcements in banner:', activeAnnouncements);
+        setAnnouncements(activeAnnouncements);
+      } catch (error) {
+        console.error('Error loading announcements:', error);
+        setAnnouncements([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -69,7 +47,7 @@ const AnnouncementBanner = () => {
     };
   }, []);
 
-  if (announcements.length === 0) {
+  if (isLoading || announcements.length === 0) {
     return null;
   }
 

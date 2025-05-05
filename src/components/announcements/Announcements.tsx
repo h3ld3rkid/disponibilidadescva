@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -8,124 +9,159 @@ import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import AnnouncementForm from './AnnouncementForm';
-import { supabase } from "@/services/supabase/client";
-
-interface Announcement {
-  id: number;
-  title: string;
-  content: string;
-  startDate: Date;
-  endDate: Date;
-  createdBy: string;
-}
+import { announcementService, Announcement } from "@/services/supabase/announcementService";
 
 const Announcements = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [activeTab, setActiveTab] = useState("list");
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     loadAnnouncements();
     
-    // Set up subscription for real-time updates
-    setupRealtimeSubscription();
-  }, []);
-
-  const setupRealtimeSubscription = () => {
-    // In the future, this would use Supabase's realtime functionality
-    // For now, we'll poll for updates every minute
+    // Set up listener for announcement changes
+    const handleAnnouncementsChange = () => {
+      loadAnnouncements();
+    };
+    
+    window.addEventListener('announcementsChanged', handleAnnouncementsChange);
+    
+    // Poll for updates every minute
     const interval = setInterval(() => {
       loadAnnouncements();
     }, 60000);
     
-    return () => clearInterval(interval);
-  };
+    return () => {
+      window.removeEventListener('announcementsChanged', handleAnnouncementsChange);
+      clearInterval(interval);
+    };
+  }, []);
 
-  const loadAnnouncements = () => {
-    const storedAnnouncements = localStorage.getItem('announcements');
-    if (storedAnnouncements) {
-      try {
-        const parsedAnnouncements = JSON.parse(storedAnnouncements);
-        const processedAnnouncements = parsedAnnouncements.map((announcement: any) => ({
-          ...announcement,
-          startDate: new Date(announcement.startDate),
-          endDate: new Date(announcement.endDate)
-        }));
-        setAnnouncements(processedAnnouncements);
-        console.log('Loaded announcements in Announcements component:', processedAnnouncements.length);
-      } catch (error) {
-        console.error('Error loading announcements:', error);
-        setAnnouncements([]);
-      }
-    } else {
-      console.log('No announcements found in localStorage');
+  const loadAnnouncements = async () => {
+    setIsLoading(true);
+    try {
+      const allAnnouncements = await announcementService.getAllAnnouncements();
+      setAnnouncements(allAnnouncements);
+      console.log('Loaded announcements in Announcements component:', allAnnouncements.length);
+    } catch (error) {
+      console.error('Error loading announcements:', error);
+      setAnnouncements([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const saveAnnouncements = (newAnnouncements: Announcement[]) => {
-    localStorage.setItem('announcements', JSON.stringify(newAnnouncements));
-    setAnnouncements(newAnnouncements);
-    
-    // Dispatch a custom event to notify other components that announcements have changed
-    window.dispatchEvent(new Event('announcementsChanged'));
-    console.log('Announcements saved and event dispatched:', newAnnouncements.length, 'announcements');
-  };
-
-  const handleCreateAnnouncement = (data: {
+  const handleCreateAnnouncement = async (data: {
     title: string;
     content: string;
     startDate: Date;
     endDate: Date;
   }) => {
     const userConnection = localStorage.getItem('mysqlConnection');
-    if (!userConnection) return;
+    if (!userConnection) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível identificar o utilizador",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    const userInfo = JSON.parse(userConnection);
-    const newAnnouncement = {
-      ...data,
-      id: Date.now(),
-      createdBy: userInfo.email
-    };
+    try {
+      const userInfo = JSON.parse(userConnection);
+      const result = await announcementService.createAnnouncement({
+        ...data,
+        createdBy: userInfo.email
+      });
 
-    saveAnnouncements([...announcements, newAnnouncement]);
-    toast({
-      title: "Aviso criado",
-      description: "O aviso foi criado com sucesso",
-    });
-    setActiveTab("list");
+      if (result.success) {
+        toast({
+          title: "Aviso criado",
+          description: "O aviso foi criado com sucesso",
+        });
+        setActiveTab("list");
+        loadAnnouncements();
+      } else {
+        throw new Error("Failed to create announcement");
+      }
+    } catch (error) {
+      console.error("Error creating announcement:", error);
+      toast({
+        title: "Erro ao criar aviso",
+        description: "Ocorreu um erro ao criar o aviso",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleEditAnnouncement = (data: {
+  const handleEditAnnouncement = async (data: {
     title: string;
     content: string;
     startDate: Date;
     endDate: Date;
   }) => {
-    if (!editingAnnouncement) return;
+    if (!editingAnnouncement || !editingAnnouncement.id) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível identificar o aviso a editar",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    const updatedAnnouncements = announcements.map(announcement =>
-      announcement.id === editingAnnouncement.id
-        ? { ...announcement, ...data }
-        : announcement
-    );
+    try {
+      const result = await announcementService.updateAnnouncement(
+        editingAnnouncement.id,
+        {
+          ...data,
+          createdBy: editingAnnouncement.createdBy
+        }
+      );
 
-    saveAnnouncements(updatedAnnouncements);
-    toast({
-      title: "Aviso atualizado",
-      description: "O aviso foi atualizado com sucesso",
-    });
-    setEditingAnnouncement(null);
-    setActiveTab("list");
+      if (result.success) {
+        toast({
+          title: "Aviso atualizado",
+          description: "O aviso foi atualizado com sucesso",
+        });
+        setEditingAnnouncement(null);
+        setActiveTab("list");
+        loadAnnouncements();
+      } else {
+        throw new Error("Failed to update announcement");
+      }
+    } catch (error) {
+      console.error("Error updating announcement:", error);
+      toast({
+        title: "Erro ao atualizar aviso",
+        description: "Ocorreu um erro ao atualizar o aviso",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteAnnouncement = (id: number) => {
-    const filteredAnnouncements = announcements.filter(a => a.id !== id);
-    saveAnnouncements(filteredAnnouncements);
-    toast({
-      title: "Aviso eliminado",
-      description: "O aviso foi eliminado com sucesso",
-    });
+  const handleDeleteAnnouncement = async (id: string) => {
+    try {
+      const result = await announcementService.deleteAnnouncement(id);
+      
+      if (result.success) {
+        toast({
+          title: "Aviso eliminado",
+          description: "O aviso foi eliminado com sucesso",
+        });
+        loadAnnouncements();
+      } else {
+        throw new Error("Failed to delete announcement");
+      }
+    } catch (error) {
+      console.error("Error deleting announcement:", error);
+      toast({
+        title: "Erro ao eliminar aviso",
+        description: "Ocorreu um erro ao eliminar o aviso",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -146,13 +182,18 @@ const Announcements = () => {
               <CardDescription>Lista de todos os avisos</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {announcements.length === 0 ? (
-                  <p className="text-center text-gray-500 py-4">
-                    Não existem avisos criados.
-                  </p>
-                ) : (
-                  announcements.map((announcement) => (
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                  <p className="mt-2 text-gray-500">A carregar avisos...</p>
+                </div>
+              ) : announcements.length === 0 ? (
+                <p className="text-center text-gray-500 py-4">
+                  Não existem avisos criados.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {announcements.map((announcement) => (
                     <Card key={announcement.id}>
                       <CardHeader className="pb-2">
                         <div className="flex justify-between items-start">
@@ -195,7 +236,7 @@ const Announcements = () => {
                             <DialogFooter>
                               <Button
                                 variant="destructive"
-                                onClick={() => handleDeleteAnnouncement(announcement.id)}
+                                onClick={() => announcement.id && handleDeleteAnnouncement(announcement.id)}
                               >
                                 Eliminar
                               </Button>
@@ -204,9 +245,9 @@ const Announcements = () => {
                         </Dialog>
                       </CardFooter>
                     </Card>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
