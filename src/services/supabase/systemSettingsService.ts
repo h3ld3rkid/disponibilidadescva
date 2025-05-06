@@ -1,17 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-// Define the parameter types for the RPC functions
-interface GetSystemSettingParams {
-  setting_key: string;
-}
-
-interface UpsertSystemSettingParams {
-  setting_key: string;
-  setting_value: string;
-  setting_description: string | null;
-}
-
 /**
  * Get a system setting by key
  * @param key The system setting key to retrieve
@@ -21,7 +10,7 @@ export const getSystemSetting = async (key: string): Promise<string | null> => {
   const { data, error } = await supabase
     .rpc('get_system_setting', { 
       setting_key: key 
-    });
+    } as any);
 
   if (error) {
     console.error(`Error retrieving system setting ${key}:`, error);
@@ -48,7 +37,7 @@ export const upsertSystemSetting = async (
       setting_key: key,
       setting_value: value,
       setting_description: description || null,
-    });
+    } as any);
 
   if (error) {
     console.error(`Error upserting system setting ${key}:`, error);
