@@ -36,15 +36,15 @@ const AnnouncementsList = () => {
     // Load announcements immediately
     loadAnnouncements();
     
-    // Listen for the custom event
-    window.addEventListener('announcementsChanged', loadAnnouncements);
+    // Set up real-time subscription
+    const unsubscribe = announcementService.setupRealtimeSubscription(() => {
+      console.log("Realtime announcements update detected, refreshing data");
+      loadAnnouncements();
+    });
     
-    // Refresh announcements every minute to check for expiry
-    const interval = setInterval(loadAnnouncements, 60000);
-
     return () => {
-      window.removeEventListener('announcementsChanged', loadAnnouncements);
-      clearInterval(interval);
+      // Clean up subscription
+      unsubscribe();
     };
   }, []);
 

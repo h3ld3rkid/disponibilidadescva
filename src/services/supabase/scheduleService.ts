@@ -149,14 +149,6 @@ export const scheduleService = {
         if (error) throw error;
       }
       
-      // For backward compatibility, also save user info to localStorage
-      if (userData && userData.name) {
-        localStorage.setItem(`userInfo_${userEmail}`, JSON.stringify(userData));
-      }
-      
-      // For backward compatibility, also save to localStorage
-      localStorage.setItem(`userSchedule_${userEmail}_${month}`, JSON.stringify(dates));
-      
       // Trigger an event to notify other components that schedules have changed
       window.dispatchEvent(new Event('schedulesChanged'));
       
@@ -192,46 +184,7 @@ export const scheduleService = {
         }));
       }
       
-      // Fallback to localStorage for backward compatibility
-      console.log('No schedules found in Supabase, checking localStorage');
-      const schedules: any[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('userSchedule_')) {
-          try {
-            const parts = key.split('_');
-            const userEmail = parts[1];
-            const monthInfo = parts[2];
-            const scheduleData = JSON.parse(localStorage.getItem(key) || '[]');
-            
-            // Get user name
-            let userName = userEmail;
-            const userInfoKey = `userInfo_${userEmail}`;
-            const userInfoData = localStorage.getItem(userInfoKey);
-            if (userInfoData) {
-              try {
-                const userData = JSON.parse(userInfoData);
-                if (userData && userData.name) {
-                  userName = userData.name;
-                }
-              } catch (e) {
-                console.error(`Error parsing user info for ${userEmail}:`, e);
-              }
-            }
-            
-            schedules.push({
-              email: userEmail,
-              user: userName,
-              month: monthInfo || 'default',
-              dates: scheduleData
-            });
-          } catch (error) {
-            console.error(`Error processing schedule key ${key}:`, error);
-          }
-        }
-      }
-      
-      return schedules;
+      return [];
     } catch (error) {
       console.error('Error getting schedules:', error);
       return [];
@@ -250,14 +203,6 @@ export const scheduleService = {
         .eq('user_email', userEmail);
         
       if (error) throw error;
-      
-      // For backward compatibility, delete from localStorage too
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith(`userSchedule_${userEmail}`)) {
-          localStorage.removeItem(key);
-        }
-      }
       
       // Trigger an event to notify other components that schedules have changed
       window.dispatchEvent(new Event('schedulesChanged'));
@@ -281,14 +226,6 @@ export const scheduleService = {
         .eq('user_email', userEmail);
         
       if (error) throw error;
-      
-      // For backward compatibility, reset in localStorage too
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith(`editCount_${userEmail}`)) {
-          localStorage.setItem(key, '0');
-        }
-      }
       
       // Trigger an event to notify other components that schedules have changed
       window.dispatchEvent(new Event('schedulesChanged'));
@@ -330,13 +267,31 @@ export const scheduleService = {
         return { success: false };
       }
       
-      // For backward compatibility, also save to localStorage
-      localStorage.setItem(`userNotes_${userEmail}_${month}`, notes);
-      
       return { success: true };
     } catch (error) {
       console.error('Error saving notes:', error);
       return { success: false };
     }
+  },
+  
+  // Set up real-time subscription for schedule changes
+  setupRealtimeSubscription(callback: () => void) {
+    const channel = supabase
+      .channel('schedules-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'schedules' 
+        }, 
+        (payload) => {
+          console.log('Realtime schedule change detected:', payload);
+          callback();
+        })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }
 };

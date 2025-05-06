@@ -31,10 +31,6 @@ export const announcementService = {
         
       if (error) throw error;
       
-      // For backward compatibility, also update localStorage
-      const allAnnouncements = await this.getAllAnnouncements();
-      localStorage.setItem('announcements', JSON.stringify(allAnnouncements));
-      
       // Trigger an event to notify other components that announcements have changed
       window.dispatchEvent(new Event('announcementsChanged'));
       
@@ -64,10 +60,6 @@ export const announcementService = {
         
       if (error) throw error;
       
-      // For backward compatibility, also update localStorage
-      const allAnnouncements = await this.getAllAnnouncements();
-      localStorage.setItem('announcements', JSON.stringify(allAnnouncements));
-      
       // Trigger an event to notify other components that announcements have changed
       window.dispatchEvent(new Event('announcementsChanged'));
       
@@ -90,10 +82,6 @@ export const announcementService = {
         .eq('id', id);
         
       if (error) throw error;
-      
-      // For backward compatibility, also update localStorage
-      const allAnnouncements = await this.getAllAnnouncements();
-      localStorage.setItem('announcements', JSON.stringify(allAnnouncements));
       
       // Trigger an event to notify other components that announcements have changed
       window.dispatchEvent(new Event('announcementsChanged'));
@@ -133,28 +121,6 @@ export const announcementService = {
         }));
       }
       
-      // Fallback to localStorage for backward compatibility
-      const storedAnnouncements = localStorage.getItem('announcements');
-      if (storedAnnouncements) {
-        try {
-          const parsedAnnouncements = JSON.parse(storedAnnouncements);
-          const currentDate = new Date();
-          
-          return parsedAnnouncements
-            .map((announcement: any) => ({
-              ...announcement,
-              startDate: new Date(announcement.startDate),
-              endDate: new Date(announcement.endDate)
-            }))
-            .filter((announcement: Announcement) => 
-              currentDate >= announcement.startDate && 
-              currentDate <= announcement.endDate
-            );
-        } catch (e) {
-          console.error('Error parsing localStorage announcements:', e);
-        }
-      }
-      
       return [];
     } catch (error) {
       console.error('Error getting active announcements:', error);
@@ -186,26 +152,31 @@ export const announcementService = {
         }));
       }
       
-      // Fallback to localStorage for backward compatibility
-      const storedAnnouncements = localStorage.getItem('announcements');
-      if (storedAnnouncements) {
-        try {
-          const parsedAnnouncements = JSON.parse(storedAnnouncements);
-          
-          return parsedAnnouncements.map((announcement: any) => ({
-            ...announcement,
-            startDate: new Date(announcement.startDate),
-            endDate: new Date(announcement.endDate)
-          }));
-        } catch (e) {
-          console.error('Error parsing localStorage announcements:', e);
-        }
-      }
-      
       return [];
     } catch (error) {
       console.error('Error getting all announcements:', error);
       return [];
     }
+  },
+  
+  // Set up real-time subscription for announcement changes
+  setupRealtimeSubscription(callback: () => void) {
+    const channel = supabase
+      .channel('announcements-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'announcements' 
+        }, 
+        (payload) => {
+          console.log('Realtime announcement change detected:', payload);
+          callback();
+        })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }
 };

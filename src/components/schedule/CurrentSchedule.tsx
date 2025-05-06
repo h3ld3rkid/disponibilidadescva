@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/services/supabase/client";
 
 interface CurrentScheduleProps {
   isAdmin?: boolean;
@@ -16,14 +17,53 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load PDF URL from localStorage if available
-    const storedPdfUrl = localStorage.getItem('currentSchedulePdf');
-    if (storedPdfUrl) {
-      setPdfUrl(storedPdfUrl);
-    }
+    // Load PDF URL from Supabase
+    const loadCurrentSchedulePdf = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('system_settings')
+          .select('value')
+          .eq('key', 'current_schedule_pdf')
+          .single();
+          
+        if (error) {
+          if (error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+            console.error('Error loading current schedule PDF URL:', error);
+          }
+        } else if (data && data.value) {
+          console.log('Loaded current schedule PDF URL:', data.value);
+          setPdfUrl(data.value);
+        }
+      } catch (err) {
+        console.error('Error loading current schedule PDF:', err);
+      }
+    };
+    
+    loadCurrentSchedulePdf();
+    
+    // Set up real-time subscription for system settings changes
+    const channel = supabase
+      .channel('system-settings-changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'system_settings' 
+        }, 
+        (payload) => {
+          if (payload.new && payload.new.key === 'current_schedule_pdf') {
+            console.log('Current schedule PDF URL updated:', payload.new.value);
+            setPdfUrl(payload.new.value);
+          }
+        })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  const handleSavePdfLink = () => {
+  const handleSavePdfLink = async () => {
     // Validate the URL (simple validation)
     if (!pdfLinkUrl) {
       toast({
@@ -57,14 +97,52 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
       embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
     }
 
-    // Save the URL to localStorage
-    localStorage.setItem('currentSchedulePdf', embedUrl);
-    setPdfUrl(embedUrl);
-    
-    toast({
-      title: "Link guardado",
-      description: "O link para a escala foi guardado com sucesso.",
-    });
+    try {
+      // Check if setting already exists
+      const { data, error: selectError } = await supabase
+        .from('system_settings')
+        .select('id')
+        .eq('key', 'current_schedule_pdf')
+        .single();
+        
+      if (selectError && selectError.code !== 'PGRST116') { // Not "no rows returned"
+        throw selectError;
+      }
+      
+      if (data) {
+        // Update existing setting
+        const { error } = await supabase
+          .from('system_settings')
+          .update({ value: embedUrl })
+          .eq('id', data.id);
+          
+        if (error) throw error;
+      } else {
+        // Insert new setting
+        const { error } = await supabase
+          .from('system_settings')
+          .insert({ 
+            key: 'current_schedule_pdf', 
+            value: embedUrl 
+          });
+          
+        if (error) throw error;
+      }
+      
+      setPdfUrl(embedUrl);
+      
+      toast({
+        title: "Link guardado",
+        description: "O link para a escala foi guardado com sucesso.",
+      });
+    } catch (error) {
+      console.error("Error saving PDF link:", error);
+      toast({
+        title: "Erro ao guardar",
+        description: "Ocorreu um erro ao guardar o link do PDF.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

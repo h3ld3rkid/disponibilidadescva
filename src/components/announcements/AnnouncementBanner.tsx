@@ -35,15 +35,15 @@ const AnnouncementBanner = () => {
     // Initial load
     loadAnnouncements();
     
-    // Set up listeners for announcement changes
-    window.addEventListener('announcementsChanged', loadAnnouncements);
+    // Set up real-time subscription
+    const unsubscribe = announcementService.setupRealtimeSubscription(() => {
+      console.log("Realtime announcements update detected, refreshing banner");
+      loadAnnouncements();
+    });
     
-    // Check for new announcements every minute
-    const interval = setInterval(loadAnnouncements, 60000);
-
     return () => {
-      window.removeEventListener('announcementsChanged', loadAnnouncements);
-      clearInterval(interval);
+      // Clean up subscription
+      unsubscribe();
     };
   }, []);
 

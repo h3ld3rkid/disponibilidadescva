@@ -76,43 +76,23 @@ const UserSchedules = () => {
       // If user is not admin, and has submitted a schedule, show their own schedule immediately
       if (parsedUserInfo.role !== 'admin') {
         const userEmail = parsedUserInfo.email;
-        
-        // Check if this user has any schedules
-        let hasSchedule = false;
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith(`userSchedule_${userEmail}`)) {
-            hasSchedule = true;
-            break;
-          }
-        }
-        
-        if (hasSchedule) {
-          setViewingUserSchedule(userEmail);
-          setViewingUserName(parsedUserInfo.name || userEmail);
-        }
+        setViewingUserSchedule(userEmail);
+        setViewingUserName(parsedUserInfo.name || userEmail);
       }
     }
     
     // Load all schedules from Supabase
     loadAllSchedules();
     
-    // Set up listener for schedule changes
-    const handleSchedulesChange = () => {
-      console.log("Schedule changed event received");
+    // Set up real-time subscription for schedule changes
+    const unsubscribe = scheduleService.setupRealtimeSubscription(() => {
+      console.log("Real-time schedule update detected, refreshing data");
       loadAllSchedules();
-    };
-    
-    window.addEventListener('schedulesChanged', handleSchedulesChange);
-    
-    // Set up an interval to check for new schedules periodically
-    const intervalTimer = setInterval(() => {
-      loadAllSchedules();
-    }, 30000);
+    });
     
     return () => {
-      window.removeEventListener('schedulesChanged', handleSchedulesChange);
-      clearInterval(intervalTimer);
+      // Clean up real-time subscription
+      unsubscribe();
     };
   }, []);
 
@@ -304,19 +284,12 @@ const UserSchedules = () => {
     }
   };
 
-  // Renamed function to reflect that we're getting username now
+  // Get username for display
   const getUserNameFromEmail = (email: string): string => {
-    // Try to find user info in localStorage
-    const userDataKey = `userInfo_${email}`;
-    if (localStorage.getItem(userDataKey)) {
-      try {
-        const userData = JSON.parse(localStorage.getItem(userDataKey) || '{}');
-        if (userData.name) {
-          return userData.name;
-        }
-      } catch (e) {
-        console.error(`Error parsing user info for ${email}:`, e);
-      }
+    // Try to find user in schedules
+    const userSchedule = schedules.find(schedule => schedule.email === email);
+    if (userSchedule && userSchedule.user) {
+      return userSchedule.user;
     }
     return email;
   };

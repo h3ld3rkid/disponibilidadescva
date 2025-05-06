@@ -19,39 +19,34 @@ const Announcements = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    const loadAnnouncements = async () => {
+      setIsLoading(true);
+      try {
+        const allAnnouncements = await announcementService.getAllAnnouncements();
+        setAnnouncements(allAnnouncements);
+        console.log('Loaded announcements in Announcements component:', allAnnouncements.length);
+      } catch (error) {
+        console.error('Error loading announcements:', error);
+        setAnnouncements([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    // Load announcements immediately
     loadAnnouncements();
     
-    // Set up listener for announcement changes
-    const handleAnnouncementsChange = () => {
+    // Set up real-time subscription
+    const unsubscribe = announcementService.setupRealtimeSubscription(() => {
+      console.log("Realtime announcements update detected, refreshing admin list");
       loadAnnouncements();
-    };
-    
-    window.addEventListener('announcementsChanged', handleAnnouncementsChange);
-    
-    // Poll for updates every minute
-    const interval = setInterval(() => {
-      loadAnnouncements();
-    }, 60000);
+    });
     
     return () => {
-      window.removeEventListener('announcementsChanged', handleAnnouncementsChange);
-      clearInterval(interval);
+      // Clean up subscription
+      unsubscribe();
     };
   }, []);
-
-  const loadAnnouncements = async () => {
-    setIsLoading(true);
-    try {
-      const allAnnouncements = await announcementService.getAllAnnouncements();
-      setAnnouncements(allAnnouncements);
-      console.log('Loaded announcements in Announcements component:', allAnnouncements.length);
-    } catch (error) {
-      console.error('Error loading announcements:', error);
-      setAnnouncements([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleCreateAnnouncement = async (data: {
     title: string;
@@ -82,7 +77,6 @@ const Announcements = () => {
           description: "O aviso foi criado com sucesso",
         });
         setActiveTab("list");
-        loadAnnouncements();
       } else {
         throw new Error("Failed to create announcement");
       }
@@ -127,7 +121,6 @@ const Announcements = () => {
         });
         setEditingAnnouncement(null);
         setActiveTab("list");
-        loadAnnouncements();
       } else {
         throw new Error("Failed to update announcement");
       }
@@ -150,7 +143,6 @@ const Announcements = () => {
           title: "Aviso eliminado",
           description: "O aviso foi eliminado com sucesso",
         });
-        loadAnnouncements();
       } else {
         throw new Error("Failed to delete announcement");
       }

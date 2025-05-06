@@ -51,9 +51,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const canEditNextMonthSchedule = isAdmin || (!isPastDeadline && editCount < 2);
 
   const monthKey = format(nextMonth, 'MMMM-yyyy', { locale: pt });
-  const editCountKey = `editCount_${userEmail}_${monthKey}`;
-  const scheduleKey = `userSchedule_${userEmail}_${monthKey}`;
-  const notesKey = `userNotes_${userEmail}_${monthKey}`;
 
   // Reset all selections when component mounts or user changes
   useEffect(() => {
@@ -62,111 +59,75 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     setSchedule([]);
     setSavedSchedule(false);
     
-    // Load edit count from localStorage
-    const storedEditCount = localStorage.getItem(editCountKey);
-    if (storedEditCount) {
-      const count = parseInt(storedEditCount);
-      setEditCount(count);
-      console.log(`Loaded edit count for ${userEmail}: ${count}/2`);
-    } else {
-      setEditCount(0);
-    }
-    
-    // Show toast notification about edit count if not admin and edits have been made
-    if (!isAdmin && storedEditCount) {
-      const count = parseInt(storedEditCount);
-      if (count > 0) {
-        toast({
-          title: `Edições de escala: ${count}/2`,
-          description: count >= 2 
-            ? "Você atingiu o limite de edições para este mês." 
-            : `Você ainda pode editar sua escala ${2-count} vez(es) este mês.`,
-          duration: 5000,
-        });
-      }
-    }
-    
-    // Load personal notes
-    const storedNotes = localStorage.getItem(notesKey);
-    if (storedNotes) {
-      setPersonalNotes(storedNotes);
-    }
-    
-    // Load saved schedule if it exists
+    // Load from Supabase
     loadSavedSchedule();
-  }, [userEmail, editCountKey, isAdmin, toast, notesKey]);
+    
+    // Set up real-time subscription for schedule changes if viewing own schedule
+    const unsubscribe = scheduleService.setupRealtimeSubscription(() => {
+      console.log("Real-time schedule update detected, refreshing calendar");
+      loadSavedSchedule();
+    });
+    
+    return () => {
+      // Clean up real-time subscription
+      unsubscribe();
+    };
+  }, [userEmail]);
 
-  // Load saved schedule directly for this user from localStorage
-  const loadSavedSchedule = useCallback(() => {
-    // First check user-specific schedule in localStorage
-    const userScheduleData = localStorage.getItem(scheduleKey);
-    
-    if (userScheduleData) {
-      try {
-        const parsedSchedule = JSON.parse(userScheduleData);
-        const dates: Date[] = [];
-        const scheduleItems: DaySchedule[] = [];
-        
-        parsedSchedule.forEach((item: any) => {
-          const date = new Date(item.date);
-          dates.push(date);
-          
-          scheduleItems.push({
-            date,
-            shifts: item.shifts
-          });
-        });
-        
-        setSelectedDates(dates);
-        setSchedule(scheduleItems);
-        setSavedSchedule(true);
-        console.log(`Loaded user schedule for ${userEmail}: ${dates.length} days`);
-      } catch (error) {
-        console.error('Error loading schedule from direct storage:', error);
-      }
-      return;
-    }
-    
-    // Fall back to searching in the combined userSchedules
-    const storedSchedules = localStorage.getItem('userSchedules');
-    if (!storedSchedules) return;
-    
+  // Load saved schedule directly for this user from Supabase
+  const loadSavedSchedule = useCallback(async () => {
     try {
-      const parsedSchedules = JSON.parse(storedSchedules);
-      const userSchedule = parsedSchedules.find((s: any) => 
-        s.email === userEmail && s.month === format(nextMonth, 'MMMM yyyy', { locale: pt })
+      // Get schedules from Supabase
+      const allSchedules = await scheduleService.getUserSchedules();
+      
+      // Find the schedule for this user and month
+      const userSchedule = allSchedules.find((s: any) => 
+        s.email === userEmail && s.month === monthKey
       );
       
       if (userSchedule) {
         const dates: Date[] = [];
         const scheduleItems: DaySchedule[] = [];
         
-        userSchedule.dates.forEach((item: any) => {
-          const date = new Date(item.date);
-          dates.push(date);
-          
-          scheduleItems.push({
-            date,
-            shifts: {
-              manha: item.shifts.includes('manha'),
-              tarde: item.shifts.includes('tarde'),
-              noite: item.shifts.includes('noite')
-            }
+        // Process the dates data
+        if (userSchedule.dates && Array.isArray(userSchedule.dates)) {
+          userSchedule.dates.forEach((item: any) => {
+            const date = new Date(item.date);
+            dates.push(date);
+            
+            scheduleItems.push({
+              date,
+              shifts: {
+                manha: item.shifts.includes('manha'),
+                tarde: item.shifts.includes('tarde'),
+                noite: item.shifts.includes('noite')
+              }
+            });
           });
-        });
-        
-        setSelectedDates(dates);
-        setSchedule(scheduleItems);
-        setSavedSchedule(true);
-        console.log(`Loaded user schedule from combined storage for ${userEmail}: ${dates.length} days`);
-        
-        // Save to user-specific key for future faster loading
-        saveScheduleToUserStorage(scheduleItems);
+          
+          setSelectedDates(dates);
+          setSchedule(scheduleItems);
+          setSavedSchedule(true);
+          
+          // Set edit count and personal notes
+          setEditCount(userSchedule.editCount || 0);
+          setPersonalNotes(userSchedule.notes || '');
+          
+          console.log(`Loaded user schedule for ${userEmail}: ${dates.length} days`);
+        }
+      } else {
+        console.log(`No schedule found for ${userEmail} in ${monthKey}`);
+        // Reset data
+        setSelectedDates([]);
+        setSchedule([]);
+        setEditCount(0);
+        setPersonalNotes('');
+        setSavedSchedule(false);
       }
     } catch (error) {
-      console.error('Error loading schedule from combined storage:', error);
+      console.error('Error loading schedule from Supabase:', error);
     }
-  }, [userEmail, nextMonth, scheduleKey]);
+  }, [userEmail, monthKey]);
 
   const handleDateSelect = useCallback((days: Date[] | undefined) => {
     if (!days) {
@@ -236,20 +197,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     setSavedSchedule(false);
   };
 
-  // Helper function to save schedule to user-specific storage
-  const saveScheduleToUserStorage = (scheduleData: DaySchedule[]) => {
-    try {
-      const dataToSave = scheduleData.map(item => ({
-        date: item.date,
-        shifts: item.shifts
-      }));
-      
-      localStorage.setItem(scheduleKey, JSON.stringify(dataToSave));
-    } catch (error) {
-      console.error('Error saving schedule to user storage:', error);
-    }
-  };
-
   const handleSaveSchedule = async () => {
     if (!isAdmin && isPastDeadline) {
       toast({
@@ -270,19 +217,9 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     }
 
     try {
-      // 1. Update user-specific storage
-      saveScheduleToUserStorage(schedule);
-      
-      // 2. Update the combined userSchedules
-      const existingSchedules = localStorage.getItem('userSchedules') ? 
-        JSON.parse(localStorage.getItem('userSchedules') || '[]') : [];
-      
-      const monthKey = format(nextMonth, 'MMMM yyyy', { locale: pt });
-      const userScheduleData = {
-        user: userEmail,
-        email: userEmail,
+      // Prepare the data for saving
+      const scheduleData = {
         month: monthKey,
-        notes: personalNotes,
         dates: schedule.map(item => ({
           date: item.date,
           shifts: Object.entries(item.shifts)
@@ -291,43 +228,23 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         }))
       };
       
-      const userIndex = existingSchedules.findIndex((s: any) => 
-        s.email === userEmail && s.month === monthKey
-      );
+      // Save to Supabase
+      const userData = { name: userEmail };
+      const result = await scheduleService.saveUserSchedule(userEmail, scheduleData, userData);
       
-      if (userIndex >= 0) {
-        existingSchedules[userIndex] = userScheduleData;
-      } else {
-        existingSchedules.push(userScheduleData);
+      if (!result.success) {
+        throw new Error("Failed to save schedule to Supabase");
       }
       
-      localStorage.setItem('userSchedules', JSON.stringify(existingSchedules));
-      
-      // Save personal notes
-      localStorage.setItem(notesKey, personalNotes);
-      
-      // 3. Only increment edit count if not admin
-      if (!isAdmin) {
-        const newEditCount = editCount + 1;
-        setEditCount(newEditCount);
-        localStorage.setItem(editCountKey, String(newEditCount));
-        
-        toast({
-          title: `Edições: ${newEditCount}/2`,
-          description: newEditCount >= 2 
-            ? "Você atingiu o limite de edições para este mês." 
-            : `Você ainda pode editar sua escala ${2-newEditCount} vez(es) este mês.`,
-          duration: 5000,
-        });
+      // Save notes
+      if (personalNotes) {
+        await scheduleService.saveUserNotes(userEmail, monthKey, personalNotes);
       }
       
       setSavedSchedule(true);
       
-      // Dispatch event to notify other components that schedules have been updated
-      const event = new CustomEvent('schedulesChanged', { 
-        detail: { schedules: existingSchedules } 
-      });
-      window.dispatchEvent(event);
+      // Reload to get updated edit count
+      loadSavedSchedule();
       
       toast({
         title: "Escala guardada",
