@@ -1,523 +1,373 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar } from "@/components/ui/calendar";
-import { format, isSaturday, isSunday, isAfter, isBefore, startOfMonth, endOfMonth, addMonths, getDate, getMonth, getYear } from "date-fns";
-import { pt } from "date-fns/locale";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format } from "date-fns";
+import { scheduleService } from "@/services/supabase/scheduleService";
+import { pt } from "date-fns/locale";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface ScheduleCalendarProps {
   userEmail: string;
   isAdmin?: boolean;
 }
 
-type ShiftType = 'manha' | 'tarde' | 'noite' | 'nenhum';
-
-interface DaySchedule {
-  date: Date;
-  shifts: {
-    manha: boolean;
-    tarde: boolean;
-    noite: boolean;
-  };
-}
-
 const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin = false }) => {
-  const [selectedMonth] = useState<Date>(addMonths(new Date(), 1));
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
-  const [schedule, setSchedule] = useState<DaySchedule[]>([]);
-  const [editCount, setEditCount] = useState<number>(0);
-  const [savedSchedule, setSavedSchedule] = useState<boolean>(false);
-  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-  const [personalNotes, setPersonalNotes] = useState<string>('');
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [userSchedule, setUserSchedule] = useState<any[]>([]);
+  const [userNotes, setUserNotes] = useState<string>('');
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const { toast } = useToast();
-  
-  const today = new Date();
-  const currentMonth = getMonth(today);
-  const currentYear = getYear(today);
-  const currentDay = getDate(today);
-  
-  const nextMonth = addMonths(new Date(currentYear, currentMonth, 1), 1);
-  
-  const isPastDeadline = currentDay > 15;
-  
-  const canEditNextMonthSchedule = isAdmin || (!isPastDeadline && editCount < 2);
+  const [editCount, setEditCount] = useState<number>(0);
+  const [userName, setUserName] = useState<string>(userEmail);
+  const [isLocalStorageMigrated, setIsLocalStorageMigrated] = useState<boolean>(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
 
-  const monthKey = format(nextMonth, 'MMMM-yyyy', { locale: pt });
+  const monthKey = format(currentMonth, 'MMMM-yyyy', { locale: pt });
 
-  // Reset all selections when component mounts or user changes
+  // Load user schedule from Supabase
+  const loadUserSchedule = useCallback(async () => {
+    try {
+      const schedules = await scheduleService.getUserSchedules();
+      const schedule = schedules.find(s => s.email === userEmail && s.month === monthKey);
+      
+      if (schedule) {
+        setSelectedDates(schedule.dates.map(date => new Date(date)));
+        setUserNotes(schedule.notes || '');
+        setEditCount(schedule.editCount || 0);
+        setUserName(schedule.user);
+        console.log(`Supabase: Loaded schedule for ${userEmail} (${monthKey})`, schedule);
+      } else {
+        setSelectedDates([]);
+        setUserNotes('');
+        setEditCount(0);
+        console.log(`Supabase: No schedule found for ${userEmail} (${monthKey})`);
+      }
+    } catch (error) {
+      console.error('Error loading schedule:', error);
+      toast({
+        title: "Erro ao carregar",
+        description: "Ocorreu um erro ao carregar a escala.",
+        variant: "destructive",
+      });
+    }
+  }, [userEmail, monthKey, toast]);
+
   useEffect(() => {
-    // Clear selections initially
-    setSelectedDates([]);
-    setSchedule([]);
-    setSavedSchedule(false);
+    loadUserSchedule();
     
-    // Load from Supabase
-    loadSavedSchedule();
-    
-    // Set up real-time subscription for schedule changes if viewing own schedule
+    // Set up real-time subscription for schedule changes
     const unsubscribe = scheduleService.setupRealtimeSubscription(() => {
-      console.log("Real-time schedule update detected, refreshing calendar");
-      loadSavedSchedule();
+      console.log("Realtime schedule update detected, refreshing calendar");
+      loadUserSchedule();
+      setForceUpdate(prev => prev + 1);
     });
     
     return () => {
-      // Clean up real-time subscription
+      // Clean up subscription
       unsubscribe();
     };
+  }, [loadUserSchedule]);
+
+  // Migrate local storage data to Supabase on first load
+  useEffect(() => {
+    const migrateLocalStorage = async () => {
+      if (!isLocalStorageMigrated) {
+        console.log('Attempting to migrate localStorage data to Supabase');
+        const { success, migratedCount } = await scheduleService.migrateLocalStorageToSupabase();
+        if (success) {
+          toast({
+            title: "Migração concluída",
+            description: `Migrados ${migratedCount} registos do armazenamento local para o Supabase.`,
+          });
+          setIsLocalStorageMigrated(true);
+        } else {
+          toast({
+            title: "Erro na migração",
+            description: "Ocorreu um erro ao migrar os dados do armazenamento local.",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+    
+    migrateLocalStorage();
+  }, [toast, isLocalStorageMigrated]);
+
+  // Load user info from local storage
+  useEffect(() => {
+    const storedUser = localStorage.getItem(`userInfo_${userEmail}`);
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUserName(parsedUser.name || userEmail);
+      } catch (error) {
+        console.error("Error parsing user info:", error);
+      }
+    }
   }, [userEmail]);
 
-  // Load saved schedule directly for this user from Supabase
-  const loadSavedSchedule = useCallback(async () => {
-    try {
-      // Get schedules from Supabase
-      const allSchedules = await scheduleService.getUserSchedules();
-      
-      // Find the schedule for this user and month
-      const userSchedule = allSchedules.find((s: any) => 
-        s.email === userEmail && s.month === monthKey
-      );
-      
-      if (userSchedule) {
-        const dates: Date[] = [];
-        const scheduleItems: DaySchedule[] = [];
-        
-        // Process the dates data
-        if (userSchedule.dates && Array.isArray(userSchedule.dates)) {
-          userSchedule.dates.forEach((item: any) => {
-            const date = new Date(item.date);
-            dates.push(date);
-            
-            scheduleItems.push({
-              date,
-              shifts: {
-                manha: item.shifts.includes('manha'),
-                tarde: item.shifts.includes('tarde'),
-                noite: item.shifts.includes('noite')
-              }
-            });
-          });
-          
-          setSelectedDates(dates);
-          setSchedule(scheduleItems);
-          setSavedSchedule(true);
-          
-          // Set edit count and personal notes
-          setEditCount(userSchedule.editCount || 0);
-          setPersonalNotes(userSchedule.notes || '');
-          
-          console.log(`Loaded user schedule for ${userEmail}: ${dates.length} days`);
-        }
-      } else {
-        console.log(`No schedule found for ${userEmail} in ${monthKey}`);
-        // Reset data
-        setSelectedDates([]);
-        setSchedule([]);
-        setEditCount(0);
-        setPersonalNotes('');
-        setSavedSchedule(false);
-      }
-    } catch (error) {
-      console.error('Error loading schedule from Supabase:', error);
-    }
-  }, [userEmail, monthKey]);
-
-  const handleDateSelect = useCallback((days: Date[] | undefined) => {
-    if (!days) {
-      setSelectedDates([]);
-      setSchedule([]);
-      return;
-    }
-    
-    if (!canEditNextMonthSchedule && !isAdmin) {
-      toast({
-        title: "Não é possível editar",
-        description: isPastDeadline
-          ? `Hoje é dia ${currentDay} e já não é permitido inserir a escala para o próximo mês.`
-          : "Só é permitido editar a escala 2 vezes por mês.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const previousDateStrings = selectedDates.map(d => format(d, 'yyyy-MM-dd'));
-    const newDates = days.filter(day => !previousDateStrings.includes(format(day, 'yyyy-MM-dd')));
-    const removedDates = selectedDates.filter(day => !days.some(d => format(d, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd')));
-    
-    if (removedDates.length > 0) {
-      setSchedule(prev => prev.filter(item => 
-        !removedDates.some(d => format(d, 'yyyy-MM-dd') === format(item.date, 'yyyy-MM-dd'))
-      ));
-    }
-    
-    if (newDates.length > 0) {
-      const newScheduleItems = newDates.map(date => {
-        return {
-          date,
-          shifts: {
-            manha: false,
-            tarde: false,
-            noite: false
-          }
-        };
-      });
-      
-      setSchedule(prev => [...prev, ...newScheduleItems]);
-      
-      if (newDates.length === 1) {
-        const newDate = newDates[0];
-        if (isSaturday(newDate) || isSunday(newDate)) {
-          setSelectedDay(newDate);
-        }
-      }
-    }
-    
-    setSelectedDates(days);
-    setSavedSchedule(false);
-  }, [selectedDates, canEditNextMonthSchedule, isPastDeadline, isAdmin, currentDay, toast]);
-
-  const handleShiftChange = (date: Date, shift: keyof DaySchedule['shifts'], checked: boolean) => {
-    setSchedule(prev => {
-      const newSchedule = [...prev];
-      const dayIndex = newSchedule.findIndex(d => format(d.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd'));
-      
-      if (dayIndex >= 0) {
-        newSchedule[dayIndex].shifts[shift] = checked;
-      }
-      
-      return newSchedule;
-    });
-    setSavedSchedule(false);
-  };
-
+  // Save schedule to Supabase
   const handleSaveSchedule = async () => {
-    if (!isAdmin && isPastDeadline) {
-      toast({
-        title: "Não é possível salvar",
-        description: `Hoje é dia ${currentDay} e já não é permitido inserir a escala para o próximo mês.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!isAdmin && editCount >= 2) {
-      toast({
-        title: "Limite de edições excedido",
-        description: "Só é permitido editar a escala 2 vezes por mês.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    setIsSaving(true);
     try {
-      // Prepare the data for saving
+      const dates = selectedDates.map(date => date.toISOString());
       const scheduleData = {
         month: monthKey,
-        dates: schedule.map(item => ({
-          date: item.date,
-          shifts: Object.entries(item.shifts)
-            .filter(([_, isSelected]) => isSelected)
-            .map(([shiftName]) => shiftName)
-        }))
+        dates: dates
       };
       
-      // Save to Supabase
-      const userData = { name: userEmail };
-      const result = await scheduleService.saveUserSchedule(userEmail, scheduleData, userData);
+      const userData = { name: userName };
       
-      if (!result.success) {
-        throw new Error("Failed to save schedule to Supabase");
+      const { success } = await scheduleService.saveUserSchedule(userEmail, scheduleData, userData);
+      
+      if (success) {
+        toast({
+          title: "Escala guardada",
+          description: "A sua escala foi guardada com sucesso.",
+        });
+        setEditCount(prevCount => prevCount + 1);
+      } else {
+        toast({
+          title: "Erro ao guardar",
+          description: "Ocorreu um erro ao guardar a sua escala.",
+          variant: "destructive",
+        });
       }
-      
-      // Save notes
-      if (personalNotes) {
-        await scheduleService.saveUserNotes(userEmail, monthKey, personalNotes);
-      }
-      
-      setSavedSchedule(true);
-      
-      // Reload to get updated edit count
-      loadSavedSchedule();
-      
-      toast({
-        title: "Escala guardada",
-        description: "A sua escala foi guardada com sucesso.",
-      });
     } catch (error) {
-      console.error('Error saving schedule:', error);
+      console.error("Error saving schedule:", error);
       toast({
         title: "Erro ao guardar",
-        description: "Ocorreu um erro ao guardar a escala.",
+        description: "Ocorreu um erro ao guardar a sua escala.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Delete schedule from Supabase
+  const handleDeleteSchedule = async () => {
+    setIsDeleting(true);
+    try {
+      const { success } = await scheduleService.deleteUserSchedule(userEmail);
+      if (success) {
+        toast({
+          title: "Escala apagada",
+          description: "A sua escala foi apagada com sucesso.",
+        });
+        setSelectedDates([]);
+        setUserNotes('');
+        setEditCount(0);
+      } else {
+        toast({
+          title: "Erro ao apagar",
+          description: "Ocorreu um erro ao apagar a sua escala.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting schedule:", error);
+      toast({
+        title: "Erro ao apagar",
+        description: "Ocorreu um erro ao apagar a sua escala.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Reset edit counter
+  const handleResetEditCounter = async () => {
+    try {
+      const { success } = await scheduleService.resetEditCounter(userEmail);
+      if (success) {
+        toast({
+          title: "Contador de edições reiniciado",
+          description: "O contador de edições foi reiniciado com sucesso.",
+        });
+        setEditCount(0);
+      } else {
+        toast({
+          title: "Erro ao reiniciar contador",
+          description: "Ocorreu um erro ao reiniciar o contador de edições.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error resetting edit counter:", error);
+      toast({
+        title: "Erro ao reiniciar contador",
+        description: "Ocorreu um erro ao reiniciar o contador de edições.",
         variant: "destructive",
       });
     }
   };
 
-  const getDayName = (dayIndex: number): string => {
-    const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    return days[dayIndex];
-  };
-
-  const isSelectedDate = (date: Date): boolean => {
-    return selectedDates.some(d => 
-      format(d, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
-    );
-  };
-
-  // Generate calendar data for the month
-  const generateCalendarDays = () => {
-    const monthStart = startOfMonth(nextMonth);
-    const monthEnd = endOfMonth(nextMonth);
-    const startDate = new Date(monthStart);
-    const endDate = new Date(monthEnd);
-    
-    // Adjust to start on Monday (1) instead of Sunday (0)
-    let startDay = startDate.getDay();
-    if (startDay === 0) startDay = 7; // Sunday becomes 7 to go at the end
-    startDate.setDate(startDate.getDate() - (startDay - 1));
-    
-    const days = [];
-    let currentDate = new Date(startDate);
-    
-    // Generate 6 weeks to ensure we cover the entire month
-    for (let week = 0; week < 6; week++) {
-      const weekDays = [];
-      for (let i = 0; i < 7; i++) {
-        weekDays.push(new Date(currentDate));
-        currentDate.setDate(currentDate.getDate() + 1);
+  // Save notes to Supabase
+  const handleSaveNotes = async () => {
+    try {
+      const { success } = await scheduleService.saveUserNotes(userEmail, monthKey, userNotes);
+      if (success) {
+        toast({
+          title: "Notas guardadas",
+          description: "As suas notas foram guardadas com sucesso.",
+        });
+      } else {
+        toast({
+          title: "Erro ao guardar notas",
+          description: "Ocorreu um erro ao guardar as suas notas.",
+          variant: "destructive",
+        });
       }
-      days.push(weekDays);
-      
-      // If we're past the end of the month and finished a complete week, break
-      if (currentDate > monthEnd && currentDate.getDay() === 1) {
-        break;
-      }
+    } catch (error) {
+      console.error("Error saving notes:", error);
+      toast({
+        title: "Erro ao guardar notas",
+        description: "Ocorreu um erro ao guardar as suas notas.",
+        variant: "destructive",
+      });
     }
-    
-    return days;
   };
 
-  // Generate week days header (Mon-Sun)
-  const weekDays = Array.from({ length: 7 }, (_, i) => getDayName((i + 1) % 7));
-  const calendarDays = generateCalendarDays();
+  const handleDateSelect = (date: Date | undefined) => {
+    if (!date) return;
+
+    const dateString = date.toISOString();
+    const isSelected = selectedDates.some(selectedDate => selectedDate.toISOString() === dateString);
+
+    if (isSelected) {
+      setSelectedDates(prevDates => prevDates.filter(selectedDate => selectedDate.toISOString() !== dateString));
+    } else {
+      setSelectedDates(prevDates => [...prevDates, date]);
+    }
+  };
+
+  const isDateSelected = (date: Date) => {
+    return selectedDates.some(selectedDate => selectedDate.toISOString() === date.toISOString());
+  };
 
   return (
-    <div className="w-full px-4 py-6">
-      {isPastDeadline && !isAdmin && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Atenção</AlertTitle>
-          <AlertDescription>
-            Hoje é dia {currentDay} e como tal já não é permitido inserir a escala para o próximo mês.
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {isAdmin && isPastDeadline && (
-        <Alert className="mb-6 border-yellow-500 bg-yellow-50">
-          <AlertTriangle className="h-4 w-4 text-yellow-500" />
-          <AlertTitle className="text-yellow-700">Modo Administrador</AlertTitle>
-          <AlertDescription className="text-yellow-600">
-            Você está no modo administrador e pode editar a escala mesmo após o dia 15.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="w-full flex flex-col md:flex-row gap-6">
-        <Card className="w-full md:w-2/3">
-          <CardHeader className="pb-2">
-            <CardTitle>Calendário de Escalas</CardTitle>
-            <CardDescription>Selecione os dias que pretende trabalhar</CardDescription>
-            <div className="text-center text-lg font-medium mt-2">
-              {format(nextMonth, 'MMMM yyyy', { locale: pt })}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col w-full">
-              {/* New calendar implementation with better alignment */}
-              <div className="border rounded-lg overflow-hidden shadow-sm">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      {weekDays.map((day, i) => (
-                        <TableHead 
-                          key={i} 
-                          className="text-center py-3 font-medium bg-slate-100 text-gray-700 h-10"
-                        >
-                          {day}
-                        </TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {calendarDays.map((week, weekIndex) => (
-                      <TableRow key={weekIndex}>
-                        {week.map((day, dayIndex) => {
-                          const isCurrentMonth = day.getMonth() === nextMonth.getMonth();
-                          const isSelectable = isAfter(day, endOfMonth(today)) && 
-                                             isBefore(day, startOfMonth(addMonths(nextMonth, 1)));
-                          const isSelected = isSelectedDate(day);
-                          const isWeekend = isSaturday(day) || isSunday(day);
-                          
-                          return (
-                            <TableCell 
-                              key={dayIndex}
-                              className={`text-center p-0 border h-14 w-14 relative ${
-                                !isCurrentMonth ? 'bg-gray-50 text-gray-400' : ''
-                              } ${isWeekend ? 'bg-gray-50' : ''}`}
-                              onClick={() => {
-                                if (isSelectable && canEditNextMonthSchedule || isAdmin) {
-                                  const newDates = [...selectedDates];
-                                  const dateStr = format(day, 'yyyy-MM-dd');
-                                  const existingIndex = newDates.findIndex(d => format(d, 'yyyy-MM-dd') === dateStr);
-                                  
-                                  if (existingIndex >= 0) {
-                                    newDates.splice(existingIndex, 1);
-                                  } else {
-                                    newDates.push(day);
-                                  }
-                                  
-                                  handleDateSelect(newDates);
-                                  
-                                  if (isWeekend && !existingIndex) {
-                                    setSelectedDay(day);
-                                  }
-                                }
-                              }}
-                            >
-                              <div 
-                                className={`w-full h-full flex items-center justify-center rounded-md ${
-                                  isSelected ? 'bg-[#6E59A5] text-white' : ''
-                                } ${isSelectable ? 'cursor-pointer' : 'opacity-50'}`}
-                              >
-                                <span>{day.getDate()}</span>
-                                
-                                {isSelected && isWeekend && (
-                                  <div className="absolute bottom-0 left-0 right-0 flex justify-center space-x-1 pb-1">
-                                    {schedule.find(s => format(s.date, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'))?.shifts.manha && 
-                                      <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></span>
-                                    }
-                                    {schedule.find(s => format(s.date, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'))?.shifts.tarde && 
-                                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
-                                    }
-                                    {schedule.find(s => format(s.date, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'))?.shifts.noite && 
-                                      <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
-                                    }
-                                  </div>
-                                )}
-                              </div>
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              
-              <div className="mt-6 space-y-4">
-                <div>
-                  <Label htmlFor="personalNotes" className="text-base mb-2 block">Notas pessoais (opcional)</Label>
-                  <Textarea 
-                    id="personalNotes" 
-                    value={personalNotes} 
-                    onChange={(e) => setPersonalNotes(e.target.value)} 
-                    placeholder="Adicione aqui quaisquer notas ou informações adicionais sobre sua disponibilidade..."
-                    className="min-h-[100px]"
-                  />
-                </div>
-
-                <div className="flex justify-center">
-                  <Button 
-                    onClick={handleSaveSchedule} 
-                    className="w-64 bg-[#6E59A5] hover:bg-[#9b87f5] text-lg py-6"
-                    disabled={((!canEditNextMonthSchedule || selectedDates.length === 0) && !isAdmin) || (editCount >= 2 && !isAdmin)}
-                  >
-                    Guardar Escala
-                  </Button>
-                </div>
-              
-                <div className="flex justify-center">
-                  <Badge 
-                    variant={editCount >= 2 ? "destructive" : editCount === 1 ? "outline" : "secondary"} 
-                    className="px-4 py-2 text-base font-bold border-2 shadow-sm"
-                  >
-                    Edições realizadas: {editCount}/2
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {selectedDay && (isSaturday(selectedDay) || isSunday(selectedDay)) && (
-          <Card className="w-full md:w-1/3">
-            <CardHeader>
-              <CardTitle>Turnos para {format(selectedDay, "EEEE, d 'de' MMMM", { locale: pt })}</CardTitle>
-              <CardDescription>Selecione os turnos que pretende trabalhar</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={`manha-${format(selectedDay, 'yyyy-MM-dd')}`} 
-                    checked={schedule.find(d => format(d.date, 'yyyy-MM-dd') === format(selectedDay, 'yyyy-MM-dd'))?.shifts.manha}
-                    onCheckedChange={(checked) => handleShiftChange(selectedDay, 'manha', checked === true)}
-                    disabled={!canEditNextMonthSchedule && !isAdmin}
-                    className="w-5 h-5"
-                  />
-                  <Label htmlFor={`manha-${format(selectedDay, 'yyyy-MM-dd')}`} className="text-base">Manhã</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={`tarde-${format(selectedDay, 'yyyy-MM-dd')}`} 
-                    checked={schedule.find(d => format(d.date, 'yyyy-MM-dd') === format(selectedDay, 'yyyy-MM-dd'))?.shifts.tarde}
-                    onCheckedChange={(checked) => handleShiftChange(selectedDay, 'tarde', checked === true)}
-                    disabled={!canEditNextMonthSchedule && !isAdmin}
-                    className="w-5 h-5"
-                  />
-                  <Label htmlFor={`tarde-${format(selectedDay, 'yyyy-MM-dd')}`} className="text-base">
-                    Tarde
-                  </Label>
-                </div>
-                
-                {isSaturday(selectedDay) && (
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`noite-${format(selectedDay, 'yyyy-MM-dd')}`} 
-                      checked={schedule.find(d => format(d.date, 'yyyy-MM-dd') === format(selectedDay, 'yyyy-MM-dd'))?.shifts.noite}
-                      onCheckedChange={(checked) => handleShiftChange(selectedDay, 'noite', checked === true)}
-                      disabled={!canEditNextMonthSchedule && !isAdmin}
-                      className="w-5 h-5"
-                    />
-                    <Label htmlFor={`noite-${format(selectedDay, 'yyyy-MM-dd')}`} className="text-base">
-                      Noite
-                    </Label>
-                  </div>
-                )}
-                
-                <div className="pt-4">
-                  <Button 
-                    onClick={() => setSelectedDay(null)} 
-                    variant="outline" 
-                    className="w-full"
-                  >
-                    Fechar
-                  </Button>
-                </div>
-              </div>
+    <div className="container mx-auto px-4 py-8">
+      <Tabs defaultValue="calendar" className="w-full">
+        <TabsList>
+          <TabsTrigger value="calendar">Calendário</TabsTrigger>
+          <TabsTrigger value="notes">Notas</TabsTrigger>
+          {isAdmin && <TabsTrigger value="admin">Admin</TabsTrigger>}
+        </TabsList>
+        <TabsContent value="calendar" className="space-y-4">
+          <Card>
+            <CardContent className="grid gap-4">
+              <Calendar
+                mode="multiple"
+                selected={selectedDates}
+                onSelect={handleDateSelect}
+                defaultMonth={currentMonth}
+                onMonthChange={setCurrentMonth}
+                disabled={isAdmin ? true : false}
+                modifiers={{
+                  selected: isDateSelected,
+                }}
+              />
             </CardContent>
           </Card>
-        )}
-      </div>
+          <div className="flex justify-between">
+            <p>
+              Total de dias selecionados: {selectedDates.length}
+            </p>
+            <div>
+              {!isAdmin && (
+                <Button
+                  onClick={handleSaveSchedule}
+                  disabled={isSaving}
+                  className="bg-[#6E59A5] hover:bg-[#5d4a8b]"
+                >
+                  {isSaving ? "A guardar..." : "Guardar Escala"}
+                </Button>
+              )}
+              {isAdmin && (
+                <p>
+                  <Label>Nome do utilizador: {userName}</Label>
+                  <br />
+                  <Label>Email do utilizador: {userEmail}</Label>
+                </p>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+        <TabsContent value="notes" className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notas adicionais:</Label>
+            <Input
+              id="notes"
+              placeholder="Adicione notas sobre a sua escala..."
+              value={userNotes}
+              onChange={(e) => setUserNotes(e.target.value)}
+              disabled={isAdmin ? true : false}
+            />
+          </div>
+          {!isAdmin && (
+            <Button
+              onClick={handleSaveNotes}
+              className="bg-[#6E59A5] hover:bg-[#5d4a8b]"
+            >
+              Guardar Notas
+            </Button>
+          )}
+        </TabsContent>
+        <TabsContent value="admin" className="space-y-4">
+          {isAdmin && (
+            <div className="space-y-4">
+              <p>
+                Contador de edições: {editCount}
+              </p>
+              <Button
+                onClick={handleResetEditCounter}
+                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+              >
+                Reset Edit Counter
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive">Apagar Escala</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Tem a certeza?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação irá apagar a escala deste utilizador permanentemente.
+                      Tem a certeza que quer continuar?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteSchedule} disabled={isDeleting}>
+                      {isDeleting ? "A apagar..." : "Apagar"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

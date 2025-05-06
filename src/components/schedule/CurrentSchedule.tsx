@@ -17,22 +17,17 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load PDF URL from Supabase
+    // Load PDF URL from Supabase using raw query to bypass TypeScript type issues
     const loadCurrentSchedulePdf = async () => {
       try {
         const { data, error } = await supabase
-          .from('system_settings')
-          .select('value')
-          .eq('key', 'current_schedule_pdf')
-          .single();
+          .rpc('get_system_setting', { setting_key: 'current_schedule_pdf' });
           
         if (error) {
-          if (error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-            console.error('Error loading current schedule PDF URL:', error);
-          }
-        } else if (data && data.value) {
-          console.log('Loaded current schedule PDF URL:', data.value);
-          setPdfUrl(data.value);
+          console.error('Error loading current schedule PDF URL:', error);
+        } else if (data) {
+          console.log('Loaded current schedule PDF URL:', data);
+          setPdfUrl(data);
         }
       } catch (err) {
         console.error('Error loading current schedule PDF:', err);
@@ -51,9 +46,9 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
           table: 'system_settings' 
         }, 
         (payload) => {
-          if (payload.new && payload.new.key === 'current_schedule_pdf') {
-            console.log('Current schedule PDF URL updated:', payload.new.value);
-            setPdfUrl(payload.new.value);
+          if (payload.new && payload.new['key'] === 'current_schedule_pdf') {
+            console.log('Current schedule PDF URL updated:', payload.new['value']);
+            setPdfUrl(payload.new['value']);
           }
         })
       .subscribe();
@@ -98,36 +93,15 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
     }
 
     try {
-      // Check if setting already exists
-      const { data, error: selectError } = await supabase
-        .from('system_settings')
-        .select('id')
-        .eq('key', 'current_schedule_pdf')
-        .single();
-        
-      if (selectError && selectError.code !== 'PGRST116') { // Not "no rows returned"
-        throw selectError;
-      }
-      
-      if (data) {
-        // Update existing setting
-        const { error } = await supabase
-          .from('system_settings')
-          .update({ value: embedUrl })
-          .eq('id', data.id);
+      // Use upsert to save the setting (insert if not exists, update if exists)
+      const { error } = await supabase
+        .rpc('upsert_system_setting', { 
+          setting_key: 'current_schedule_pdf',
+          setting_value: embedUrl,
+          setting_description: 'URL for the current schedule PDF'
+        });
           
-        if (error) throw error;
-      } else {
-        // Insert new setting
-        const { error } = await supabase
-          .from('system_settings')
-          .insert({ 
-            key: 'current_schedule_pdf', 
-            value: embedUrl 
-          });
-          
-        if (error) throw error;
-      }
+      if (error) throw error;
       
       setPdfUrl(embedUrl);
       
