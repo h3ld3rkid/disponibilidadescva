@@ -2,11 +2,11 @@
 import { supabase } from "@/integrations/supabase/client";
 
 // Define the parameter types for the RPC functions
-type GetSystemSettingParams = {
+interface GetSystemSettingParams {
   setting_key: string;
 }
 
-type UpsertSystemSettingParams = {
+interface UpsertSystemSettingParams {
   setting_key: string;
   setting_value: string;
   setting_description: string | null;
@@ -19,7 +19,7 @@ type UpsertSystemSettingParams = {
  */
 export const getSystemSetting = async (key: string): Promise<string | null> => {
   const { data, error } = await supabase
-    .rpc('get_system_setting', { 
+    .rpc<string>('get_system_setting', { 
       setting_key: key 
     } as GetSystemSettingParams);
 
