@@ -247,17 +247,13 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     }
   };
 
-  const handleDateSelect = (date: Date | undefined) => {
-    if (!date) return;
-
-    const dateString = date.toISOString();
-    const isSelected = selectedDates.some(selectedDate => selectedDate.toISOString() === dateString);
-
-    if (isSelected) {
-      setSelectedDates(prevDates => prevDates.filter(selectedDate => selectedDate.toISOString() !== dateString));
-    } else {
-      setSelectedDates(prevDates => [...prevDates, date]);
-    }
+  // Update handleDateSelect to fix the TypeScript error
+  // The error occurs because Calendar component expects SelectMultipleEventHandler not (date: Date | undefined) => void
+  const handleDateSelect = (dates: Date[] | undefined) => {
+    if (!dates) return;
+    
+    // If dates is provided, update the selectedDates state
+    setSelectedDates(dates);
   };
 
   const isDateSelected = (date: Date) => {

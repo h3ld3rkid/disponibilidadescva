@@ -46,9 +46,11 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
           table: 'system_settings' 
         }, 
         (payload) => {
-          if (payload.new && payload.new['key'] === 'current_schedule_pdf') {
-            console.log('Current schedule PDF URL updated:', payload.new['value']);
-            setPdfUrl(payload.new['value']);
+          // Type casting to avoid TypeScript errors
+          const newData = payload.new as { key: string; value: string };
+          if (newData && newData.key === 'current_schedule_pdf') {
+            console.log('Current schedule PDF URL updated:', newData.value);
+            setPdfUrl(newData.value);
           }
         })
       .subscribe();
