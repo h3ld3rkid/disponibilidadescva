@@ -17,9 +17,10 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load PDF URL from Supabase using raw query to bypass TypeScript type issues
+    // Load PDF URL from Supabase using RPC function
     const loadCurrentSchedulePdf = async () => {
       try {
+        // Use the RPC function instead of direct table access
         const { data, error } = await supabase
           .rpc('get_system_setting', { setting_key: 'current_schedule_pdf' });
           
@@ -95,7 +96,7 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
     }
 
     try {
-      // Use upsert to save the setting (insert if not exists, update if exists)
+      // Use the RPC function to update the system setting
       const { error } = await supabase
         .rpc('upsert_system_setting', { 
           setting_key: 'current_schedule_pdf',
