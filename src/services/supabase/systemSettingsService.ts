@@ -19,9 +19,9 @@ interface UpsertSystemSettingParams {
  */
 export const getSystemSetting = async (key: string): Promise<string | null> => {
   const { data, error } = await supabase
-    .rpc<string>('get_system_setting', { 
+    .rpc<string, GetSystemSettingParams>('get_system_setting', { 
       setting_key: key 
-    } as GetSystemSettingParams);
+    });
 
   if (error) {
     console.error(`Error retrieving system setting ${key}:`, error);
@@ -44,11 +44,11 @@ export const upsertSystemSetting = async (
   description?: string
 ): Promise<boolean> => {
   const { error } = await supabase
-    .rpc('upsert_system_setting', {
+    .rpc<void, UpsertSystemSettingParams>('upsert_system_setting', {
       setting_key: key,
       setting_value: value,
       setting_description: description || null,
-    } as UpsertSystemSettingParams);
+    });
 
   if (error) {
     console.error(`Error upserting system setting ${key}:`, error);
