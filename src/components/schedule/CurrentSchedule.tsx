@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/services/supabase/client";
+import { systemSettingsService } from "@/services/supabase/systemSettingsService";
 
 interface CurrentScheduleProps {
   isAdmin?: boolean;
@@ -17,16 +18,11 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load PDF URL from Supabase using RPC function
+    // Load PDF URL from Supabase using our typed service function
     const loadCurrentSchedulePdf = async () => {
       try {
-        // Use the RPC function with explicit type assertion
-        const { data, error } = await supabase
-          .rpc('get_system_setting', { setting_key: 'current_schedule_pdf' } as any);
-          
-        if (error) {
-          console.error('Error loading current schedule PDF URL:', error);
-        } else if (data) {
+        const data = await systemSettingsService.getSystemSetting('current_schedule_pdf');
+        if (data) {
           console.log('Loaded current schedule PDF URL:', data);
           setPdfUrl(data);
         }
@@ -96,15 +92,14 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
     }
 
     try {
-      // Use the RPC function with explicit type assertion
-      const { error } = await supabase
-        .rpc('upsert_system_setting', { 
-          setting_key: 'current_schedule_pdf',
-          setting_value: embedUrl,
-          setting_description: 'URL for the current schedule PDF'
-        } as any);
+      // Use our typed service function to upsert the system setting
+      const success = await systemSettingsService.upsertSystemSetting(
+        'current_schedule_pdf',
+        embedUrl,
+        'URL for the current schedule PDF'
+      );
           
-      if (error) throw error;
+      if (!success) throw new Error("Failed to save PDF link");
       
       setPdfUrl(embedUrl);
       
