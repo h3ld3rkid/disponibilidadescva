@@ -7,17 +7,19 @@ import { supabase } from "@/integrations/supabase/client";
  * @returns The system setting value or null if not found
  */
 export const getSystemSetting = async (key: string): Promise<string | null> => {
+  // Use generic parameter with unknown to avoid type errors
   const { data, error } = await supabase
-    .rpc('get_system_setting', { 
-      setting_key: key 
-    } as any);
+    .from('system_settings')
+    .select('value')
+    .eq('key', key)
+    .maybeSingle();
 
   if (error) {
     console.error(`Error retrieving system setting ${key}:`, error);
     return null;
   }
 
-  return data as string | null;
+  return data?.value || null;
 };
 
 /**
@@ -33,11 +35,15 @@ export const upsertSystemSetting = async (
   description?: string
 ): Promise<boolean> => {
   const { error } = await supabase
-    .rpc('upsert_system_setting', {
-      setting_key: key,
-      setting_value: value,
-      setting_description: description || null,
-    } as any);
+    .from('system_settings')
+    .upsert({
+      key,
+      value,
+      description: description || null,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'key'
+    });
 
   if (error) {
     console.error(`Error upserting system setting ${key}:`, error);
