@@ -20,9 +20,9 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
     // Load PDF URL from Supabase using RPC function
     const loadCurrentSchedulePdf = async () => {
       try {
-        // Use the RPC function instead of direct table access
+        // Use the RPC function with explicit type assertion
         const { data, error } = await supabase
-          .rpc('get_system_setting', { setting_key: 'current_schedule_pdf' });
+          .rpc('get_system_setting', { setting_key: 'current_schedule_pdf' } as any);
           
         if (error) {
           console.error('Error loading current schedule PDF URL:', error);
@@ -96,13 +96,13 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
     }
 
     try {
-      // Use the RPC function to update the system setting
+      // Use the RPC function with explicit type assertion
       const { error } = await supabase
         .rpc('upsert_system_setting', { 
           setting_key: 'current_schedule_pdf',
           setting_value: embedUrl,
           setting_description: 'URL for the current schedule PDF'
-        });
+        } as any);
           
       if (error) throw error;
       
