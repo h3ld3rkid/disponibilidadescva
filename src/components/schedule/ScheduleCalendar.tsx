@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,7 +30,6 @@ interface ScheduleCalendarProps {
 const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin = false }) => {
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
-  const [userSchedule, setUserSchedule] = useState<any[]>([]);
   const [userNotes, setUserNotes] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
@@ -44,20 +44,22 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   // Load user schedule from Supabase
   const loadUserSchedule = useCallback(async () => {
     try {
+      console.log(`Loading schedule for ${userEmail} (${monthKey})`);
       const schedules = await scheduleService.getUserSchedules();
       const schedule = schedules.find(s => s.email === userEmail && s.month === monthKey);
       
       if (schedule) {
-        setSelectedDates(schedule.dates.map(date => new Date(date)));
+        console.log('Found schedule:', schedule);
+        setSelectedDates(schedule.dates.map((date: string) => new Date(date)));
         setUserNotes(schedule.notes || '');
         setEditCount(schedule.editCount || 0);
-        setUserName(schedule.user);
-        console.log(`Supabase: Loaded schedule for ${userEmail} (${monthKey})`, schedule);
+        setUserName(schedule.user || userEmail);
+        console.log(`Loaded schedule for ${userEmail} with ${schedule.dates.length} dates`);
       } else {
         setSelectedDates([]);
         setUserNotes('');
         setEditCount(0);
-        console.log(`Supabase: No schedule found for ${userEmail} (${monthKey})`);
+        console.log(`No schedule found for ${userEmail} (${monthKey})`);
       }
     } catch (error) {
       console.error('Error loading schedule:', error);
@@ -116,7 +118,9 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        setUserName(parsedUser.name || userEmail);
+        if (parsedUser && parsedUser.name) {
+          setUserName(parsedUser.name);
+        }
       } catch (error) {
         console.error("Error parsing user info:", error);
       }
@@ -127,14 +131,21 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const handleSaveSchedule = async () => {
     setIsSaving(true);
     try {
+      // Format dates as ISO strings for storage
       const dates = selectedDates.map(date => date.toISOString());
+      
+      // Prepare schedule data
       const scheduleData = {
         month: monthKey,
         dates: dates
       };
       
-      const userData = { name: userName };
+      // Get user name for display
+      const userData = { name: userName || userEmail };
       
+      console.log('Saving schedule data:', scheduleData);
+      
+      // Save to Supabase
       const { success } = await scheduleService.saveUserSchedule(userEmail, scheduleData, userData);
       
       if (success) {
@@ -142,7 +153,14 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
           title: "Escala guardada",
           description: "A sua escala foi guardada com sucesso.",
         });
+        // Update edit count locally
         setEditCount(prevCount => prevCount + 1);
+        
+        // Trigger an update after saving
+        window.dispatchEvent(new Event('schedulesChanged'));
+        
+        // Force reload
+        loadUserSchedule();
       } else {
         toast({
           title: "Erro ao guardar",
@@ -170,15 +188,18 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       if (success) {
         toast({
           title: "Escala apagada",
-          description: "A sua escala foi apagada com sucesso.",
+          description: "A escala foi apagada com sucesso.",
         });
         setSelectedDates([]);
         setUserNotes('');
         setEditCount(0);
+        
+        // Trigger event to notify other components
+        window.dispatchEvent(new Event('schedulesChanged'));
       } else {
         toast({
           title: "Erro ao apagar",
-          description: "Ocorreu um erro ao apagar a sua escala.",
+          description: "Ocorreu um erro ao apagar a escala.",
           variant: "destructive",
         });
       }
@@ -186,7 +207,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       console.error("Error deleting schedule:", error);
       toast({
         title: "Erro ao apagar",
-        description: "Ocorreu um erro ao apagar a sua escala.",
+        description: "Ocorreu um erro ao apagar a escala.",
         variant: "destructive",
       });
     } finally {
@@ -204,6 +225,9 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
           description: "O contador de edições foi reiniciado com sucesso.",
         });
         setEditCount(0);
+        
+        // Trigger event to notify other components
+        window.dispatchEvent(new Event('schedulesChanged'));
       } else {
         toast({
           title: "Erro ao reiniciar contador",
@@ -224,12 +248,16 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   // Save notes to Supabase
   const handleSaveNotes = async () => {
     try {
+      console.log(`Saving notes for ${userEmail} (${monthKey}): ${userNotes}`);
       const { success } = await scheduleService.saveUserNotes(userEmail, monthKey, userNotes);
       if (success) {
         toast({
           title: "Notas guardadas",
           description: "As suas notas foram guardadas com sucesso.",
         });
+        
+        // Trigger event to notify other components
+        window.dispatchEvent(new Event('schedulesChanged'));
       } else {
         toast({
           title: "Erro ao guardar notas",
@@ -247,17 +275,11 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     }
   };
 
-  // Update handleDateSelect to fix the TypeScript error
-  // The error occurs because Calendar component expects SelectMultipleEventHandler not (date: Date | undefined) => void
+  // Handle date selection with proper typing
   const handleDateSelect = (dates: Date[] | undefined) => {
     if (!dates) return;
-    
-    // If dates is provided, update the selectedDates state
     setSelectedDates(dates);
-  };
-
-  const isDateSelected = (date: Date) => {
-    return selectedDates.some(selectedDate => selectedDate.toISOString() === date.toISOString());
+    console.log(`Selected ${dates.length} dates`);
   };
 
   return (
@@ -270,7 +292,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         </TabsList>
         <TabsContent value="calendar" className="space-y-4">
           <Card>
-            <CardContent className="grid gap-4">
+            <CardContent className="grid gap-4 pt-4">
               <Calendar
                 mode="multiple"
                 selected={selectedDates}
@@ -278,9 +300,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                 defaultMonth={currentMonth}
                 onMonthChange={setCurrentMonth}
                 disabled={isAdmin ? true : false}
-                modifiers={{
-                  selected: isDateSelected,
-                }}
+                className="w-full"
               />
             </CardContent>
           </Card>

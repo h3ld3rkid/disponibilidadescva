@@ -103,7 +103,7 @@ export const scheduleService = {
   
   // Save user schedule
   async saveUserSchedule(userEmail: string, scheduleData: any, userData?: { name: string }): Promise<{ success: boolean }> {
-    console.log('Supabase: Saving schedule for user', userEmail, scheduleData);
+    console.log('Saving schedule for user', userEmail, scheduleData);
     
     try {
       // Get user name from userData or use email as fallback
@@ -112,6 +112,8 @@ export const scheduleService = {
       // Format the data for Supabase
       const month = scheduleData.month || 'default';
       const dates = scheduleData.dates || scheduleData;
+      
+      console.log(`Saving schedule for ${userEmail} (${month}):`, { dates });
       
       // Check if this user already has a schedule for this month
       const { data: existingSchedule } = await supabase
@@ -122,6 +124,7 @@ export const scheduleService = {
         .maybeSingle();
       
       if (existingSchedule) {
+        console.log(`Updating existing schedule for ${userEmail} (${month})`);
         // Update existing schedule
         const { error } = await supabase
           .from('schedules')
@@ -133,8 +136,12 @@ export const scheduleService = {
           })
           .eq('id', existingSchedule.id);
           
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating schedule:', error);
+          throw error;
+        }
       } else {
+        console.log(`Creating new schedule for ${userEmail} (${month})`);
         // Insert new schedule
         const { error } = await supabase
           .from('schedules')
@@ -146,11 +153,20 @@ export const scheduleService = {
             edit_count: 0
           });
           
-        if (error) throw error;
+        if (error) {
+          console.error('Error inserting new schedule:', error);
+          throw error;
+        }
       }
       
-      // Trigger an event to notify other components that schedules have changed
-      window.dispatchEvent(new Event('schedulesChanged'));
+      // Also save to localStorage for backwards compatibility
+      try {
+        const localStorageKey = `userSchedule_${userEmail}_${month}`;
+        localStorage.setItem(localStorageKey, JSON.stringify(dates));
+        console.log(`Saved to localStorage: ${localStorageKey}`);
+      } catch (e) {
+        console.warn('Could not save to localStorage', e);
+      }
       
       return { success: true };
     } catch (error) {
@@ -161,7 +177,7 @@ export const scheduleService = {
   
   // Get user schedules
   async getUserSchedules(): Promise<any[]> {
-    console.log('Supabase: Getting all user schedules');
+    console.log('Getting all user schedules');
     
     try {
       // Get schedules from Supabase
@@ -170,7 +186,10 @@ export const scheduleService = {
         .select('*')
         .order('updated_at', { ascending: false });
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error getting schedules from Supabase:', error);
+        throw error;
+      }
       
       if (supabaseSchedules && supabaseSchedules.length > 0) {
         console.log(`Retrieved ${supabaseSchedules.length} schedules from Supabase`);
@@ -184,7 +203,65 @@ export const scheduleService = {
         }));
       }
       
-      return [];
+      // If no data in Supabase, try localStorage as fallback
+      console.log('No schedules found in Supabase, trying localStorage');
+      const localSchedules = [];
+      
+      // Get all keys from localStorage
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('userSchedule_')) {
+          try {
+            const parts = key.split('_');
+            const userEmail = parts[1];
+            const month = parts[2] || 'default';
+            const scheduleData = JSON.parse(localStorage.getItem(key) || '[]');
+            
+            // Get user info (name) if available
+            let userName = userEmail;
+            const userInfoKey = `userInfo_${userEmail}`;
+            const userInfoData = localStorage.getItem(userInfoKey);
+            if (userInfoData) {
+              try {
+                const userData = JSON.parse(userInfoData);
+                if (userData && userData.name) {
+                  userName = userData.name;
+                }
+              } catch (e) { }
+            }
+            
+            // Get notes if available
+            let notes = '';
+            const notesKey = `userNotes_${userEmail}_${month}`;
+            const notesData = localStorage.getItem(notesKey);
+            if (notesData) {
+              notes = notesData;
+            }
+            
+            // Get edit count if available
+            let editCount = 0;
+            const editCountKey = `editCount_${userEmail}_${month}`;
+            const editCountData = localStorage.getItem(editCountKey);
+            if (editCountData) {
+              editCount = parseInt(editCountData);
+            }
+            
+            localSchedules.push({
+              email: userEmail,
+              user: userName,
+              month: month,
+              dates: scheduleData,
+              notes: notes,
+              editCount: editCount
+            });
+          } catch (e) {
+            console.error(`Error processing localStorage schedule key ${key}:`, e);
+          }
+        }
+      }
+      
+      console.log(`Retrieved ${localSchedules.length} schedules from localStorage`);
+      return localSchedules;
     } catch (error) {
       console.error('Error getting schedules:', error);
       return [];
@@ -193,7 +270,7 @@ export const scheduleService = {
   
   // Delete user schedule
   async deleteUserSchedule(userEmail: string): Promise<{ success: boolean }> {
-    console.log('Supabase: Deleting schedule for user', userEmail);
+    console.log('Deleting schedule for user', userEmail);
     
     try {
       // Delete from Supabase
@@ -202,10 +279,23 @@ export const scheduleService = {
         .delete()
         .eq('user_email', userEmail);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting schedule from Supabase:', error);
+        throw error;
+      }
       
-      // Trigger an event to notify other components that schedules have changed
-      window.dispatchEvent(new Event('schedulesChanged'));
+      // Also delete from localStorage for backwards compatibility
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.includes(`userSchedule_${userEmail}`)) {
+            localStorage.removeItem(key);
+            console.log(`Removed from localStorage: ${key}`);
+          }
+        }
+      } catch (e) {
+        console.warn('Error cleaning localStorage:', e);
+      }
       
       return { success: true };
     } catch (error) {
@@ -216,7 +306,7 @@ export const scheduleService = {
   
   // Reset user edit counter
   async resetEditCounter(userEmail: string): Promise<{ success: boolean }> {
-    console.log('Supabase: Resetting edit counter for user', userEmail);
+    console.log('Resetting edit counter for user', userEmail);
     
     try {
       // Reset edit counter in Supabase
@@ -225,10 +315,10 @@ export const scheduleService = {
         .update({ edit_count: 0 })
         .eq('user_email', userEmail);
         
-      if (error) throw error;
-      
-      // Trigger an event to notify other components that schedules have changed
-      window.dispatchEvent(new Event('schedulesChanged'));
+      if (error) {
+        console.error('Error resetting edit counter in Supabase:', error);
+        throw error;
+      }
       
       return { success: true };
     } catch (error) {
@@ -239,7 +329,7 @@ export const scheduleService = {
   
   // Save user notes
   async saveUserNotes(userEmail: string, month: string, notes: string): Promise<{ success: boolean }> {
-    console.log('Supabase: Saving notes for user', userEmail, month);
+    console.log('Saving notes for user', userEmail, month, notes);
     
     try {
       // Check if this user already has a schedule for this month
@@ -260,11 +350,36 @@ export const scheduleService = {
           })
           .eq('id', existingSchedule.id);
           
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating notes in Supabase:', error);
+          throw error;
+        }
       } else {
         // We need a schedule to store notes
-        console.error('No schedule found to store notes');
-        return { success: false };
+        console.log('No existing schedule found for notes, creating a new one');
+        const { error } = await supabase
+          .from('schedules')
+          .insert({
+            user_email: userEmail,
+            user_name: userEmail, // Use email as fallback name
+            month: month,
+            dates: [],  // Empty dates array
+            notes: notes
+          });
+          
+        if (error) {
+          console.error('Error creating new schedule for notes:', error);
+          throw error;
+        }
+      }
+      
+      // Also save to localStorage for backwards compatibility
+      try {
+        const localStorageKey = `userNotes_${userEmail}_${month}`;
+        localStorage.setItem(localStorageKey, notes);
+        console.log(`Saved notes to localStorage: ${localStorageKey}`);
+      } catch (e) {
+        console.warn('Could not save notes to localStorage:', e);
       }
       
       return { success: true };
@@ -276,6 +391,7 @@ export const scheduleService = {
   
   // Set up real-time subscription for schedule changes
   setupRealtimeSubscription(callback: () => void) {
+    console.log('Setting up realtime subscription for schedules');
     const channel = supabase
       .channel('schedules-changes')
       .on('postgres_changes', 

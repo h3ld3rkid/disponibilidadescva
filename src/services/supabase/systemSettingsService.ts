@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
  * @returns The system setting value or null if not found
  */
 export const getSystemSetting = async (key: string): Promise<string | null> => {
-  // Use generic parameter with unknown to avoid type errors
+  // Use from query instead of RPC to avoid type errors
   const { data, error } = await supabase
     .from('system_settings')
     .select('value')
@@ -34,6 +34,7 @@ export const upsertSystemSetting = async (
   value: string,
   description?: string
 ): Promise<boolean> => {
+  // Use upsert operation instead of RPC to avoid type errors
   const { error } = await supabase
     .from('system_settings')
     .upsert({
