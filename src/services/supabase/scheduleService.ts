@@ -1,4 +1,3 @@
-
 import { supabase } from "./client";
 
 export const scheduleService = {
@@ -98,6 +97,86 @@ export const scheduleService = {
     } catch (error) {
       console.error('Error migrating data to Supabase:', error);
       return { success: false, migratedCount };
+    }
+  },
+  
+  // Save user schedule and notes together
+  async saveUserScheduleWithNotes(userEmail: string, scheduleData: any, notes: string, userData?: { name: string }): Promise<{ success: boolean }> {
+    console.log('Saving schedule and notes for user', userEmail, scheduleData);
+    
+    try {
+      // Get user name from userData or use email as fallback
+      const userName = userData?.name || userEmail;
+      
+      // Format the data for Supabase
+      const month = scheduleData.month || 'default';
+      const dates = scheduleData.dates || scheduleData;
+      
+      console.log(`Saving schedule for ${userEmail} (${month}):`, { dates, notes });
+      
+      // Check if this user already has a schedule for this month
+      const { data: existingSchedule } = await supabase
+        .from('schedules')
+        .select('id, edit_count')
+        .eq('user_email', userEmail)
+        .eq('month', month)
+        .maybeSingle();
+      
+      if (existingSchedule) {
+        console.log(`Updating existing schedule for ${userEmail} (${month})`);
+        // Update existing schedule
+        const { error } = await supabase
+          .from('schedules')
+          .update({
+            dates: dates,
+            notes: notes,
+            user_name: userName,
+            edit_count: (existingSchedule.edit_count || 0) + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingSchedule.id);
+          
+        if (error) {
+          console.error('Error updating schedule:', error);
+          throw error;
+        }
+      } else {
+        console.log(`Creating new schedule for ${userEmail} (${month})`);
+        // Insert new schedule
+        const { error } = await supabase
+          .from('schedules')
+          .insert({
+            user_email: userEmail,
+            user_name: userName,
+            month: month,
+            dates: dates,
+            notes: notes,
+            edit_count: 0
+          });
+          
+        if (error) {
+          console.error('Error inserting new schedule:', error);
+          throw error;
+        }
+      }
+      
+      // Also save to localStorage for backwards compatibility
+      try {
+        const localStorageKey = `userSchedule_${userEmail}_${month}`;
+        localStorage.setItem(localStorageKey, JSON.stringify(dates));
+        console.log(`Saved to localStorage: ${localStorageKey}`);
+        
+        const notesKey = `userNotes_${userEmail}_${month}`;
+        localStorage.setItem(notesKey, notes);
+        console.log(`Saved notes to localStorage: ${notesKey}`);
+      } catch (e) {
+        console.warn('Could not save to localStorage', e);
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error saving schedule and notes:', error);
+      return { success: false };
     }
   },
   

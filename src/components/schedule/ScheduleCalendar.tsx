@@ -4,13 +4,14 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format } from "date-fns";
+import { format, addMonths, isAfter } from "date-fns";
 import { scheduleService } from "@/services/supabase/scheduleService";
 import { pt } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { MigrationStatus } from "@/components/schedule/MigrationStatus";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Save } from "lucide-react";
 
 interface ScheduleCalendarProps {
   userEmail: string;
@@ -30,7 +32,7 @@ interface ScheduleCalendarProps {
 
 const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin = false }) => {
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
-  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
+  const [nextMonth, setNextMonth] = useState<Date>(addMonths(new Date(), 1));
   const [userNotes, setUserNotes] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
@@ -38,9 +40,24 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const [editCount, setEditCount] = useState<number>(0);
   const [userName, setUserName] = useState<string>(userEmail);
   const [isLocalStorageMigrated, setIsLocalStorageMigrated] = useState<boolean>(false);
+  const [migrationCount, setMigrationCount] = useState<number>(0);
   const [forceUpdate, setForceUpdate] = useState(0);
+  const [scheduleRuleLocked, setScheduleRuleLocked] = useState<boolean>(false);
 
-  const monthKey = format(currentMonth, 'MMMM-yyyy', { locale: pt });
+  const monthKey = format(nextMonth, 'MMMM-yyyy', { locale: pt });
+
+  // Check if schedule editing is allowed (before the 15th of previous month)
+  useEffect(() => {
+    const today = new Date();
+    const dayOfMonth = today.getDate();
+    
+    // If it's after the 15th of the current month and user is not admin
+    if (dayOfMonth > 15 && !isAdmin) {
+      setScheduleRuleLocked(true);
+    } else {
+      setScheduleRuleLocked(false);
+    }
+  }, [isAdmin]);
 
   // Load user schedule from Supabase
   const loadUserSchedule = useCallback(async () => {
@@ -100,6 +117,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
             description: `Migrados ${migratedCount} registos do armazenamento local para o Supabase.`,
           });
           setIsLocalStorageMigrated(true);
+          setMigrationCount(migratedCount);
         } else {
           toast({
             title: "Erro na migração",
@@ -128,8 +146,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     }
   }, [userEmail]);
 
-  // Save schedule to Supabase
-  const handleSaveSchedule = async () => {
+  // Save schedule and notes to Supabase
+  const handleSaveAll = async () => {
     setIsSaving(true);
     try {
       // Format dates as ISO strings for storage
@@ -144,15 +162,15 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       // Get user name for display
       const userData = { name: userName || userEmail };
       
-      console.log('Saving schedule data:', scheduleData);
+      console.log('Saving schedule data and notes:', scheduleData);
       
       // Save to Supabase
-      const { success } = await scheduleService.saveUserSchedule(userEmail, scheduleData, userData);
+      const { success } = await scheduleService.saveUserScheduleWithNotes(userEmail, scheduleData, userNotes, userData);
       
       if (success) {
         toast({
           title: "Escala guardada",
-          description: "A sua escala foi guardada com sucesso.",
+          description: "A sua escala e notas foram guardadas com sucesso.",
         });
         // Update edit count locally
         setEditCount(prevCount => prevCount + 1);
@@ -279,12 +297,30 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   // Handle date selection with proper typing
   const handleDateSelect = (dates: Date[] | undefined) => {
     if (!dates) return;
+    
+    // If user is not admin and schedule is locked, don't allow changes
+    if (!isAdmin && scheduleRuleLocked) {
+      toast({
+        title: "Edição bloqueada",
+        description: "A edição da escala só é permitida até o dia 15 do mês anterior.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setSelectedDates(dates);
     console.log(`Selected ${dates.length} dates`);
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <MigrationStatus 
+        migrationDone={isLocalStorageMigrated} 
+        migrationCount={migrationCount} 
+        showScheduleRule={scheduleRuleLocked}
+        isAdmin={isAdmin}
+      />
+      
       <Tabs defaultValue="calendar" className="w-full">
         <TabsList>
           <TabsTrigger value="calendar">Calendário</TabsTrigger>
@@ -298,9 +334,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                 mode="multiple"
                 selected={selectedDates}
                 onSelect={handleDateSelect}
-                defaultMonth={currentMonth}
-                onMonthChange={setCurrentMonth}
-                disabled={false} /* Admins can now select dates */
+                defaultMonth={nextMonth}
+                month={nextMonth}
+                onMonthChange={setNextMonth}
+                disabled={false}
                 className="w-full"
               />
             </CardContent>
@@ -311,11 +348,12 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
             </p>
             <div>
               <Button
-                onClick={handleSaveSchedule}
-                disabled={isSaving}
+                onClick={handleSaveAll}
+                disabled={isSaving || (!isAdmin && scheduleRuleLocked)}
                 className="bg-[#6E59A5] hover:bg-[#5d4a8b]"
               >
-                {isSaving ? "A guardar..." : "Guardar Escala"}
+                <Save className="mr-2" />
+                {isSaving ? "A guardar..." : "Guardar Escala e Notas"}
               </Button>
               {isAdmin && (
                 <p className="mt-2">
@@ -337,13 +375,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
               onChange={(e) => setUserNotes(e.target.value)}
               rows={4}
               className="w-full"
+              disabled={(!isAdmin && scheduleRuleLocked)}
             />
-            <Button
-              onClick={handleSaveNotes}
-              className="bg-[#6E59A5] hover:bg-[#5d4a8b] mt-2"
-            >
-              Guardar Notas
-            </Button>
           </div>
         </TabsContent>
         <TabsContent value="notes" className="space-y-4">
@@ -356,13 +389,16 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
               onChange={(e) => setUserNotes(e.target.value)}
               rows={6}
               className="w-full"
+              disabled={(!isAdmin && scheduleRuleLocked)}
             />
           </div>
           <Button
-            onClick={handleSaveNotes}
+            onClick={handleSaveAll}
+            disabled={isSaving || (!isAdmin && scheduleRuleLocked)}
             className="bg-[#6E59A5] hover:bg-[#5d4a8b]"
           >
-            Guardar Notas
+            <Save className="mr-2" />
+            {isSaving ? "A guardar..." : "Guardar Escala e Notas"}
           </Button>
         </TabsContent>
         <TabsContent value="admin" className="space-y-4">
