@@ -10,6 +10,7 @@ import { pt } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -299,7 +300,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                 onSelect={handleDateSelect}
                 defaultMonth={currentMonth}
                 onMonthChange={setCurrentMonth}
-                disabled={isAdmin ? true : false}
+                disabled={false} {/* Removed the isAdmin condition to allow admins to select dates */}
                 className="w-full"
               />
             </CardContent>
@@ -309,17 +310,15 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
               Total de dias selecionados: {selectedDates.length}
             </p>
             <div>
-              {!isAdmin && (
-                <Button
-                  onClick={handleSaveSchedule}
-                  disabled={isSaving}
-                  className="bg-[#6E59A5] hover:bg-[#5d4a8b]"
-                >
-                  {isSaving ? "A guardar..." : "Guardar Escala"}
-                </Button>
-              )}
+              <Button
+                onClick={handleSaveSchedule}
+                disabled={isSaving}
+                className="bg-[#6E59A5] hover:bg-[#5d4a8b]"
+              >
+                {isSaving ? "A guardar..." : "Guardar Escala"}
+              </Button>
               {isAdmin && (
-                <p>
+                <p className="mt-2">
                   <Label>Nome do utilizador: {userName}</Label>
                   <br />
                   <Label>Email do utilizador: {userEmail}</Label>
@@ -327,26 +326,44 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
               )}
             </div>
           </div>
+          
+          {/* Add notes textarea at the bottom of the calendar */}
+          <div className="mt-6 space-y-2">
+            <Label htmlFor="calendar-notes">Notas da Escala:</Label>
+            <Textarea
+              id="calendar-notes"
+              placeholder="Adicione notas sobre esta escala..."
+              value={userNotes}
+              onChange={(e) => setUserNotes(e.target.value)}
+              rows={4}
+              className="w-full"
+            />
+            <Button
+              onClick={handleSaveNotes}
+              className="bg-[#6E59A5] hover:bg-[#5d4a8b] mt-2"
+            >
+              Guardar Notas
+            </Button>
+          </div>
         </TabsContent>
         <TabsContent value="notes" className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="notes">Notas adicionais:</Label>
-            <Input
+            <Textarea
               id="notes"
               placeholder="Adicione notas sobre a sua escala..."
               value={userNotes}
               onChange={(e) => setUserNotes(e.target.value)}
-              disabled={isAdmin ? true : false}
+              rows={6}
+              className="w-full"
             />
           </div>
-          {!isAdmin && (
-            <Button
-              onClick={handleSaveNotes}
-              className="bg-[#6E59A5] hover:bg-[#5d4a8b]"
-            >
-              Guardar Notas
-            </Button>
-          )}
+          <Button
+            onClick={handleSaveNotes}
+            className="bg-[#6E59A5] hover:bg-[#5d4a8b]"
+          >
+            Guardar Notas
+          </Button>
         </TabsContent>
         <TabsContent value="admin" className="space-y-4">
           {isAdmin && (
