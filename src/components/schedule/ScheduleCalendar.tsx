@@ -300,7 +300,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                 onSelect={handleDateSelect}
                 defaultMonth={currentMonth}
                 onMonthChange={setCurrentMonth}
-                disabled={false} {/* Removed the isAdmin condition to allow admins to select dates */}
+                disabled={false} /* Admins can now select dates */
                 className="w-full"
               />
             </CardContent>
