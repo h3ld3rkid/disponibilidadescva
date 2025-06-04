@@ -1,10 +1,8 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format, addMonths, isAfter } from "date-fns";
+import { format, addMonths } from "date-fns";
 import { scheduleService } from "@/services/supabase/scheduleService";
 import { pt } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
@@ -12,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MigrationStatus } from "@/components/schedule/MigrationStatus";
+import WeekdayCheckboxCalendar from "./WeekdayCheckboxCalendar";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -146,8 +145,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     }
   }, [userEmail]);
 
-  // Save schedule and notes to Supabase
+  // Save schedule and notes to Supabase (single function for both)
   const handleSaveAll = async () => {
+    if (isSaving) return; // Prevent duplicate saves
+    
     setIsSaving(true);
     try {
       // Format dates as ISO strings for storage
@@ -164,12 +165,12 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       
       console.log('Saving schedule data and notes:', scheduleData);
       
-      // Save to Supabase
+      // Save to Supabase (this now saves both schedule and notes in one call)
       const { success } = await scheduleService.saveUserScheduleWithNotes(userEmail, scheduleData, userNotes, userData);
       
       if (success) {
         toast({
-          title: "Escala guardada",
+          title: "Escala e notas guardadas",
           description: "A sua escala e notas foram guardadas com sucesso.",
         });
         // Update edit count locally
@@ -264,40 +265,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     }
   };
 
-  // Save notes to Supabase
-  const handleSaveNotes = async () => {
-    try {
-      console.log(`Saving notes for ${userEmail} (${monthKey}): ${userNotes}`);
-      const { success } = await scheduleService.saveUserNotes(userEmail, monthKey, userNotes);
-      if (success) {
-        toast({
-          title: "Notas guardadas",
-          description: "As suas notas foram guardadas com sucesso.",
-        });
-        
-        // Trigger event to notify other components
-        window.dispatchEvent(new Event('schedulesChanged'));
-      } else {
-        toast({
-          title: "Erro ao guardar notas",
-          description: "Ocorreu um erro ao guardar as suas notas.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error saving notes:", error);
-      toast({
-        title: "Erro ao guardar notas",
-        description: "Ocorreu um erro ao guardar as suas notas.",
-        variant: "destructive",
-      });
-    }
-  };
-
   // Handle date selection with proper typing
-  const handleDateSelect = (dates: Date[] | undefined) => {
-    if (!dates) return;
-    
+  const handleDateSelect = (dates: Date[]) => {
     // If user is not admin and schedule is locked, don't allow changes
     if (!isAdmin && scheduleRuleLocked) {
       toast({
@@ -328,25 +297,39 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
           {isAdmin && <TabsTrigger value="admin">Admin</TabsTrigger>}
         </TabsList>
         <TabsContent value="calendar" className="space-y-4">
-          <Card>
-            <CardContent className="grid gap-4 pt-4">
-              <Calendar
-                mode="multiple"
-                selected={selectedDates}
-                onSelect={handleDateSelect}
-                defaultMonth={nextMonth}
-                month={nextMonth}
-                onMonthChange={setNextMonth}
-                disabled={false}
+          <WeekdayCheckboxCalendar
+            selectedDates={selectedDates}
+            onDateSelect={handleDateSelect}
+            nextMonth={nextMonth}
+            disabled={(!isAdmin && scheduleRuleLocked)}
+          />
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="calendar-notes">Notas da Escala:</Label>
+              <Textarea
+                id="calendar-notes"
+                placeholder="Adicione notas sobre esta escala..."
+                value={userNotes}
+                onChange={(e) => setUserNotes(e.target.value)}
+                rows={4}
                 className="w-full"
+                disabled={(!isAdmin && scheduleRuleLocked)}
               />
-            </CardContent>
-          </Card>
-          <div className="flex justify-between">
-            <p>
-              Total de dias selecionados: {selectedDates.length}
-            </p>
-            <div>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm text-gray-600">
+                  Total de dias selecionados: {selectedDates.length}
+                </p>
+                {isAdmin && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    <p>Nome do utilizador: {userName}</p>
+                    <p>Email do utilizador: {userEmail}</p>
+                  </div>
+                )}
+              </div>
               <Button
                 onClick={handleSaveAll}
                 disabled={isSaving || (!isAdmin && scheduleRuleLocked)}
@@ -355,28 +338,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                 <Save className="mr-2" />
                 {isSaving ? "A guardar..." : "Guardar Escala e Notas"}
               </Button>
-              {isAdmin && (
-                <p className="mt-2">
-                  <Label>Nome do utilizador: {userName}</Label>
-                  <br />
-                  <Label>Email do utilizador: {userEmail}</Label>
-                </p>
-              )}
             </div>
-          </div>
-          
-          {/* Add notes textarea at the bottom of the calendar */}
-          <div className="mt-6 space-y-2">
-            <Label htmlFor="calendar-notes">Notas da Escala:</Label>
-            <Textarea
-              id="calendar-notes"
-              placeholder="Adicione notas sobre esta escala..."
-              value={userNotes}
-              onChange={(e) => setUserNotes(e.target.value)}
-              rows={4}
-              className="w-full"
-              disabled={(!isAdmin && scheduleRuleLocked)}
-            />
           </div>
         </TabsContent>
         <TabsContent value="notes" className="space-y-4">

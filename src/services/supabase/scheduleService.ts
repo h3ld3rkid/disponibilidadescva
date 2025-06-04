@@ -100,7 +100,7 @@ export const scheduleService = {
     }
   },
   
-  // Save user schedule and notes together
+  // Save user schedule and notes together (fixed to prevent duplicates)
   async saveUserScheduleWithNotes(userEmail: string, scheduleData: any, notes: string, userData?: { name: string }): Promise<{ success: boolean }> {
     console.log('Saving schedule and notes for user', userEmail, scheduleData);
     
@@ -114,50 +114,23 @@ export const scheduleService = {
       
       console.log(`Saving schedule for ${userEmail} (${month}):`, { dates, notes });
       
-      // Check if this user already has a schedule for this month
-      const { data: existingSchedule } = await supabase
+      // Use upsert to prevent duplicates - this will either insert or update
+      const { error } = await supabase
         .from('schedules')
-        .select('id, edit_count')
-        .eq('user_email', userEmail)
-        .eq('month', month)
-        .maybeSingle();
-      
-      if (existingSchedule) {
-        console.log(`Updating existing schedule for ${userEmail} (${month})`);
-        // Update existing schedule
-        const { error } = await supabase
-          .from('schedules')
-          .update({
-            dates: dates,
-            notes: notes,
-            user_name: userName,
-            edit_count: (existingSchedule.edit_count || 0) + 1,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingSchedule.id);
-          
-        if (error) {
-          console.error('Error updating schedule:', error);
-          throw error;
-        }
-      } else {
-        console.log(`Creating new schedule for ${userEmail} (${month})`);
-        // Insert new schedule
-        const { error } = await supabase
-          .from('schedules')
-          .insert({
-            user_email: userEmail,
-            user_name: userName,
-            month: month,
-            dates: dates,
-            notes: notes,
-            edit_count: 0
-          });
-          
-        if (error) {
-          console.error('Error inserting new schedule:', error);
-          throw error;
-        }
+        .upsert({
+          user_email: userEmail,
+          user_name: userName,
+          month: month,
+          dates: dates,
+          notes: notes,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_email,month'
+        });
+        
+      if (error) {
+        console.error('Error upserting schedule:', error);
+        throw error;
       }
       
       // Also save to localStorage for backwards compatibility
