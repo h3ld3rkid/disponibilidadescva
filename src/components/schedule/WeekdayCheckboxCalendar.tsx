@@ -11,6 +11,7 @@ interface WeekdayCheckboxCalendarProps {
   onDateSelect: (dates: Date[]) => void;
   nextMonth: Date;
   disabled?: boolean;
+  editCount?: number;
 }
 
 interface ShiftData {
@@ -23,7 +24,8 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
   selectedDates,
   onDateSelect,
   nextMonth,
-  disabled = false
+  disabled = false,
+  editCount = 0
 }) => {
   // Convert selectedDates to shift format for proper handling
   const getShiftDataFromDates = (): ShiftData[] => {
@@ -67,7 +69,6 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
   const handleShiftToggle = (weekday: string, shift: string, checked: boolean) => {
     if (disabled) return;
 
-    const currentShiftData = getShiftDataFromDates();
     let newDates = [...selectedDates];
     
     const weekdayIndex = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'].indexOf(weekday);
@@ -118,6 +119,9 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
     return shiftData.some(data => data.weekday === weekday && data.shift === shift);
   };
 
+  // Count total selected shifts correctly
+  const totalSelectedShifts = getShiftDataFromDates().length;
+
   const weekdays = [
     { name: 'segunda', label: 'Segunda-feira', shortLabel: '2ª', shifts: ['dia'] },
     { name: 'terca', label: 'Terça-feira', shortLabel: '3ª', shifts: ['dia'] },
@@ -135,22 +139,39 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
     noite: 'Noite'
   };
 
+  const canSubmitSchedule = editCount < 2;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <Card className="bg-gradient-to-br from-gray-900/95 to-purple-900/95 border-purple-500/20 backdrop-blur-sm">
-        <CardHeader className="text-center border-b border-purple-500/20">
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+    <div className="min-h-screen bg-white">
+      <Card className="bg-white border-gray-200 shadow-lg">
+        <CardHeader className="text-center border-b border-gray-200">
+          <CardTitle className="text-2xl font-bold text-gray-800">
             🚑 Escala para {format(nextMonth, 'MMMM yyyy', { locale: pt })}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-8">
+          {/* Submission info */}
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex justify-between items-center">
+              <div className="text-gray-700">
+                <p className="text-sm font-medium">Submissões da escala</p>
+                <p className="text-lg font-bold text-gray-900">{editCount} / 2</p>
+              </div>
+              {!canSubmitSchedule && (
+                <div className="text-red-600 text-sm font-medium">
+                  ⚠️ Limite de submissões atingido
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {weekdays.map((weekday) => (
               <div key={weekday.name} className="group">
-                <div className="bg-gradient-to-br from-slate-800/80 to-purple-800/40 rounded-xl p-6 border border-purple-500/30 hover:border-purple-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/20">
-                  <h3 className="text-xl font-bold text-white mb-4 text-center">
+                <div className="bg-white rounded-xl p-6 border-2 border-gray-200 hover:border-blue-300 transition-all duration-300 hover:shadow-lg">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">
                     <span className="block text-2xl mb-1">{weekday.shortLabel}</span>
-                    <span className="text-sm text-purple-300">{weekday.label}</span>
+                    <span className="text-sm text-gray-600">{weekday.label}</span>
                   </h3>
                   
                   <div className="space-y-3">
@@ -159,29 +180,26 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
                         key={`${weekday.name}-${shift}`} 
                         className="relative group/shift"
                       >
-                        <div className="flex items-center p-4 bg-gradient-to-r from-slate-700/50 to-purple-700/30 rounded-lg border border-purple-500/20 hover:border-purple-400/40 transition-all duration-200 hover:shadow-md cursor-pointer">
+                        <div className="flex items-center p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 cursor-pointer">
                           <Checkbox
                             id={`${weekday.name}-${shift}`}
                             checked={isShiftSelected(weekday.name, shift)}
                             onCheckedChange={(checked) => handleShiftToggle(weekday.name, shift, checked as boolean)}
-                            disabled={disabled}
-                            className="h-6 w-6 border-2 border-purple-400 data-[state=checked]:bg-purple-500 data-[state=checked]:border-purple-500"
+                            disabled={disabled || !canSubmitSchedule}
+                            className="h-6 w-6 border-2 border-blue-400 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
                           />
                           <Label 
                             htmlFor={`${weekday.name}-${shift}`} 
-                            className="text-white font-medium cursor-pointer flex-1 ml-4 select-none"
+                            className="text-gray-800 font-medium cursor-pointer flex-1 ml-4 select-none"
                           >
                             {shiftLabels[shift as keyof typeof shiftLabels]}
                           </Label>
                           
-                          {/* Futuristic accent */}
-                          <div className="w-2 h-2 bg-purple-400 rounded-full opacity-0 group-hover/shift:opacity-100 transition-opacity duration-200"></div>
+                          {/* Indicator when selected */}
+                          {isShiftSelected(weekday.name, shift) && (
+                            <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                          )}
                         </div>
-                        
-                        {/* Glow effect when selected */}
-                        {isShiftSelected(weekday.name, shift) && (
-                          <div className="absolute inset-0 bg-purple-500/10 rounded-lg animate-pulse pointer-events-none"></div>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -190,18 +208,23 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
             ))}
           </div>
 
-          <div className="mt-8 p-6 bg-gradient-to-r from-blue-900/40 to-purple-900/40 rounded-xl border border-blue-500/30">
+          <div className="mt-8 p-6 bg-blue-50 rounded-xl border border-blue-200">
             <div className="flex justify-between items-center text-center">
-              <div className="text-blue-300">
+              <div className="text-blue-700">
                 <p className="text-sm font-medium">Total de turnos selecionados</p>
-                <p className="text-2xl font-bold text-white">{selectedDates.length}</p>
+                <p className="text-2xl font-bold text-blue-900">{totalSelectedShifts}</p>
               </div>
               
-              <div className="text-purple-300">
+              <div className="text-blue-700">
                 <p className="text-sm font-medium">Mês de trabalho</p>
-                <p className="text-lg font-semibold text-white">
+                <p className="text-lg font-semibold text-blue-900">
                   {format(nextMonth, 'MMMM yyyy', { locale: pt })}
                 </p>
+              </div>
+
+              <div className="text-blue-700">
+                <p className="text-sm font-medium">Submissões restantes</p>
+                <p className="text-2xl font-bold text-blue-900">{Math.max(0, 2 - editCount)}</p>
               </div>
             </div>
           </div>

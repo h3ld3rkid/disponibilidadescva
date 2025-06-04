@@ -5,10 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, addMonths } from "date-fns";
 import { scheduleService } from "@/services/supabase/scheduleService";
 import { pt } from "date-fns/locale";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import MigrationStatus from "@/components/schedule/MigrationStatus";
 import WeekdayCheckboxCalendar from "./WeekdayCheckboxCalendar";
 import {
@@ -145,9 +144,21 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     }
   }, [userEmail]);
 
+  // Check if user can submit (less than 2 submissions)
+  const canSubmitSchedule = editCount < 2 || isAdmin;
+
   // Save schedule and notes to Supabase (single function for both)
   const handleSaveAll = async () => {
     if (isSaving) return; // Prevent duplicate saves
+    
+    if (!canSubmitSchedule && !isAdmin) {
+      toast({
+        title: "Limite de submissões atingido",
+        description: "Já submeteu a escala 2 vezes. Não pode submeter mais.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsSaving(true);
     try {
@@ -171,7 +182,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       if (success) {
         toast({
           title: "Escala e notas guardadas",
-          description: "A sua escala e notas foram guardadas com sucesso.",
+          description: "A sua escala e notas foram guardadas com sucesso no servidor global.",
         });
         // Update edit count locally
         setEditCount(prevCount => prevCount + 1);
@@ -179,8 +190,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         // Trigger an update after saving
         window.dispatchEvent(new Event('schedulesChanged'));
         
-        // Force reload
-        loadUserSchedule();
+        // Force reload to get updated data from server
+        setTimeout(() => {
+          loadUserSchedule();
+        }, 1000);
       } else {
         toast({
           title: "Erro ao guardar",
@@ -282,7 +295,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-white">
       <div className="container mx-auto px-4 py-8">
         <MigrationStatus 
           migrationDone={isLocalStorageMigrated} 
@@ -292,10 +305,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         />
         
         <Tabs defaultValue="calendar" className="w-full">
-          <TabsList className="bg-slate-800/50 border border-purple-500/30">
-            <TabsTrigger value="calendar" className="data-[state=active]:bg-purple-600">Calendário</TabsTrigger>
-            <TabsTrigger value="notes" className="data-[state=active]:bg-purple-600">Notas</TabsTrigger>
-            {isAdmin && <TabsTrigger value="admin" className="data-[state=active]:bg-purple-600">Admin</TabsTrigger>}
+          <TabsList className="bg-gray-100 border border-gray-200">
+            <TabsTrigger value="calendar" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">Calendário</TabsTrigger>
+            <TabsTrigger value="notes" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">Notas</TabsTrigger>
+            {isAdmin && <TabsTrigger value="admin" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white">Admin</TabsTrigger>}
           </TabsList>
           
           <TabsContent value="calendar" className="space-y-4">
@@ -303,45 +316,46 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
               selectedDates={selectedDates}
               onDateSelect={handleDateSelect}
               nextMonth={nextMonth}
-              disabled={(!isAdmin && scheduleRuleLocked)}
+              disabled={(!isAdmin && scheduleRuleLocked) || (!canSubmitSchedule && !isAdmin)}
+              editCount={editCount}
             />
             
             <div className="space-y-4">
-              <Card className="bg-gradient-to-br from-gray-900/95 to-purple-900/95 border-purple-500/20">
+              <Card className="bg-white border-gray-200">
                 <CardContent className="p-6">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="calendar-notes" className="text-purple-300 font-medium">Notas da Escala:</Label>
+                      <Label htmlFor="calendar-notes" className="text-gray-700 font-medium">Notas da Escala:</Label>
                       <Textarea
                         id="calendar-notes"
                         placeholder="Adicione notas sobre esta escala..."
                         value={userNotes}
                         onChange={(e) => setUserNotes(e.target.value)}
                         rows={4}
-                        className="bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50"
-                        disabled={(!isAdmin && scheduleRuleLocked)}
+                        className="bg-gray-50 border-gray-200 text-gray-800 placeholder-gray-400"
+                        disabled={(!isAdmin && scheduleRuleLocked) || (!canSubmitSchedule && !isAdmin)}
                       />
                     </div>
                     
                     <div className="flex justify-between items-center">
-                      <div className="text-purple-300">
+                      <div className="text-gray-700">
                         <p className="text-sm">
-                          Total de dias selecionados: <span className="font-bold text-white">{selectedDates.length}</span>
+                          Submissões: <span className="font-bold text-gray-900">{editCount} / 2</span>
                         </p>
                         {isAdmin && (
                           <div className="mt-2 text-sm">
-                            <p>Nome do utilizador: <span className="text-white">{userName}</span></p>
-                            <p>Email do utilizador: <span className="text-white">{userEmail}</span></p>
+                            <p>Nome: <span className="text-gray-900">{userName}</span></p>
+                            <p>Email: <span className="text-gray-900">{userEmail}</span></p>
                           </div>
                         )}
                       </div>
                       <Button
                         onClick={handleSaveAll}
-                        disabled={isSaving || (!isAdmin && scheduleRuleLocked)}
-                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold"
+                        disabled={isSaving || ((!isAdmin && scheduleRuleLocked) || (!canSubmitSchedule && !isAdmin))}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
                       >
                         <Save className="mr-2" />
-                        {isSaving ? "A guardar..." : "Guardar Escala e Notas"}
+                        {isSaving ? "A guardar..." : "Guardar Escala"}
                       </Button>
                     </div>
                   </div>
@@ -351,28 +365,28 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
           </TabsContent>
           
           <TabsContent value="notes" className="space-y-4">
-            <Card className="bg-gradient-to-br from-gray-900/95 to-purple-900/95 border-purple-500/20">
+            <Card className="bg-white border-gray-200">
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="notes" className="text-purple-300 font-medium">Notas adicionais:</Label>
+                    <Label htmlFor="notes" className="text-gray-700 font-medium">Notas adicionais:</Label>
                     <Textarea
                       id="notes"
                       placeholder="Adicione notas sobre a sua escala..."
                       value={userNotes}
                       onChange={(e) => setUserNotes(e.target.value)}
                       rows={6}
-                      className="bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50"
-                      disabled={(!isAdmin && scheduleRuleLocked)}
+                      className="bg-gray-50 border-gray-200 text-gray-800 placeholder-gray-400"
+                      disabled={(!isAdmin && scheduleRuleLocked) || (!canSubmitSchedule && !isAdmin)}
                     />
                   </div>
                   <Button
                     onClick={handleSaveAll}
-                    disabled={isSaving || (!isAdmin && scheduleRuleLocked)}
-                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold"
+                    disabled={isSaving || ((!isAdmin && scheduleRuleLocked) || (!canSubmitSchedule && !isAdmin))}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold"
                   >
                     <Save className="mr-2" />
-                    {isSaving ? "A guardar..." : "Guardar Escala e Notas"}
+                    {isSaving ? "A guardar..." : "Guardar Escala"}
                   </Button>
                 </div>
               </CardContent>
