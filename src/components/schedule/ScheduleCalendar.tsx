@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MigrationStatus } from "@/components/schedule/MigrationStatus";
+import MigrationStatus from "@/components/schedule/MigrationStatus";
 import WeekdayCheckboxCalendar from "./WeekdayCheckboxCalendar";
 import {
   AlertDialog,
