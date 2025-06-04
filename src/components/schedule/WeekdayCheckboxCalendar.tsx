@@ -13,9 +13,10 @@ interface WeekdayCheckboxCalendarProps {
   disabled?: boolean;
 }
 
-interface ShiftSelection {
+interface ShiftData {
   weekday: string;
-  shifts: string[];
+  shift: string;
+  date: Date;
 }
 
 const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
@@ -24,80 +25,97 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
   nextMonth,
   disabled = false
 }) => {
-  // Convert selectedDates to shift format for display
-  const getSelectedShifts = (): { [key: string]: string[] } => {
-    const shifts: { [key: string]: string[] } = {
-      'segunda': [],
-      'terca': [],
-      'quarta': [],
-      'quinta': [],
-      'sexta': [],
-      'sabado': [],
-      'domingo': [],
-    };
-
-    // Parse the stored dates to extract shift information
+  // Convert selectedDates to shift format for proper handling
+  const getShiftDataFromDates = (): ShiftData[] => {
+    const shiftData: ShiftData[] = [];
+    
     selectedDates.forEach(date => {
       const dayOfWeek = date.getDay();
       const weekdayMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
       const weekdayName = weekdayMap[dayOfWeek];
       
-      // For now, assume all shifts are selected when a date is selected
-      // This should be improved to store actual shift data
+      // Extract shift information from the date (we'll store it in hours)
+      const hour = date.getHours();
+      
       if (weekdayName === 'sabado') {
-        shifts[weekdayName] = ['manha', 'tarde', 'noite'];
+        // Saturday: 8=morning, 14=afternoon, 20=night
+        if (hour === 8) {
+          shiftData.push({ weekday: weekdayName, shift: 'manha', date });
+        } else if (hour === 14) {
+          shiftData.push({ weekday: weekdayName, shift: 'tarde', date });
+        } else if (hour === 20) {
+          shiftData.push({ weekday: weekdayName, shift: 'noite', date });
+        }
       } else if (weekdayName === 'domingo') {
-        shifts[weekdayName] = ['manha', 'noite'];
+        // Sunday: 8=morning, 20=night
+        if (hour === 8) {
+          shiftData.push({ weekday: weekdayName, shift: 'manha', date });
+        } else if (hour === 20) {
+          shiftData.push({ weekday: weekdayName, shift: 'noite', date });
+        }
       } else {
-        shifts[weekdayName] = ['dia'];
+        // Weekdays: 12=day shift
+        if (hour === 12) {
+          shiftData.push({ weekday: weekdayName, shift: 'dia', date });
+        }
       }
     });
-
-    return shifts;
+    
+    return shiftData;
   };
 
   const handleShiftToggle = (weekday: string, shift: string, checked: boolean) => {
     if (disabled) return;
 
-    const selectedShifts = getSelectedShifts();
-    const currentShifts = selectedShifts[weekday] || [];
+    const currentShiftData = getShiftDataFromDates();
+    let newDates = [...selectedDates];
     
-    let newShifts: string[];
+    const weekdayIndex = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'].indexOf(weekday);
+    
     if (checked) {
-      // Add shift if not already present
-      newShifts = [...currentShifts, shift].filter((value, index, self) => self.indexOf(value) === index);
-    } else {
-      // Remove shift
-      newShifts = currentShifts.filter(s => s !== shift);
-    }
-
-    // Update the selected dates based on the new shifts
-    const newSelectedDates = [...selectedDates];
-    
-    // Remove existing dates for this weekday
-    const filteredDates = newSelectedDates.filter(date => {
-      const dayOfWeek = date.getDay();
-      const weekdayMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
-      return weekdayMap[dayOfWeek] !== weekday;
-    });
-    
-    // Add new dates if there are shifts selected
-    if (newShifts.length > 0) {
-      const weekdayIndex = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'].indexOf(weekday);
-      // Find the first occurrence of this weekday in the next month
+      // Add this specific shift
       const firstDay = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 1);
       const daysToAdd = (weekdayIndex - firstDay.getDay() + 7) % 7;
-      const representativeDate = new Date(firstDay);
-      representativeDate.setDate(firstDay.getDate() + daysToAdd);
-      filteredDates.push(representativeDate);
+      const shiftDate = new Date(firstDay);
+      shiftDate.setDate(firstDay.getDate() + daysToAdd);
+      
+      // Set specific hour based on shift
+      if (shift === 'manha') {
+        shiftDate.setHours(8, 0, 0, 0);
+      } else if (shift === 'tarde') {
+        shiftDate.setHours(14, 0, 0, 0);
+      } else if (shift === 'noite') {
+        shiftDate.setHours(20, 0, 0, 0);
+      } else if (shift === 'dia') {
+        shiftDate.setHours(12, 0, 0, 0);
+      }
+      
+      newDates.push(shiftDate);
+    } else {
+      // Remove this specific shift
+      newDates = newDates.filter(date => {
+        const dayOfWeek = date.getDay();
+        const weekdayMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+        const dateName = weekdayMap[dayOfWeek];
+        const hour = date.getHours();
+        
+        if (dateName !== weekday) return true;
+        
+        if (shift === 'manha' && hour === 8) return false;
+        if (shift === 'tarde' && hour === 14) return false;
+        if (shift === 'noite' && hour === 20) return false;
+        if (shift === 'dia' && hour === 12) return false;
+        
+        return true;
+      });
     }
 
-    onDateSelect(filteredDates);
+    onDateSelect(newDates);
   };
 
   const isShiftSelected = (weekday: string, shift: string): boolean => {
-    const selectedShifts = getSelectedShifts();
-    return selectedShifts[weekday]?.includes(shift) || false;
+    const shiftData = getShiftDataFromDates();
+    return shiftData.some(data => data.weekday === weekday && data.shift === shift);
   };
 
   const weekdays = [
