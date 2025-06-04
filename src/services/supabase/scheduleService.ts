@@ -114,23 +114,48 @@ export const scheduleService = {
       
       console.log(`Saving schedule for ${userEmail} (${month}):`, { dates, notes });
       
-      // Use upsert to prevent duplicates - this will either insert or update
-      const { error } = await supabase
+      // Check if record already exists
+      const { data: existingRecord } = await supabase
         .from('schedules')
-        .upsert({
-          user_email: userEmail,
-          user_name: userName,
-          month: month,
-          dates: dates,
-          notes: notes,
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_email,month'
-        });
-        
-      if (error) {
-        console.error('Error upserting schedule:', error);
-        throw error;
+        .select('id, edit_count')
+        .eq('user_email', userEmail)
+        .eq('month', month)
+        .maybeSingle();
+      
+      if (existingRecord) {
+        // Update existing record
+        const { error } = await supabase
+          .from('schedules')
+          .update({
+            user_name: userName,
+            dates: dates,
+            notes: notes,
+            edit_count: (existingRecord.edit_count || 0) + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingRecord.id);
+          
+        if (error) {
+          console.error('Error updating schedule:', error);
+          throw error;
+        }
+      } else {
+        // Insert new record
+        const { error } = await supabase
+          .from('schedules')
+          .insert({
+            user_email: userEmail,
+            user_name: userName,
+            month: month,
+            dates: dates,
+            notes: notes,
+            edit_count: 1
+          });
+          
+        if (error) {
+          console.error('Error inserting schedule:', error);
+          throw error;
+        }
       }
       
       // Also save to localStorage for backwards compatibility

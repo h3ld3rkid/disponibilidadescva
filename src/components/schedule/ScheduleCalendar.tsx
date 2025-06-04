@@ -282,123 +282,150 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <MigrationStatus 
-        migrationDone={isLocalStorageMigrated} 
-        migrationCount={migrationCount} 
-        showScheduleRule={scheduleRuleLocked}
-        isAdmin={isAdmin}
-      />
-      
-      <Tabs defaultValue="calendar" className="w-full">
-        <TabsList>
-          <TabsTrigger value="calendar">Calendário</TabsTrigger>
-          <TabsTrigger value="notes">Notas</TabsTrigger>
-          {isAdmin && <TabsTrigger value="admin">Admin</TabsTrigger>}
-        </TabsList>
-        <TabsContent value="calendar" className="space-y-4">
-          <WeekdayCheckboxCalendar
-            selectedDates={selectedDates}
-            onDateSelect={handleDateSelect}
-            nextMonth={nextMonth}
-            disabled={(!isAdmin && scheduleRuleLocked)}
-          />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="container mx-auto px-4 py-8">
+        <MigrationStatus 
+          migrationDone={isLocalStorageMigrated} 
+          migrationCount={migrationCount} 
+          showScheduleRule={scheduleRuleLocked}
+          isAdmin={isAdmin}
+        />
+        
+        <Tabs defaultValue="calendar" className="w-full">
+          <TabsList className="bg-slate-800/50 border border-purple-500/30">
+            <TabsTrigger value="calendar" className="data-[state=active]:bg-purple-600">Calendário</TabsTrigger>
+            <TabsTrigger value="notes" className="data-[state=active]:bg-purple-600">Notas</TabsTrigger>
+            {isAdmin && <TabsTrigger value="admin" className="data-[state=active]:bg-purple-600">Admin</TabsTrigger>}
+          </TabsList>
           
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="calendar-notes">Notas da Escala:</Label>
-              <Textarea
-                id="calendar-notes"
-                placeholder="Adicione notas sobre esta escala..."
-                value={userNotes}
-                onChange={(e) => setUserNotes(e.target.value)}
-                rows={4}
-                className="w-full"
-                disabled={(!isAdmin && scheduleRuleLocked)}
-              />
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm text-gray-600">
-                  Total de dias selecionados: {selectedDates.length}
-                </p>
-                {isAdmin && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    <p>Nome do utilizador: {userName}</p>
-                    <p>Email do utilizador: {userEmail}</p>
-                  </div>
-                )}
-              </div>
-              <Button
-                onClick={handleSaveAll}
-                disabled={isSaving || (!isAdmin && scheduleRuleLocked)}
-                className="bg-[#6E59A5] hover:bg-[#5d4a8b]"
-              >
-                <Save className="mr-2" />
-                {isSaving ? "A guardar..." : "Guardar Escala e Notas"}
-              </Button>
-            </div>
-          </div>
-        </TabsContent>
-        <TabsContent value="notes" className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notas adicionais:</Label>
-            <Textarea
-              id="notes"
-              placeholder="Adicione notas sobre a sua escala..."
-              value={userNotes}
-              onChange={(e) => setUserNotes(e.target.value)}
-              rows={6}
-              className="w-full"
+          <TabsContent value="calendar" className="space-y-4">
+            <WeekdayCheckboxCalendar
+              selectedDates={selectedDates}
+              onDateSelect={handleDateSelect}
+              nextMonth={nextMonth}
               disabled={(!isAdmin && scheduleRuleLocked)}
             />
-          </div>
-          <Button
-            onClick={handleSaveAll}
-            disabled={isSaving || (!isAdmin && scheduleRuleLocked)}
-            className="bg-[#6E59A5] hover:bg-[#5d4a8b]"
-          >
-            <Save className="mr-2" />
-            {isSaving ? "A guardar..." : "Guardar Escala e Notas"}
-          </Button>
-        </TabsContent>
-        <TabsContent value="admin" className="space-y-4">
-          {isAdmin && (
+            
             <div className="space-y-4">
-              <p>
-                Contador de edições: {editCount}
-              </p>
-              <Button
-                onClick={handleResetEditCounter}
-                className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-              >
-                Reset Edit Counter
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive">Apagar Escala</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Tem a certeza?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Esta ação irá apagar a escala deste utilizador permanentemente.
-                      Tem a certeza que quer continuar?
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteSchedule} disabled={isDeleting}>
-                      {isDeleting ? "A apagar..." : "Apagar"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Card className="bg-gradient-to-br from-gray-900/95 to-purple-900/95 border-purple-500/20">
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="calendar-notes" className="text-purple-300 font-medium">Notas da Escala:</Label>
+                      <Textarea
+                        id="calendar-notes"
+                        placeholder="Adicione notas sobre esta escala..."
+                        value={userNotes}
+                        onChange={(e) => setUserNotes(e.target.value)}
+                        rows={4}
+                        className="bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50"
+                        disabled={(!isAdmin && scheduleRuleLocked)}
+                      />
+                    </div>
+                    
+                    <div className="flex justify-between items-center">
+                      <div className="text-purple-300">
+                        <p className="text-sm">
+                          Total de dias selecionados: <span className="font-bold text-white">{selectedDates.length}</span>
+                        </p>
+                        {isAdmin && (
+                          <div className="mt-2 text-sm">
+                            <p>Nome do utilizador: <span className="text-white">{userName}</span></p>
+                            <p>Email do utilizador: <span className="text-white">{userEmail}</span></p>
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        onClick={handleSaveAll}
+                        disabled={isSaving || (!isAdmin && scheduleRuleLocked)}
+                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold"
+                      >
+                        <Save className="mr-2" />
+                        {isSaving ? "A guardar..." : "Guardar Escala e Notas"}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+          
+          <TabsContent value="notes" className="space-y-4">
+            <Card className="bg-gradient-to-br from-gray-900/95 to-purple-900/95 border-purple-500/20">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="notes" className="text-purple-300 font-medium">Notas adicionais:</Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="Adicione notas sobre a sua escala..."
+                      value={userNotes}
+                      onChange={(e) => setUserNotes(e.target.value)}
+                      rows={6}
+                      className="bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50"
+                      disabled={(!isAdmin && scheduleRuleLocked)}
+                    />
+                  </div>
+                  <Button
+                    onClick={handleSaveAll}
+                    disabled={isSaving || (!isAdmin && scheduleRuleLocked)}
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold"
+                  >
+                    <Save className="mr-2" />
+                    {isSaving ? "A guardar..." : "Guardar Escala e Notas"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="admin" className="space-y-4">
+            {isAdmin && (
+              <Card className="bg-gradient-to-br from-gray-900/95 to-purple-900/95 border-purple-500/20">
+                <CardContent className="p-6">
+                  <div className="space-y-4 text-white">
+                    <p>
+                      Contador de edições: <span className="font-bold text-purple-300">{editCount}</span>
+                    </p>
+                    <div className="flex gap-4">
+                      <Button
+                        onClick={handleResetEditCounter}
+                        className="bg-red-600 hover:bg-red-700 text-white font-bold"
+                      >
+                        Reset Edit Counter
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" className="bg-red-600 hover:bg-red-700">Apagar Escala</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="bg-slate-900 border-purple-500/30">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="text-white">Tem a certeza?</AlertDialogTitle>
+                            <AlertDialogDescription className="text-purple-300">
+                              Esta ação irá apagar a escala deste utilizador permanentemente.
+                              Tem a certeza que quer continuar?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="bg-slate-700 text-white hover:bg-slate-600">Cancelar</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={handleDeleteSchedule} 
+                              disabled={isDeleting}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              {isDeleting ? "A apagar..." : "Apagar"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };
