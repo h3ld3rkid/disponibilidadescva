@@ -11,7 +11,12 @@ import { addMonths, format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Calendar, FileText, Save, Clock } from 'lucide-react';
 
-const ScheduleCalendar = () => {
+interface ScheduleCalendarProps {
+  userEmail?: string;
+  isAdmin?: boolean;
+}
+
+const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUserEmail, isAdmin = false }) => {
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -20,7 +25,7 @@ const ScheduleCalendar = () => {
   const nextMonth = addMonths(new Date(), 1);
 
   useEffect(() => {
-    // Get user info from localStorage
+    // Get user info from localStorage if not provided via props
     const storedUser = localStorage.getItem('mysqlConnection');
     if (storedUser) {
       const parsedUserInfo = JSON.parse(storedUser);
@@ -33,7 +38,10 @@ const ScheduleCalendar = () => {
   };
 
   const handleSubmitSchedule = async () => {
-    if (!userInfo) {
+    const currentUserInfo = userInfo;
+    const currentUserEmail = propUserEmail || currentUserInfo?.email;
+
+    if (!currentUserInfo && !propUserEmail) {
       toast({
         title: "Erro de autenticação",
         description: "Informações do utilizador não encontradas.",
@@ -60,10 +68,10 @@ const ScheduleCalendar = () => {
       };
 
       const result = await scheduleService.saveUserScheduleWithNotes(
-        userInfo.email,
+        currentUserEmail,
         scheduleData,
         notes,
-        { name: userInfo.name }
+        { name: currentUserInfo?.name || 'User' }
       );
 
       if (result.success) {
