@@ -3,8 +3,9 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UserForm from './UserForm';
+import UserList from './UserList';
 import UserSubmissionSettings from '../admin/UserSubmissionSettings';
-import { Users, UserPlus, Settings } from 'lucide-react';
+import { Users, UserPlus, Settings, List } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { userService } from "@/services/supabase/userService";
 
@@ -48,27 +49,35 @@ const UserManagement = () => {
         <p className="text-gray-600">Gerir utilizadores do sistema e suas permissões</p>
       </div>
 
-      <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="users" className="flex items-center gap-2">
+      <Tabs defaultValue="list" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="list" className="flex items-center gap-2">
+            <List className="h-4 w-4" />
+            Lista
+          </TabsTrigger>
+          <TabsTrigger value="create" className="flex items-center gap-2">
             <UserPlus className="h-4 w-4" />
-            Utilizadores
+            Criar
           </TabsTrigger>
           <TabsTrigger value="permissions" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
-            Permissões de Submissão
+            Permissões
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="users">
+        <TabsContent value="list">
+          <UserList />
+        </TabsContent>
+        
+        <TabsContent value="create">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Users className="h-6 w-6" />
-                Gestão de Utilizadores
+                <UserPlus className="h-6 w-6" />
+                Criar Novo Utilizador
               </CardTitle>
               <CardDescription>
-                Adicionar, editar e remover utilizadores do sistema
+                Adicionar novo utilizador ao sistema
               </CardDescription>
             </CardHeader>
             <CardContent>

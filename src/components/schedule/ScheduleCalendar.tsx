@@ -1,16 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { scheduleService } from "@/services/supabase/scheduleService";
 import { systemSettingsService } from "@/services/supabase/systemSettingsService";
 import WeekdayCheckboxCalendar from './WeekdayCheckboxCalendar';
 import { addMonths, format } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { Calendar, FileText, Save, Clock, AlertTriangle } from 'lucide-react';
+import { Calendar, Save, Clock, AlertTriangle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ScheduleCalendarProps {
   userEmail?: string;
@@ -26,6 +34,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
   const [userInfo, setUserInfo] = useState<any>(null);
   const [editCount, setEditCount] = useState(0);
   const [canSubmitAfter15th, setCanSubmitAfter15th] = useState(false);
+  const [showSingleShiftWarning, setShowSingleShiftWarning] = useState(false);
   const nextMonth = addMonths(new Date(), 1);
 
   useEffect(() => {
@@ -80,7 +89,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
     setSelectedOvernights(overnights);
   };
 
-  const handleSubmitSchedule = async () => {
+  const proceedWithSubmission = async () => {
     const currentUserInfo = userInfo;
     const currentUserEmail = propUserEmail || currentUserInfo?.email;
 
@@ -97,15 +106,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
       toast({
         title: "Submissão não permitida",
         description: getSubmissionMessage(),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (selectedDates.length === 0 && selectedOvernights.length === 0) {
-      toast({
-        title: "Nenhuma seleção feita",
-        description: "Por favor, selecione pelo menos um turno ou pernoita antes de submeter.",
         variant: "destructive",
       });
       return;
@@ -138,6 +138,12 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
           title: "Escala submetida",
           description: "A sua escala foi submetida com sucesso!",
         });
+        
+        // Clear form
+        setSelectedDates([]);
+        setSelectedOvernights([]);
+        setNotes('');
+        setOvernightNotes('');
       } else {
         throw new Error("Failed to save schedule");
       }
@@ -150,7 +156,28 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
       });
     } finally {
       setIsLoading(false);
+      setShowSingleShiftWarning(false);
     }
+  };
+
+  const handleSubmitSchedule = async () => {
+    if (selectedDates.length === 0 && selectedOvernights.length === 0) {
+      toast({
+        title: "Nenhuma seleção feita",
+        description: "Por favor, selecione pelo menos um turno ou pernoita antes de submeter.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if user selected only one shift and show warning
+    if (selectedDates.length === 1 && selectedOvernights.length === 0) {
+      setShowSingleShiftWarning(true);
+      return;
+    }
+
+    // Proceed with submission
+    await proceedWithSubmission();
   };
 
   const { toast } = useToast();
@@ -198,20 +225,25 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
               nextMonth={nextMonth}
               disabled={isLoading || submissionBlocked}
               editCount={editCount}
+              notes={notes}
+              onNotesChange={setNotes}
+              overnightNotes={overnightNotes}
+              onOvernightNotesChange={setOvernightNotes}
             />
           </div>
 
-          {/* Sidebar with Notes and Actions */}
+          {/* Sidebar with Summary and Actions */}
           <div className="xl:col-span-1 space-y-6">
             {/* Summary Card */}
             <Card className="bg-white border-gray-200 shadow-lg">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Clock className="h-5 w-5 text-blue-600" />
-                  Resumo
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="pt-6 space-y-4">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center justify-center gap-2">
+                    <Clock className="h-5 w-5 text-blue-600" />
+                    Resumo
+                  </h3>
+                </div>
+                
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-blue-50 p-3 rounded-lg text-center">
                     <p className="text-sm text-blue-600 font-medium">Turnos</p>
@@ -235,68 +267,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
                     </p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
 
-            {/* Notes Section for Shifts */}
-            <Card className="bg-white border-gray-200 shadow-lg">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <FileText className="h-5 w-5 text-green-600" />
-                  Observações - Turnos
-                </CardTitle>
-                <CardDescription>
-                  Observações sobre disponibilidade para turnos
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
-                    Notas sobre turnos (opcional)
-                  </Label>
-                  <Textarea
-                    id="notes"
-                    placeholder="Ex: Não posso fazer turnos noturnos no primeiro fim de semana..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="min-h-[80px] resize-none"
-                    disabled={isLoading || submissionBlocked}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Notes Section for Overnights */}
-            <Card className="bg-white border-gray-200 shadow-lg">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <FileText className="h-5 w-5 text-purple-600" />
-                  Observações - Pernoitas
-                </CardTitle>
-                <CardDescription>
-                  Observações sobre disponibilidade para pernoitas
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Label htmlFor="overnight-notes" className="text-sm font-medium text-gray-700">
-                    Notas sobre pernoitas (opcional)
-                  </Label>
-                  <Textarea
-                    id="overnight-notes"
-                    placeholder="Ex: Prefiro pernoitas de fim de semana..."
-                    value={overnightNotes}
-                    onChange={(e) => setOvernightNotes(e.target.value)}
-                    className="min-h-[80px] resize-none"
-                    disabled={isLoading || submissionBlocked}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Submit Section */}
-            <Card className="bg-white border-gray-200 shadow-lg">
-              <CardContent className="pt-6">
+                {/* Submit Button */}
                 <Button
                   onClick={handleSubmitSchedule}
                   disabled={isLoading || (selectedDates.length === 0 && selectedOvernights.length === 0) || !canSubmitSchedule || submissionBlocked}
@@ -324,6 +296,25 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
             </Card>
           </div>
         </div>
+
+        {/* Single Shift Warning Dialog */}
+        <AlertDialog open={showSingleShiftWarning} onOpenChange={setShowSingleShiftWarning}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Apenas escolheu um dia de turno</AlertDialogTitle>
+              <AlertDialogDescription>
+                Aconselhamos a colocar mais uma escolha pelo menos para aumentar as suas hipóteses de ser escalado.
+                Deseja continuar mesmo assim?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={proceedWithSubmission}>
+                Continuar assim mesmo
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
