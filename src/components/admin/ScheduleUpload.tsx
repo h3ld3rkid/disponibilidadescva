@@ -11,6 +11,7 @@ import { systemSettingsService } from "@/services/supabase/systemSettingsService
 const ScheduleUpload = () => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLinkUrl, setPdfLinkUrl] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -36,7 +37,7 @@ const ScheduleUpload = () => {
       navigate('/login');
     }
     
-    // Load PDF URL from Supabase instead of localStorage
+    // Load PDF URL from Supabase
     const loadCurrentSchedulePdf = async () => {
       try {
         const data = await systemSettingsService.getSystemSetting('current_schedule_pdf');
@@ -52,9 +53,38 @@ const ScheduleUpload = () => {
     loadCurrentSchedulePdf();
   }, [toast, navigate]);
 
+  const convertGoogleDriveUrl = (url: string): string => {
+    // Convert various Google Drive URL formats to embed format
+    let embedUrl = url;
+    
+    // Pattern 1: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+    if (url.includes('drive.google.com/file/d/') && url.includes('/view')) {
+      const fileIdMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (fileIdMatch) {
+        const fileId = fileIdMatch[1];
+        embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+        console.log('Converted Google Drive URL:', embedUrl);
+      }
+    }
+    // Pattern 2: https://drive.google.com/open?id=FILE_ID
+    else if (url.includes('drive.google.com/open?id=')) {
+      const fileIdMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (fileIdMatch) {
+        const fileId = fileIdMatch[1];
+        embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+        console.log('Converted Google Drive URL (open format):', embedUrl);
+      }
+    }
+    // Pattern 3: Already in preview format
+    else if (url.includes('drive.google.com/file/d/') && url.includes('/preview')) {
+      embedUrl = url; // Already in correct format
+    }
+    
+    return embedUrl;
+  };
+
   const handleSavePdfLink = async () => {
-    // Validate the URL (simple validation)
-    if (!pdfLinkUrl) {
+    if (!pdfLinkUrl.trim()) {
       toast({
         title: "URL inválido",
         description: "Por favor, insira um URL válido para o PDF.",
@@ -63,36 +93,38 @@ const ScheduleUpload = () => {
       return;
     }
 
-    // Simple validation to check if it's a PDF link or ends with .pdf
-    if (!pdfLinkUrl.toLowerCase().includes('.pdf') && 
-        !pdfLinkUrl.includes('drive.google.com') && 
-        !pdfLinkUrl.includes('docs.google.com')) {
-      toast({
-        title: "URL possivelmente inválido",
-        description: "O URL inserido pode não ser um PDF válido. Verifique se o link é correto.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Convert Google Drive URLs to embed format if applicable
-    let embedUrl = pdfLinkUrl;
-    
-    // If it's a standard Google Drive view URL, convert it to an embed URL
-    if (pdfLinkUrl.includes('drive.google.com/file/d/') && !pdfLinkUrl.includes('embedded=true')) {
-      const fileId = pdfLinkUrl.split('/file/d/')[1].split('/')[0];
-      embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-    }
+    setIsLoading(true);
 
     try {
-      // Save to Supabase instead of localStorage
+      let embedUrl = pdfLinkUrl.trim();
+      
+      // Convert Google Drive URLs to embed format
+      if (embedUrl.includes('drive.google.com')) {
+        embedUrl = convertGoogleDriveUrl(embedUrl);
+      }
+      // Simple validation for other PDF URLs
+      else if (!embedUrl.toLowerCase().includes('.pdf') && 
+               !embedUrl.includes('docs.google.com')) {
+        toast({
+          title: "URL possivelmente inválido",
+          description: "O URL inserido pode não ser um PDF válido. Verifique se o link é correto.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Saving PDF URL:', embedUrl);
+      
       const success = await systemSettingsService.upsertSystemSetting(
         'current_schedule_pdf',
         embedUrl,
         'URL for the current schedule PDF'
       );
           
-      if (!success) throw new Error("Failed to save PDF link");
+      if (!success) {
+        throw new Error("Failed to save PDF link");
+      }
       
       setPdfUrl(embedUrl);
       
@@ -104,9 +136,11 @@ const ScheduleUpload = () => {
       console.error("Error saving PDF link:", error);
       toast({
         title: "Erro ao guardar",
-        description: "Ocorreu um erro ao guardar o link do PDF.",
+        description: "Ocorreu um erro ao guardar o link do PDF. Tente novamente.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -130,15 +164,20 @@ const ScheduleUpload = () => {
                   id="pdf-link"
                   value={pdfLinkUrl}
                   onChange={(e) => setPdfLinkUrl(e.target.value)}
-                  placeholder="https://exemplo.com/escala.pdf"
+                  placeholder="https://drive.google.com/file/d/..."
                   className="mt-1"
+                  disabled={isLoading}
                 />
+                <p className="text-sm text-gray-500 mt-1">
+                  Suporta links do Google Drive, Google Docs ou URLs diretos de PDF
+                </p>
               </div>
               <Button 
                 onClick={handleSavePdfLink} 
-                className="bg-[#6E59A5] hover:bg-[#5d4a8b]"
+                disabled={isLoading}
+                className="bg-[#6E59A5] hover:bg-[#5d4a8b] disabled:opacity-50"
               >
-                Guardar Link
+                {isLoading ? 'A guardar...' : 'Guardar Link'}
               </Button>
             </div>
           </div>

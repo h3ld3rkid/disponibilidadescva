@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/services/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { systemSettingsService } from "@/services/supabase/systemSettingsService";
 
 interface CurrentScheduleProps {
@@ -15,6 +15,7 @@ interface CurrentScheduleProps {
 const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLinkUrl, setPdfLinkUrl] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -57,9 +58,38 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
     };
   }, []);
 
+  const convertGoogleDriveUrl = (url: string): string => {
+    // Convert various Google Drive URL formats to embed format
+    let embedUrl = url;
+    
+    // Pattern 1: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+    if (url.includes('drive.google.com/file/d/') && url.includes('/view')) {
+      const fileIdMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (fileIdMatch) {
+        const fileId = fileIdMatch[1];
+        embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+        console.log('Converted Google Drive URL:', embedUrl);
+      }
+    }
+    // Pattern 2: https://drive.google.com/open?id=FILE_ID
+    else if (url.includes('drive.google.com/open?id=')) {
+      const fileIdMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (fileIdMatch) {
+        const fileId = fileIdMatch[1];
+        embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+        console.log('Converted Google Drive URL (open format):', embedUrl);
+      }
+    }
+    // Pattern 3: Already in preview format
+    else if (url.includes('drive.google.com/file/d/') && url.includes('/preview')) {
+      embedUrl = url; // Already in correct format
+    }
+    
+    return embedUrl;
+  };
+
   const handleSavePdfLink = async () => {
-    // Validate the URL (simple validation)
-    if (!pdfLinkUrl) {
+    if (!pdfLinkUrl.trim()) {
       toast({
         title: "URL inválido",
         description: "Por favor, insira um URL válido para o PDF.",
@@ -68,38 +98,38 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
       return;
     }
 
-    // Simple validation to check if it's a PDF link
-    const isPdfUrl = pdfLinkUrl.toLowerCase().includes('.pdf');
-    const isGoogleDriveUrl = pdfLinkUrl.includes('drive.google.com');
-    const isGoogleDocsUrl = pdfLinkUrl.includes('docs.google.com');
-    
-    if (!isPdfUrl && !isGoogleDriveUrl && !isGoogleDocsUrl) {
-      toast({
-        title: "URL possivelmente inválido",
-        description: "O URL inserido pode não ser um PDF. Verifique se o link é correto.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Convert Google Drive URLs to embed format if applicable
-    let embedUrl = pdfLinkUrl;
-    
-    // If it's a standard Google Drive view URL, convert it to an embed URL
-    if (isGoogleDriveUrl && pdfLinkUrl.includes('/file/d/')) {
-      const fileId = pdfLinkUrl.split('/file/d/')[1].split('/')[0];
-      embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-    }
+    setIsLoading(true);
 
     try {
-      // Use our typed service function to upsert the system setting
+      let embedUrl = pdfLinkUrl.trim();
+      
+      // Convert Google Drive URLs to embed format
+      if (embedUrl.includes('drive.google.com')) {
+        embedUrl = convertGoogleDriveUrl(embedUrl);
+      }
+      // Simple validation for other PDF URLs
+      else if (!embedUrl.toLowerCase().includes('.pdf') && 
+               !embedUrl.includes('docs.google.com')) {
+        toast({
+          title: "URL possivelmente inválido",
+          description: "O URL inserido pode não ser um PDF válido. Verifique se o link é correto.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Saving PDF URL:', embedUrl);
+      
       const success = await systemSettingsService.upsertSystemSetting(
         'current_schedule_pdf',
         embedUrl,
         'URL for the current schedule PDF'
       );
           
-      if (!success) throw new Error("Failed to save PDF link");
+      if (!success) {
+        throw new Error("Failed to save PDF link");
+      }
       
       setPdfUrl(embedUrl);
       
@@ -114,6 +144,8 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
         description: "Ocorreu um erro ao guardar o link do PDF.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -138,15 +170,20 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
                     id="pdf-link"
                     value={pdfLinkUrl}
                     onChange={(e) => setPdfLinkUrl(e.target.value)}
-                    placeholder="Insira o URL do PDF da escala"
+                    placeholder="https://drive.google.com/file/d/..."
                     className="mt-1"
+                    disabled={isLoading}
                   />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Suporta links do Google Drive, Google Docs ou URLs diretos de PDF
+                  </p>
                 </div>
                 <Button 
                   onClick={handleSavePdfLink} 
-                  className="bg-[#6E59A5] hover:bg-[#5d4a8b]"
+                  disabled={isLoading}
+                  className="bg-[#6E59A5] hover:bg-[#5d4a8b] disabled:opacity-50"
                 >
-                  Guardar Link
+                  {isLoading ? 'A guardar...' : 'Guardar Link'}
                 </Button>
               </div>
             </div>
