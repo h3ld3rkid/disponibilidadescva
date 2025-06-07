@@ -5,8 +5,42 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import UserForm from './UserForm';
 import UserSubmissionSettings from '../admin/UserSubmissionSettings';
 import { Users, UserPlus, Settings } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+import { userService } from "@/services/supabase/userService";
 
 const UserManagement = () => {
+  const { toast } = useToast();
+
+  const handleCreateUser = async (userData: any) => {
+    try {
+      const success = await userService.createUser({
+        name: userData.name,
+        email: userData.email,
+        mechanographic_number: userData.mechanographicNumber,
+        role: userData.role,
+        password: userData.password || "CVAmares"
+      });
+
+      if (success) {
+        toast({
+          title: "Utilizador criado",
+          description: "O utilizador foi criado com sucesso.",
+        });
+        return true;
+      } else {
+        throw new Error("Failed to create user");
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast({
+        title: "Erro ao criar utilizador",
+        description: "Não foi possível criar o utilizador.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -38,7 +72,7 @@ const UserManagement = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <UserForm />
+              <UserForm onSubmit={handleCreateUser} />
             </CardContent>
           </Card>
         </TabsContent>
