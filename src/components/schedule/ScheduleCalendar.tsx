@@ -6,10 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { scheduleService } from "@/services/supabase/scheduleService";
+import { systemSettingsService } from "@/services/supabase/systemSettingsService";
 import WeekdayCheckboxCalendar from './WeekdayCheckboxCalendar';
 import { addMonths, format } from 'date-fns';
 import { pt } from 'date-fns/locale';
-import { Calendar, FileText, Save, Clock } from 'lucide-react';
+import { Calendar, FileText, Save, Clock, AlertTriangle } from 'lucide-react';
 
 interface ScheduleCalendarProps {
   userEmail?: string;
@@ -18,10 +19,13 @@ interface ScheduleCalendarProps {
 
 const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUserEmail, isAdmin = false }) => {
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [selectedOvernights, setSelectedOvernights] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
+  const [overnightNotes, setOvernightNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [userInfo, setUserInfo] = useState<any>(null);
   const [editCount, setEditCount] = useState(0);
+  const [canSubmitAfter15th, setCanSubmitAfter15th] = useState(false);
   const nextMonth = addMonths(new Date(), 1);
 
   useEffect(() => {
@@ -30,11 +34,50 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
     if (storedUser) {
       const parsedUserInfo = JSON.parse(storedUser);
       setUserInfo(parsedUserInfo);
+      
+      // Check if user can submit after 15th
+      checkSubmissionPermission(parsedUserInfo?.email || propUserEmail);
     }
-  }, []);
+  }, [propUserEmail]);
+
+  const checkSubmissionPermission = async (userEmail: string) => {
+    if (!userEmail) return;
+    
+    try {
+      const permission = await systemSettingsService.getSystemSetting(`allow_submission_after_15th_${userEmail}`);
+      setCanSubmitAfter15th(permission === 'true');
+    } catch (error) {
+      console.error('Error checking submission permission:', error);
+    }
+  };
+
+  const isSubmissionAllowed = (): boolean => {
+    const currentDate = new Date();
+    const currentDay = currentDate.getDate();
+    const currentHour = currentDate.getHours();
+    const currentMinute = currentDate.getMinutes();
+    
+    // If it's after the 15th at 23:59
+    if (currentDay > 15 || (currentDay === 15 && currentHour === 23 && currentMinute >= 59)) {
+      return canSubmitAfter15th;
+    }
+    
+    return true;
+  };
+
+  const getSubmissionMessage = (): string => {
+    if (!isSubmissionAllowed()) {
+      return "A escala apenas pode ser inserida até dia 15 às 23:59";
+    }
+    return "";
+  };
 
   const handleDateSelect = (dates: Date[]) => {
     setSelectedDates(dates);
+  };
+
+  const handleOvernightSelect = (overnights: string[]) => {
+    setSelectedOvernights(overnights);
   };
 
   const handleSubmitSchedule = async () => {
@@ -50,10 +93,19 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
       return;
     }
 
-    if (selectedDates.length === 0) {
+    if (!isSubmissionAllowed()) {
       toast({
-        title: "Nenhuma data selecionada",
-        description: "Por favor, selecione pelo menos uma data antes de submeter.",
+        title: "Submissão não permitida",
+        description: getSubmissionMessage(),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedDates.length === 0 && selectedOvernights.length === 0) {
+      toast({
+        title: "Nenhuma seleção feita",
+        description: "Por favor, selecione pelo menos um turno ou pernoita antes de submeter.",
         variant: "destructive",
       });
       return;
@@ -64,13 +116,19 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
     try {
       const scheduleData = {
         month: format(nextMonth, 'yyyy-MM'),
-        dates: selectedDates
+        dates: selectedDates,
+        overnights: selectedOvernights
       };
+
+      const combinedNotes = [
+        notes && `Turnos: ${notes}`,
+        overnightNotes && `Pernoitas: ${overnightNotes}`
+      ].filter(Boolean).join('\n\n');
 
       const result = await scheduleService.saveUserScheduleWithNotes(
         currentUserEmail,
         scheduleData,
-        notes,
+        combinedNotes,
         { name: currentUserInfo?.name || 'User' }
       );
 
@@ -99,6 +157,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
 
   const canSubmitSchedule = editCount < 2;
   const totalSelectedShifts = selectedDates.length;
+  const submissionBlocked = !isSubmissionAllowed();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -116,14 +175,28 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
           </p>
         </div>
 
+        {/* Submission Warning */}
+        {submissionBlocked && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <div className="text-red-800">
+                <p className="font-medium">{getSubmissionMessage()}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Calendar Section - Takes most space */}
           <div className="xl:col-span-2">
             <WeekdayCheckboxCalendar
               selectedDates={selectedDates}
               onDateSelect={handleDateSelect}
+              selectedOvernights={selectedOvernights}
+              onOvernightSelect={handleOvernightSelect}
               nextMonth={nextMonth}
-              disabled={isLoading}
+              disabled={isLoading || submissionBlocked}
               editCount={editCount}
             />
           </div>
@@ -141,13 +214,18 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-blue-50 p-3 rounded-lg text-center">
-                    <p className="text-sm text-blue-600 font-medium">Turnos Selecionados</p>
+                    <p className="text-sm text-blue-600 font-medium">Turnos</p>
                     <p className="text-2xl font-bold text-blue-900">{totalSelectedShifts}</p>
                   </div>
-                  <div className="bg-gray-50 p-3 rounded-lg text-center">
-                    <p className="text-sm text-gray-600 font-medium">Submissões</p>
-                    <p className="text-2xl font-bold text-gray-900">{editCount} / 2</p>
+                  <div className="bg-purple-50 p-3 rounded-lg text-center">
+                    <p className="text-sm text-purple-600 font-medium">Pernoitas</p>
+                    <p className="text-2xl font-bold text-purple-900">{selectedOvernights.length}</p>
                   </div>
+                </div>
+                
+                <div className="bg-gray-50 p-3 rounded-lg text-center">
+                  <p className="text-sm text-gray-600 font-medium">Submissões</p>
+                  <p className="text-2xl font-bold text-gray-900">{editCount} / 2</p>
                 </div>
                 
                 {!canSubmitSchedule && (
@@ -160,29 +238,57 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
               </CardContent>
             </Card>
 
-            {/* Notes Section */}
+            {/* Notes Section for Shifts */}
             <Card className="bg-white border-gray-200 shadow-lg">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <FileText className="h-5 w-5 text-green-600" />
-                  Observações
+                  Observações - Turnos
                 </CardTitle>
                 <CardDescription>
-                  Adicione observações sobre a sua disponibilidade
+                  Observações sobre disponibilidade para turnos
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
-                    Notas adicionais (opcional)
+                    Notas sobre turnos (opcional)
                   </Label>
                   <Textarea
                     id="notes"
                     placeholder="Ex: Não posso fazer turnos noturnos no primeiro fim de semana..."
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="min-h-[120px] resize-none"
-                    disabled={isLoading}
+                    className="min-h-[80px] resize-none"
+                    disabled={isLoading || submissionBlocked}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Notes Section for Overnights */}
+            <Card className="bg-white border-gray-200 shadow-lg">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FileText className="h-5 w-5 text-purple-600" />
+                  Observações - Pernoitas
+                </CardTitle>
+                <CardDescription>
+                  Observações sobre disponibilidade para pernoitas
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <Label htmlFor="overnight-notes" className="text-sm font-medium text-gray-700">
+                    Notas sobre pernoitas (opcional)
+                  </Label>
+                  <Textarea
+                    id="overnight-notes"
+                    placeholder="Ex: Prefiro pernoitas de fim de semana..."
+                    value={overnightNotes}
+                    onChange={(e) => setOvernightNotes(e.target.value)}
+                    className="min-h-[80px] resize-none"
+                    disabled={isLoading || submissionBlocked}
                   />
                 </div>
               </CardContent>
@@ -193,7 +299,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
               <CardContent className="pt-6">
                 <Button
                   onClick={handleSubmitSchedule}
-                  disabled={isLoading || selectedDates.length === 0 || !canSubmitSchedule}
+                  disabled={isLoading || (selectedDates.length === 0 && selectedOvernights.length === 0) || !canSubmitSchedule || submissionBlocked}
                   className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300"
                 >
                   {isLoading ? (
@@ -204,14 +310,14 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
                   ) : (
                     <div className="flex items-center gap-2">
                       <Save className="h-5 w-5" />
-                      Submeter Escala
+                      Guardar Escala
                     </div>
                   )}
                 </Button>
                 
-                {selectedDates.length === 0 && (
+                {(selectedDates.length === 0 && selectedOvernights.length === 0) && (
                   <p className="text-sm text-gray-500 text-center mt-2">
-                    Selecione pelo menos um turno para submeter
+                    Selecione pelo menos um turno ou pernoita para submeter
                   </p>
                 )}
               </CardContent>
