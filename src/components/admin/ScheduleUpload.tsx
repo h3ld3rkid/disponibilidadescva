@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
+import { systemSettingsService } from "@/services/supabase/systemSettingsService";
 
 const ScheduleUpload = () => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -35,15 +36,23 @@ const ScheduleUpload = () => {
       navigate('/login');
     }
     
-    // Load PDF URL from localStorage if available
-    const storedPdfUrl = localStorage.getItem('currentSchedulePdf');
-    if (storedPdfUrl) {
-      setPdfUrl(storedPdfUrl);
-      setPdfLinkUrl(storedPdfUrl);
-    }
+    // Load PDF URL from Supabase instead of localStorage
+    const loadCurrentSchedulePdf = async () => {
+      try {
+        const data = await systemSettingsService.getSystemSetting('current_schedule_pdf');
+        if (data) {
+          setPdfUrl(data);
+          setPdfLinkUrl(data);
+        }
+      } catch (err) {
+        console.error('Error loading current schedule PDF:', err);
+      }
+    };
+    
+    loadCurrentSchedulePdf();
   }, [toast, navigate]);
 
-  const handleSavePdfLink = () => {
+  const handleSavePdfLink = async () => {
     // Validate the URL (simple validation)
     if (!pdfLinkUrl) {
       toast({
@@ -75,14 +84,30 @@ const ScheduleUpload = () => {
       embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
     }
 
-    // Save the URL to localStorage
-    localStorage.setItem('currentSchedulePdf', embedUrl);
-    setPdfUrl(embedUrl);
-    
-    toast({
-      title: "Link guardado",
-      description: "O link para a escala foi guardado com sucesso.",
-    });
+    try {
+      // Save to Supabase instead of localStorage
+      const success = await systemSettingsService.upsertSystemSetting(
+        'current_schedule_pdf',
+        embedUrl,
+        'URL for the current schedule PDF'
+      );
+          
+      if (!success) throw new Error("Failed to save PDF link");
+      
+      setPdfUrl(embedUrl);
+      
+      toast({
+        title: "Link guardado",
+        description: "O link para a escala foi guardado com sucesso e está disponível para todos os utilizadores.",
+      });
+    } catch (error) {
+      console.error("Error saving PDF link:", error);
+      toast({
+        title: "Erro ao guardar",
+        description: "Ocorreu um erro ao guardar o link do PDF.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -91,7 +116,7 @@ const ScheduleUpload = () => {
         <CardHeader>
           <CardTitle>Gestão da Escala Atual</CardTitle>
           <CardDescription>
-            Adicione o link do PDF da escala mensal que ficará visível para todos os utilizadores
+            Adicione o link do PDF da escala mensal que ficará visível para todos os utilizadores em todos os dispositivos
           </CardDescription>
         </CardHeader>
         
@@ -127,7 +152,7 @@ const ScheduleUpload = () => {
                 sandbox="allow-scripts allow-same-origin allow-popups"
               />
               <div className="mt-4 text-sm text-gray-500">
-                Pré-visualização da escala atual carregada
+                Pré-visualização da escala atual carregada - disponível para todos os utilizadores
               </div>
             </div>
           ) : (
