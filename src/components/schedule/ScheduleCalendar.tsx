@@ -177,7 +177,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
     }
 
     // Check if user selected only one shift and show warning
-    if (selectedDates.length === 1 && selectedOvernights.length === 0) {
+    const totalSelections = selectedDates.length + selectedOvernights.length;
+    if (totalSelections === 1) {
       setShowSingleShiftWarning(true);
       return;
     }
@@ -307,16 +308,16 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
         <AlertDialog open={showSingleShiftWarning} onOpenChange={setShowSingleShiftWarning}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Apenas escolheu um dia de turno</AlertDialogTitle>
+              <AlertDialogTitle>Apenas escolheu uma opção</AlertDialogTitle>
               <AlertDialogDescription>
                 Aconselhamos a colocar mais uma escolha pelo menos para aumentar as suas hipóteses de ser escalado.
-                Deseja continuar mesmo assim?
+                Tem a certeza que só quer escolher uma opção?
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction onClick={proceedWithSubmission}>
-                Continuar assim mesmo
+                Sim, continuar assim mesmo
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
