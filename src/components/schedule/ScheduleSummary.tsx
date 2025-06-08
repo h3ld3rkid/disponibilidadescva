@@ -63,9 +63,7 @@ const ScheduleSummary: React.FC<ScheduleSummaryProps> = ({
             </div>}
         </Button>
         
-        {!hasSelections && <p className="text-sm text-gray-500 text-center mt-2">
-            Selecione pelo menos um turno ou pernoita para submeter
-          </p>}
+        {!hasSelections && <p className="text-sm text-gray-500 text-center mt-2">Selecione pelo menos um turno ou pernoite para submeter</p>}
       </CardContent>
     </Card>;
 };
