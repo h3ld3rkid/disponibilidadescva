@@ -50,7 +50,7 @@ const userEditSchema = z.object({
 
 type UserEditValues = z.infer<typeof userEditSchema>;
 
-interface User {
+interface UserEditData {
   id: string;
   name: string;
   email: string;
@@ -61,10 +61,10 @@ interface User {
 }
 
 interface UserEditDialogProps {
-  user: User;
+  user: UserEditData;
   open: boolean;
   onClose: () => void;
-  onUserUpdated: (user: User) => void;
+  onUserUpdated: (user: UserEditData) => void;
 }
 
 const UserEditDialog = ({ user, open, onClose, onUserUpdated }: UserEditDialogProps) => {

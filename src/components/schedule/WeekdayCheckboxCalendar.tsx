@@ -119,22 +119,17 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
               {weekdays.map((date) => {
                 const isSelected = selectedDates.some(selectedDate => isSameDay(selectedDate, date));
                 return (
-                  <div key={date.toISOString()} className="flex flex-col items-center">
-                    <Label className="text-sm font-medium text-gray-700 mb-2">
-                      {getDayName(date)}
+                  <div key={date.toISOString()} className="flex flex-col items-center space-y-2">
+                    <Label className="text-sm font-medium text-gray-700 text-center">
+                      {getDayName(date)} {formatDate(date)}
                     </Label>
-                    <div className="flex flex-col items-center space-y-2">
-                      <span className="text-lg font-bold text-gray-900">
-                        {formatDate(date)}
-                      </span>
-                      <Checkbox
-                        id={`weekday-${date.toISOString()}`}
-                        checked={isSelected}
-                        onCheckedChange={() => handleDateToggle(date)}
-                        disabled={disabled}
-                        className="h-5 w-5"
-                      />
-                    </div>
+                    <Checkbox
+                      id={`weekday-${date.toISOString()}`}
+                      checked={isSelected}
+                      onCheckedChange={() => handleDateToggle(date)}
+                      disabled={disabled}
+                      className="h-5 w-5"
+                    />
                   </div>
                 );
               })}
@@ -151,22 +146,17 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
               {weekends.map((date) => {
                 const isSelected = selectedDates.some(selectedDate => isSameDay(selectedDate, date));
                 return (
-                  <div key={date.toISOString()} className="flex flex-col items-center">
-                    <Label className="text-sm font-medium text-gray-700 mb-2">
-                      {getDayName(date)}
+                  <div key={date.toISOString()} className="flex flex-col items-center space-y-2">
+                    <Label className="text-sm font-medium text-gray-700 text-center">
+                      {getDayName(date)} {formatDate(date)}
                     </Label>
-                    <div className="flex flex-col items-center space-y-2">
-                      <span className="text-lg font-bold text-gray-900">
-                        {formatDate(date)}
-                      </span>
-                      <Checkbox
-                        id={`weekend-${date.toISOString()}`}
-                        checked={isSelected}
-                        onCheckedChange={() => handleDateToggle(date)}
-                        disabled={disabled}
-                        className="h-5 w-5"
-                      />
-                    </div>
+                    <Checkbox
+                      id={`weekend-${date.toISOString()}`}
+                      checked={isSelected}
+                      onCheckedChange={() => handleDateToggle(date)}
+                      disabled={disabled}
+                      className="h-5 w-5"
+                    />
                   </div>
                 );
               })}

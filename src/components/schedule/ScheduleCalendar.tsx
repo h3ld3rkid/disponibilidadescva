@@ -125,6 +125,13 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
         overnightNotes && `Pernoitas: ${overnightNotes}`
       ].filter(Boolean).join('\n\n');
 
+      console.log('Saving schedule with data:', {
+        email: currentUserEmail,
+        scheduleData,
+        notes: combinedNotes,
+        userData: { name: currentUserInfo?.name || 'User' }
+      });
+
       const result = await scheduleService.saveUserScheduleWithNotes(
         currentUserEmail,
         scheduleData,

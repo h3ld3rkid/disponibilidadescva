@@ -19,7 +19,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-interface User {
+interface UserData {
   id: string;
   name: string;
   email: string;
@@ -30,9 +30,9 @@ interface User {
 }
 
 const UserList = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const { toast } = useToast();
 
   const loadUsers = async () => {
@@ -105,11 +105,11 @@ const UserList = () => {
     }
   };
 
-  const handleEditUser = (user: User) => {
+  const handleEditUser = (user: UserData) => {
     setEditingUser(user);
   };
 
-  const handleUserUpdated = (updatedUser: User) => {
+  const handleUserUpdated = (updatedUser: UserData) => {
     setUsers(prev => prev.map(user => 
       user.id === updatedUser.id ? updatedUser : user
     ));
