@@ -2,7 +2,7 @@ import { supabase } from "./client";
 import { Database } from "@/integrations/supabase/types";
 
 interface User {
-  id?: string;
+  id: string; // Made required to match component expectations
   name: string;
   email: string;
   password?: string;

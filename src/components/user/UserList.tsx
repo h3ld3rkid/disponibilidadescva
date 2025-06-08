@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-interface UserData {
+// Use the User type from the service to maintain consistency
+interface User {
   id: string;
   name: string;
   email: string;
@@ -30,9 +30,9 @@ interface UserData {
 }
 
 const UserList = () => {
-  const [users, setUsers] = useState<UserData[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [editingUser, setEditingUser] = useState<UserData | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const { toast } = useToast();
 
   const loadUsers = async () => {
@@ -105,11 +105,11 @@ const UserList = () => {
     }
   };
 
-  const handleEditUser = (user: UserData) => {
+  const handleEditUser = (user: User) => {
     setEditingUser(user);
   };
 
-  const handleUserUpdated = (updatedUser: UserData) => {
+  const handleUserUpdated = (updatedUser: User) => {
     setUsers(prev => prev.map(user => 
       user.id === updatedUser.id ? updatedUser : user
     ));
