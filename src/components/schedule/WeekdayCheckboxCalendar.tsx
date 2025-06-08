@@ -4,14 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
+import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { Calendar, Moon, Sun, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface WeekdayCheckboxCalendarProps {
-  selectedDates: Date[];
-  onDateSelect: (dates: Date[]) => void;
+  selectedDates: string[];
+  onDateSelect: (dates: string[]) => void;
   selectedOvernights: string[];
   onOvernightSelect: (overnights: string[]) => void;
   nextMonth: Date;
@@ -36,30 +36,26 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
   overnightNotes = '',
   onOvernightNotesChange
 }) => {
-  const monthStart = startOfMonth(nextMonth);
-  const monthEnd = endOfMonth(nextMonth);
-  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  
-  // Separate weekdays and weekends
-  const weekdays = daysInMonth.filter(date => {
-    const dayOfWeek = date.getDay();
-    return dayOfWeek >= 1 && dayOfWeek <= 5; // Monday to Friday
-  });
-  
-  const weekends = daysInMonth.filter(date => {
-    const dayOfWeek = date.getDay();
-    return dayOfWeek === 0 || dayOfWeek === 6; // Saturday and Sunday
-  });
+  // Define weekdays and their shifts
+  const weekdays = [
+    { day: 'Segunda-feira', shifts: ['manhã', 'tarde', 'noite'] },
+    { day: 'Terça-feira', shifts: ['manhã', 'tarde', 'noite'] },
+    { day: 'Quarta-feira', shifts: ['manhã', 'tarde', 'noite'] },
+    { day: 'Quinta-feira', shifts: ['manhã', 'tarde', 'noite'] },
+    { day: 'Sexta-feira', shifts: ['manhã', 'tarde', 'noite'] },
+    { day: 'Sábado', shifts: ['manhã', 'tarde', 'noite'] },
+    { day: 'Domingo', shifts: ['manhã', 'noite'] }
+  ];
 
-  const handleDateToggle = (date: Date) => {
+  const handleShiftToggle = (shiftId: string) => {
     if (disabled) return;
     
-    const isSelected = selectedDates.some(selectedDate => isSameDay(selectedDate, date));
+    const isSelected = selectedDates.includes(shiftId);
     
     if (isSelected) {
-      onDateSelect(selectedDates.filter(selectedDate => !isSameDay(selectedDate, date)));
+      onDateSelect(selectedDates.filter(selected => selected !== shiftId));
     } else {
-      onDateSelect([...selectedDates, date]);
+      onDateSelect([...selectedDates, shiftId]);
     }
   };
 
@@ -73,14 +69,6 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
     } else {
       onOvernightSelect([...selectedOvernights, overnight]);
     }
-  };
-
-  const getDayName = (date: Date) => {
-    return format(date, 'EEEE', { locale: pt });
-  };
-
-  const formatDate = (date: Date) => {
-    return format(date, 'd', { locale: pt });
   };
 
   // Generate overnight options
@@ -109,58 +97,38 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
             </Alert>
           )}
 
-          {/* Weekdays Section */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-blue-600" />
-              Dias da Semana (Segunda a Sexta)
-            </h3>
-            <div className="grid grid-cols-5 gap-4">
-              {weekdays.map((date) => {
-                const isSelected = selectedDates.some(selectedDate => isSameDay(selectedDate, date));
-                return (
-                  <div key={date.toISOString()} className="flex flex-col items-center space-y-2">
-                    <Label className="text-sm font-medium text-gray-700 text-center">
-                      {getDayName(date)} {formatDate(date)}
-                    </Label>
-                    <Checkbox
-                      id={`weekday-${date.toISOString()}`}
-                      checked={isSelected}
-                      onCheckedChange={() => handleDateToggle(date)}
-                      disabled={disabled}
-                      className="h-5 w-5"
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Weekends Section */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-green-600" />
-              Fins de Semana (Sábado e Domingo)
-            </h3>
-            <div className="grid grid-cols-2 gap-6 max-w-md">
-              {weekends.map((date) => {
-                const isSelected = selectedDates.some(selectedDate => isSameDay(selectedDate, date));
-                return (
-                  <div key={date.toISOString()} className="flex flex-col items-center space-y-2">
-                    <Label className="text-sm font-medium text-gray-700 text-center">
-                      {getDayName(date)} {formatDate(date)}
-                    </Label>
-                    <Checkbox
-                      id={`weekend-${date.toISOString()}`}
-                      checked={isSelected}
-                      onCheckedChange={() => handleDateToggle(date)}
-                      disabled={disabled}
-                      className="h-5 w-5"
-                    />
-                  </div>
-                );
-              })}
-            </div>
+          {/* Weekdays with Shifts */}
+          <div className="space-y-6">
+            {weekdays.map((weekday) => (
+              <div key={weekday.day} className="border-b border-gray-100 pb-4 last:border-b-0">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  {weekday.day}
+                </h3>
+                <div className="grid grid-cols-3 gap-4">
+                  {weekday.shifts.map((shift) => {
+                    const shiftId = `${weekday.day}_${shift}`;
+                    const isSelected = selectedDates.includes(shiftId);
+                    return (
+                      <div key={shiftId} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={shiftId}
+                          checked={isSelected}
+                          onCheckedChange={() => handleShiftToggle(shiftId)}
+                          disabled={disabled}
+                          className="h-5 w-5"
+                        />
+                        <Label 
+                          htmlFor={shiftId} 
+                          className="text-sm font-medium text-gray-700 capitalize cursor-pointer"
+                        >
+                          {shift}
+                        </Label>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Notes for Shifts */}

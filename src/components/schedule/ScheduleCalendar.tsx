@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +25,7 @@ interface ScheduleCalendarProps {
 }
 
 const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUserEmail, isAdmin = false }) => {
-  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [selectedOvernights, setSelectedOvernights] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [overnightNotes, setOvernightNotes] = useState('');
@@ -81,7 +80,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
     return "";
   };
 
-  const handleDateSelect = (dates: Date[]) => {
+  const handleDateSelect = (dates: string[]) => {
     setSelectedDates(dates);
   };
 
