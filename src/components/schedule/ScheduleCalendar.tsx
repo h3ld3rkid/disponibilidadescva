@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -113,9 +114,12 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
     setIsLoading(true);
 
     try {
+      // Combine all selected dates and overnights into a single array
+      const allSelectedItems = [...selectedDates, ...selectedOvernights];
+      
       const scheduleData = {
         month: format(nextMonth, 'yyyy-MM'),
-        dates: selectedDates,
+        dates: allSelectedItems,
         overnights: selectedOvernights
       };
 

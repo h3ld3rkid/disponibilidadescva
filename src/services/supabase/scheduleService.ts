@@ -108,9 +108,10 @@ export const scheduleService = {
       // Get user name from userData or use email as fallback
       const userName = userData?.name || userEmail;
       
-      // Format the data for Supabase
+      // Format the data for Supabase - ensure dates are properly extracted
       const month = scheduleData.month || 'default';
-      const dates = scheduleData.dates || scheduleData;
+      const dates = Array.isArray(scheduleData.dates) ? scheduleData.dates : 
+                   Array.isArray(scheduleData) ? scheduleData : [];
       
       console.log(`Saving schedule for ${userEmail} (${month}):`, { dates, notes });
       
@@ -139,6 +140,8 @@ export const scheduleService = {
           console.error('Error updating schedule:', error);
           throw error;
         }
+        
+        console.log('Successfully updated schedule in Supabase');
       } else {
         // Insert new record
         const { error } = await supabase
@@ -156,6 +159,8 @@ export const scheduleService = {
           console.error('Error inserting schedule:', error);
           throw error;
         }
+        
+        console.log('Successfully inserted new schedule in Supabase');
       }
       
       // Also save to localStorage for backwards compatibility
