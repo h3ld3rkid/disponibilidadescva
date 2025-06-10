@@ -2,41 +2,105 @@
 import { supabase } from "./client";
 
 export const scheduleService = {
+  // Save user schedule
+  async saveSchedule(userEmail: string, userName: string, scheduleData: any, notes: string): Promise<{ success: boolean }> {
+    console.log('=== SAVING SCHEDULE ===');
+    console.log('User Email:', userEmail);
+    console.log('User Name:', userName);
+    console.log('Schedule Data:', scheduleData);
+    console.log('Notes:', notes);
+    
+    try {
+      const month = new Date().getFullYear() + '-' + String(new Date().getMonth() + 2).padStart(2, '0'); // Next month
+      console.log('Month:', month);
+      
+      // Check if schedule already exists
+      const { data: existing, error: selectError } = await supabase
+        .from('schedules')
+        .select('id, edit_count')
+        .eq('user_email', userEmail)
+        .eq('month', month)
+        .single();
+        
+      if (selectError && selectError.code !== 'PGRST116') {
+        console.error('Error checking existing schedule:', selectError);
+        throw selectError;
+      }
+      
+      let result;
+      
+      if (existing) {
+        // Update existing schedule
+        console.log('Updating existing schedule with ID:', existing.id);
+        result = await supabase
+          .from('schedules')
+          .update({
+            user_name: userName,
+            dates: scheduleData,
+            notes: notes || null,
+            edit_count: (existing.edit_count || 0) + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existing.id)
+          .select();
+      } else {
+        // Create new schedule
+        console.log('Creating new schedule');
+        result = await supabase
+          .from('schedules')
+          .insert({
+            user_email: userEmail,
+            user_name: userName,
+            month: month,
+            dates: scheduleData,
+            notes: notes || null,
+            edit_count: 1
+          })
+          .select();
+      }
+      
+      if (result.error) {
+        console.error('Error saving schedule:', result.error);
+        throw result.error;
+      }
+      
+      console.log('Schedule saved successfully:', result.data);
+      return { success: true };
+      
+    } catch (error) {
+      console.error('Error in saveSchedule:', error);
+      return { success: false };
+    }
+  },
+  
   // Get user schedules
   async getUserSchedules(): Promise<any[]> {
     console.log('=== GETTING ALL USER SCHEDULES ===');
     
     try {
-      const { data: supabaseSchedules, error } = await supabase
+      const { data, error } = await supabase
         .from('schedules')
         .select('*')
         .order('updated_at', { ascending: false });
         
       if (error) {
-        console.error('Error getting schedules from Supabase:', error);
+        console.error('Error getting schedules:', error);
         throw error;
       }
       
-      console.log('Raw schedules from database:', supabaseSchedules);
+      console.log('Retrieved schedules:', data);
       
-      if (supabaseSchedules && supabaseSchedules.length > 0) {
-        console.log(`Retrieved ${supabaseSchedules.length} schedules from Supabase`);
-        const mappedSchedules = supabaseSchedules.map(schedule => {
-          console.log('Processing schedule:', schedule);
-          return {
-            email: schedule.user_email,
-            user: schedule.user_name,
-            month: schedule.month,
-            dates: schedule.dates,
-            notes: schedule.notes,
-            editCount: schedule.edit_count
-          };
-        });
-        console.log('Mapped schedules:', mappedSchedules);
-        return mappedSchedules;
+      if (data && data.length > 0) {
+        return data.map(schedule => ({
+          email: schedule.user_email,
+          user: schedule.user_name,
+          month: schedule.month,
+          dates: schedule.dates,
+          notes: schedule.notes,
+          editCount: schedule.edit_count
+        }));
       }
       
-      console.log('No schedules found in Supabase');
       return [];
     } catch (error) {
       console.error('Error getting schedules:', error);
@@ -56,7 +120,7 @@ export const scheduleService = {
         .eq('user_email', userEmail);
         
       if (error) {
-        console.error('Error deleting schedule from Supabase:', error);
+        console.error('Error deleting schedule:', error);
         throw error;
       }
       
@@ -80,7 +144,7 @@ export const scheduleService = {
         .eq('user_email', userEmail);
         
       if (error) {
-        console.error('Error resetting edit counter in Supabase:', error);
+        console.error('Error resetting edit counter:', error);
         throw error;
       }
       
