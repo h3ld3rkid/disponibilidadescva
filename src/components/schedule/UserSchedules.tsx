@@ -16,9 +16,6 @@ const UserSchedules = () => {
   const [userEmails, setUserEmails] = useState<string[]>([]);
   const [viewingUserSchedule, setViewingUserSchedule] = useState<string | null>(null);
   const [viewingUserName, setViewingUserName] = useState<string | null>(null);
-  const [isMigrating, setIsMigrating] = useState(false);
-  const [migrationDone, setMigrationDone] = useState(false);
-  const [migrationCount, setMigrationCount] = useState(0);
   const { toast } = useToast();
 
   const loadAllSchedules = async () => {
@@ -142,36 +139,6 @@ const UserSchedules = () => {
     }
   };
 
-  const migrateDataToSupabase = async () => {
-    setIsMigrating(true);
-    try {
-      const result = await scheduleService.migrateLocalStorageToSupabase();
-      
-      if (result.success) {
-        setMigrationDone(true);
-        setMigrationCount(result.migratedCount);
-        toast({
-          title: "Migração concluída",
-          description: `Foram migrados ${result.migratedCount} registros para o Supabase.`,
-        });
-        
-        // Reload schedules
-        loadAllSchedules();
-      } else {
-        throw new Error("Failed to migrate data");
-      }
-    } catch (error) {
-      console.error("Error migrating data:", error);
-      toast({
-        title: "Erro na migração",
-        description: "Ocorreu um erro ao migrar os dados para o Supabase.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsMigrating(false);
-    }
-  };
-
   // Get username for display
   const getUserNameFromEmail = (email: string): string => {
     // Try to find user in schedules
@@ -204,17 +171,17 @@ const UserSchedules = () => {
         <UserSchedulesHeader 
           isAdmin={isAdmin}
           selectedUsers={selectedUsers}
-          isMigrating={isMigrating}
-          migrationDone={migrationDone}
+          isMigrating={false}
+          migrationDone={false}
           onExportPDF={handleExportPDF}
-          onMigrateData={migrateDataToSupabase}
+          onMigrateData={() => {}} // Removed migration functionality
           onRefresh={loadAllSchedules}
         />
       )}
       
       <MigrationStatus 
-        migrationDone={migrationDone}
-        migrationCount={migrationCount}
+        migrationDone={false}
+        migrationCount={0}
       />
       
       {viewingUserSchedule ? (
