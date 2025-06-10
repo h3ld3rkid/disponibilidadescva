@@ -1,34 +1,30 @@
+
 import { supabase } from "./client";
 
 export const scheduleService = {
-  // Save user schedule and notes together (simplified and fixed)
-  async saveUserScheduleWithNotes(userEmail: string, scheduleData: any, notes: string, userData?: { name: string }): Promise<{ success: boolean }> {
-    console.log('=== SAVING SCHEDULE ===');
+  // Save schedule with simplified approach
+  async saveSchedule(
+    userEmail: string, 
+    userName: string, 
+    scheduleData: { month: string; shifts: string[]; overnights: string[] }, 
+    notes: string
+  ): Promise<{ success: boolean }> {
+    console.log('=== SAVING SCHEDULE TO DATABASE ===');
     console.log('User Email:', userEmail);
+    console.log('User Name:', userName);
     console.log('Schedule Data:', scheduleData);
     console.log('Notes:', notes);
-    console.log('User Data:', userData);
     
     try {
-      const userName = userData?.name || userEmail;
-      const month = scheduleData.month || 'default';
+      const month = scheduleData.month;
       
-      // Ensure we have arrays for dates and overnights
-      const dates = Array.isArray(scheduleData.dates) ? scheduleData.dates : [];
-      const overnights = Array.isArray(scheduleData.overnights) ? scheduleData.overnights : [];
-      
-      // Combine all selections for storage
-      const allSelections = {
-        shifts: dates,
-        overnights: overnights
+      // Create the data structure for storage
+      const dataToStore = {
+        shifts: scheduleData.shifts || [],
+        overnights: scheduleData.overnights || []
       };
 
-      console.log('Prepared data for storage:', {
-        email: userEmail,
-        month: month,
-        allSelections: allSelections,
-        notes: notes
-      });
+      console.log('Data structure to store:', dataToStore);
 
       // Check if record already exists
       const { data: existingRecord, error: selectError } = await supabase
@@ -43,14 +39,16 @@ export const scheduleService = {
         throw selectError;
       }
 
+      let result;
+
       if (existingRecord) {
-        console.log('Updating existing record:', existingRecord.id);
+        console.log('Updating existing record with ID:', existingRecord.id);
         
-        const { data: updateData, error: updateError } = await supabase
+        const { data, error } = await supabase
           .from('schedules')
           .update({
             user_name: userName,
-            dates: allSelections,
+            dates: dataToStore,
             notes: notes,
             edit_count: (existingRecord.edit_count || 0) + 1,
             updated_at: new Date().toISOString()
@@ -58,33 +56,35 @@ export const scheduleService = {
           .eq('id', existingRecord.id)
           .select();
           
-        if (updateError) {
-          console.error('Error updating schedule:', updateError);
-          throw updateError;
+        if (error) {
+          console.error('Error updating schedule:', error);
+          throw error;
         }
         
-        console.log('Successfully updated schedule:', updateData);
+        result = data;
+        console.log('Successfully updated schedule:', result);
       } else {
         console.log('Creating new schedule record');
         
-        const { data: insertData, error: insertError } = await supabase
+        const { data, error } = await supabase
           .from('schedules')
           .insert({
             user_email: userEmail,
             user_name: userName,
             month: month,
-            dates: allSelections,
+            dates: dataToStore,
             notes: notes,
             edit_count: 1
           })
           .select();
           
-        if (insertError) {
-          console.error('Error inserting schedule:', insertError);
-          throw insertError;
+        if (error) {
+          console.error('Error inserting schedule:', error);
+          throw error;
         }
         
-        console.log('Successfully inserted new schedule:', insertData);
+        result = data;
+        console.log('Successfully inserted new schedule:', result);
       }
       
       // Verify the data was saved by fetching it back
@@ -97,11 +97,12 @@ export const scheduleService = {
         
       if (verifyError) {
         console.error('Error verifying saved data:', verifyError);
-      } else {
-        console.log('Verified saved data:', verifyData);
+        throw verifyError;
       }
       
-      console.log('=== SCHEDULE SAVED SUCCESSFULLY ===');
+      console.log('=== VERIFICATION: DATA SAVED SUCCESSFULLY ===');
+      console.log('Verified saved data:', verifyData);
+      
       return { success: true };
     } catch (error) {
       console.error('=== ERROR SAVING SCHEDULE ===', error);
@@ -109,104 +110,6 @@ export const scheduleService = {
     }
   },
 
-  async migrateLocalStorageToSupabase(): Promise<{ success: boolean, migratedCount: number }> {
-    console.log('Starting migration of localStorage data to Supabase');
-    let migratedCount = 0;
-    
-    try {
-      // Get all keys from localStorage
-      const scheduleKeys = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('userSchedule_')) {
-          scheduleKeys.push(key);
-        }
-      }
-      
-      console.log(`Found ${scheduleKeys.length} schedule records in localStorage`);
-      
-      // Process each schedule
-      for (const key of scheduleKeys) {
-        try {
-          const parts = key.split('_');
-          const userEmail = parts[1];
-          const month = parts[2] || 'default';
-          const scheduleData = JSON.parse(localStorage.getItem(key) || '[]');
-          
-          // Get user info (name) if available
-          let userName = userEmail;
-          const userInfoKey = `userInfo_${userEmail}`;
-          const userInfoData = localStorage.getItem(userInfoKey);
-          if (userInfoData) {
-            try {
-              const userData = JSON.parse(userInfoData);
-              if (userData && userData.name) {
-                userName = userData.name;
-              }
-            } catch (e) {
-              console.error(`Error parsing user info for ${userEmail}:`, e);
-            }
-          }
-          
-          // Get notes if available
-          let notes = '';
-          const notesKey = `userNotes_${userEmail}_${month}`;
-          const notesData = localStorage.getItem(notesKey);
-          if (notesData) {
-            notes = notesData;
-          }
-          
-          // Get edit count if available
-          let editCount = 0;
-          const editCountKey = `editCount_${userEmail}_${month}`;
-          const editCountData = localStorage.getItem(editCountKey);
-          if (editCountData) {
-            editCount = parseInt(editCountData);
-          }
-          
-          // Check if this data already exists in Supabase
-          const { data: existingData } = await supabase
-            .from('schedules')
-            .select('id')
-            .eq('user_email', userEmail)
-            .eq('month', month)
-            .maybeSingle();
-            
-          if (!existingData) {
-            // Insert new record into Supabase
-            const { error } = await supabase
-              .from('schedules')
-              .insert({
-                user_email: userEmail,
-                user_name: userName,
-                month: month,
-                dates: scheduleData,
-                notes: notes,
-                edit_count: editCount
-              });
-              
-            if (error) {
-              console.error(`Error migrating data for ${userEmail} (${month}):`, error);
-            } else {
-              migratedCount++;
-              console.log(`Migrated data for ${userEmail} (${month}) to Supabase`);
-            }
-          } else {
-            console.log(`Data for ${userEmail} (${month}) already exists in Supabase, skipping`);
-          }
-        } catch (error) {
-          console.error(`Error processing localStorage key ${key}:`, error);
-        }
-      }
-      
-      console.log(`Migration completed. Migrated ${migratedCount} records to Supabase.`);
-      return { success: true, migratedCount };
-    } catch (error) {
-      console.error('Error migrating data to Supabase:', error);
-      return { success: false, migratedCount };
-    }
-  },
-  
   // Get user schedules
   async getUserSchedules(): Promise<any[]> {
     console.log('Getting all user schedules from Supabase');

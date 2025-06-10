@@ -40,37 +40,39 @@ export const useScheduleSubmission = ({
     setIsLoading(true);
 
     try {
-      // Prepare all selected items with clear identification
-      const allDates = [...selectedDates];
-      const allOvernights = [...selectedOvernights];
-      
-      // Combine notes
-      const combinedNotes = [
+      console.log('=== STARTING SCHEDULE SUBMISSION ===');
+      console.log('User Email:', currentUserEmail);
+      console.log('Selected Dates:', selectedDates);
+      console.log('Selected Overnights:', selectedOvernights);
+      console.log('Notes:', notes);
+      console.log('Overnight Notes:', overnightNotes);
+
+      // Prepare the schedule data with clear structure
+      const scheduleData = {
+        month: format(nextMonth, 'yyyy-MM'),
+        shifts: selectedDates, // All selected shifts/weekdays
+        overnights: selectedOvernights // All selected overnights
+      };
+
+      // Combine all notes
+      const allNotes = [
         notes && `Turnos: ${notes}`,
         overnightNotes && `Pernoitas: ${overnightNotes}`
       ].filter(Boolean).join('\n\n');
 
-      console.log('Submitting schedule:', {
-        email: currentUserEmail,
-        month: format(nextMonth, 'yyyy-MM'),
-        selectedDates: allDates,
-        selectedOvernights: allOvernights,
-        notes: combinedNotes
-      });
+      console.log('Final schedule data:', scheduleData);
+      console.log('Final notes:', allNotes);
 
-      // Save to Supabase with proper structure
-      const result = await scheduleService.saveUserScheduleWithNotes(
+      // Submit to database
+      const result = await scheduleService.saveSchedule(
         currentUserEmail,
-        {
-          month: format(nextMonth, 'yyyy-MM'),
-          dates: allDates,
-          overnights: allOvernights
-        },
-        combinedNotes,
-        { name: userInfo?.name || 'User' }
+        userInfo?.name || currentUserEmail,
+        scheduleData,
+        allNotes
       );
 
       if (result.success) {
+        console.log('=== SCHEDULE SAVED SUCCESSFULLY ===');
         toast({
           title: "Escala submetida",
           description: "A sua escala foi submetida com sucesso!",
@@ -81,7 +83,7 @@ export const useScheduleSubmission = ({
         throw new Error("Failed to save schedule");
       }
     } catch (error) {
-      console.error("Error submitting schedule:", error);
+      console.error("=== ERROR SUBMITTING SCHEDULE ===", error);
       toast({
         title: "Erro ao submeter",
         description: "Ocorreu um erro ao submeter a sua escala. Tente novamente.",

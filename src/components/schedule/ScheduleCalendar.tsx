@@ -41,6 +41,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
     userInfo,
     nextMonth,
     onSuccess: () => {
+      console.log('Schedule submission successful, resetting form');
       setEditCount(prev => prev + 1);
       setSelectedDates([]);
       setSelectedOvernights([]);
@@ -90,6 +91,12 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
   };
 
   const handleSubmitSchedule = async () => {
+    console.log('=== SUBMIT BUTTON CLICKED ===');
+    console.log('Selected Dates:', selectedDates);
+    console.log('Selected Overnights:', selectedOvernights);
+    console.log('Notes:', notes);
+    console.log('Overnight Notes:', overnightNotes);
+
     if (selectedDates.length === 0 && selectedOvernights.length === 0) {
       toast({
         title: "Nenhuma seleção feita",
@@ -100,7 +107,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
     }
 
     const totalSelections = selectedDates.length + selectedOvernights.length;
+    console.log('Total selections:', totalSelections);
+
     if (totalSelections === 1) {
+      console.log('Only one selection, showing warning');
       setShowSingleShiftWarning(true);
       return;
     }
@@ -109,6 +119,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
   };
 
   const proceedWithSubmission = async () => {
+    console.log('=== PROCEEDING WITH SUBMISSION ===');
+    
     if (!isSubmissionAllowed()) {
       toast({
         title: "Submissão não permitida",
@@ -118,9 +130,14 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
       return;
     }
 
+    console.log('Calling submitSchedule function...');
     const success = await submitSchedule(selectedDates, selectedOvernights, notes, overnightNotes);
+    
     if (success) {
+      console.log('Submission successful, closing warning dialog');
       setShowSingleShiftWarning(false);
+    } else {
+      console.log('Submission failed');
     }
   };
 
