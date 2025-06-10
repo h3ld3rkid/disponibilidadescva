@@ -4,7 +4,7 @@ import { supabase } from "./client";
 export const scheduleService = {
   // Save user schedule
   async saveSchedule(userEmail: string, userName: string, scheduleData: any, notes: string): Promise<{ success: boolean }> {
-    console.log('=== SAVING SCHEDULE ===');
+    console.log('=== SAVING SCHEDULE TO SUPABASE ===');
     console.log('User Email:', userEmail);
     console.log('User Name:', userName);
     console.log('Schedule Data:', scheduleData);
@@ -69,7 +69,7 @@ export const scheduleService = {
       
     } catch (error) {
       console.error('Error in saveSchedule:', error);
-      return { success: false };
+      throw error;
     }
   },
   
