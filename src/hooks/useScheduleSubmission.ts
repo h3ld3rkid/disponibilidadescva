@@ -42,17 +42,14 @@ export const useScheduleSubmission = ({
     try {
       console.log('=== STARTING SCHEDULE SUBMISSION ===');
       console.log('User Email:', currentUserEmail);
-      console.log('Selected Dates:', selectedDates);
+      console.log('User Name:', userInfo?.name);
+      console.log('Selected Dates (shifts):', selectedDates);
       console.log('Selected Overnights:', selectedOvernights);
       console.log('Notes:', notes);
       console.log('Overnight Notes:', overnightNotes);
 
-      // Prepare the schedule data with clear structure
-      const scheduleData = {
-        month: format(nextMonth, 'yyyy-MM'),
-        shifts: selectedDates, // All selected shifts/weekdays
-        overnights: selectedOvernights // All selected overnights
-      };
+      const month = format(nextMonth, 'yyyy-MM');
+      console.log('Month:', month);
 
       // Combine all notes
       const allNotes = [
@@ -60,13 +57,21 @@ export const useScheduleSubmission = ({
         overnightNotes && `Pernoitas: ${overnightNotes}`
       ].filter(Boolean).join('\n\n');
 
-      console.log('Final schedule data:', scheduleData);
-      console.log('Final notes:', allNotes);
+      console.log('Combined notes:', allNotes);
 
-      // Submit to database
+      // Create schedule data structure
+      const scheduleData = {
+        shifts: selectedDates,
+        overnights: selectedOvernights
+      };
+
+      console.log('Schedule data to save:', scheduleData);
+
+      // Save to database
       const result = await scheduleService.saveSchedule(
         currentUserEmail,
         userInfo?.name || currentUserEmail,
+        month,
         scheduleData,
         allNotes
       );
@@ -80,7 +85,7 @@ export const useScheduleSubmission = ({
         onSuccess?.();
         return true;
       } else {
-        throw new Error("Failed to save schedule");
+        throw new Error(result.error || "Failed to save schedule");
       }
     } catch (error) {
       console.error("=== ERROR SUBMITTING SCHEDULE ===", error);

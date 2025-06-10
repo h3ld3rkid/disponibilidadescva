@@ -2,30 +2,18 @@
 import { supabase } from "./client";
 
 export const scheduleService = {
-  // Save schedule with simplified approach
+  // Save schedule with completely new approach
   async saveSchedule(
     userEmail: string, 
     userName: string, 
-    scheduleData: { month: string; shifts: string[]; overnights: string[] }, 
+    month: string,
+    scheduleData: { shifts: string[]; overnights: string[] }, 
     notes: string
-  ): Promise<{ success: boolean }> {
+  ): Promise<{ success: boolean; error?: string }> {
     console.log('=== SAVING SCHEDULE TO DATABASE ===');
-    console.log('User Email:', userEmail);
-    console.log('User Name:', userName);
-    console.log('Schedule Data:', scheduleData);
-    console.log('Notes:', notes);
+    console.log('Parameters:', { userEmail, userName, month, scheduleData, notes });
     
     try {
-      const month = scheduleData.month;
-      
-      // Create the data structure for storage
-      const dataToStore = {
-        shifts: scheduleData.shifts || [],
-        overnights: scheduleData.overnights || []
-      };
-
-      console.log('Data structure to store:', dataToStore);
-
       // Check if record already exists
       const { data: existingRecord, error: selectError } = await supabase
         .from('schedules')
@@ -36,20 +24,21 @@ export const scheduleService = {
       
       if (selectError) {
         console.error('Error checking existing record:', selectError);
-        throw selectError;
+        return { success: false, error: selectError.message };
       }
 
-      let result;
+      console.log('Existing record:', existingRecord);
 
       if (existingRecord) {
+        // Update existing record
         console.log('Updating existing record with ID:', existingRecord.id);
         
         const { data, error } = await supabase
           .from('schedules')
           .update({
             user_name: userName,
-            dates: dataToStore,
-            notes: notes,
+            dates: scheduleData,
+            notes: notes || null,
             edit_count: (existingRecord.edit_count || 0) + 1,
             updated_at: new Date().toISOString()
           })
@@ -58,12 +47,12 @@ export const scheduleService = {
           
         if (error) {
           console.error('Error updating schedule:', error);
-          throw error;
+          return { success: false, error: error.message };
         }
         
-        result = data;
-        console.log('Successfully updated schedule:', result);
+        console.log('Successfully updated schedule:', data);
       } else {
+        // Create new record
         console.log('Creating new schedule record');
         
         const { data, error } = await supabase
@@ -72,19 +61,18 @@ export const scheduleService = {
             user_email: userEmail,
             user_name: userName,
             month: month,
-            dates: dataToStore,
-            notes: notes,
+            dates: scheduleData,
+            notes: notes || null,
             edit_count: 1
           })
           .select();
           
         if (error) {
           console.error('Error inserting schedule:', error);
-          throw error;
+          return { success: false, error: error.message };
         }
         
-        result = data;
-        console.log('Successfully inserted new schedule:', result);
+        console.log('Successfully inserted new schedule:', data);
       }
       
       // Verify the data was saved by fetching it back
@@ -97,7 +85,7 @@ export const scheduleService = {
         
       if (verifyError) {
         console.error('Error verifying saved data:', verifyError);
-        throw verifyError;
+        return { success: false, error: verifyError.message };
       }
       
       console.log('=== VERIFICATION: DATA SAVED SUCCESSFULLY ===');
@@ -106,7 +94,7 @@ export const scheduleService = {
       return { success: true };
     } catch (error) {
       console.error('=== ERROR SAVING SCHEDULE ===', error);
-      return { success: false };
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   },
 
