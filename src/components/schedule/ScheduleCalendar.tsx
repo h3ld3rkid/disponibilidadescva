@@ -41,7 +41,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
     userInfo,
     nextMonth,
     onSuccess: () => {
-      console.log('Schedule submission successful, resetting form');
+      console.log('=== SCHEDULE SUBMISSION SUCCESS ===');
+      console.log('Resetting form and incrementing edit count');
       setEditCount(prev => prev + 1);
       setSelectedDates([]);
       setSelectedOvernights([]);
@@ -51,9 +52,11 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
   });
 
   useEffect(() => {
+    console.log('=== SCHEDULE CALENDAR INITIALIZATION ===');
     const storedUser = localStorage.getItem('mysqlConnection');
     if (storedUser) {
       const parsedUserInfo = JSON.parse(storedUser);
+      console.log('User info loaded:', parsedUserInfo);
       setUserInfo(parsedUserInfo);
       checkSubmissionPermission(parsedUserInfo?.email || propUserEmail);
     }
@@ -92,12 +95,16 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
 
   const handleSubmitSchedule = async () => {
     console.log('=== SUBMIT BUTTON CLICKED ===');
-    console.log('Selected Dates:', selectedDates);
-    console.log('Selected Overnights:', selectedOvernights);
-    console.log('Notes:', notes);
-    console.log('Overnight Notes:', overnightNotes);
+    console.log('Current state:');
+    console.log('- Selected Dates:', selectedDates);
+    console.log('- Selected Overnights:', selectedOvernights);
+    console.log('- Notes:', notes);
+    console.log('- Overnight Notes:', overnightNotes);
+    console.log('- User Info:', userInfo);
+    console.log('- Edit Count:', editCount);
 
     if (selectedDates.length === 0 && selectedOvernights.length === 0) {
+      console.log('No selections made, showing error');
       toast({
         title: "Nenhuma seleção feita",
         description: "Por favor, selecione pelo menos um turno ou pernoita antes de submeter.",
@@ -122,6 +129,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
     console.log('=== PROCEEDING WITH SUBMISSION ===');
     
     if (!isSubmissionAllowed()) {
+      console.log('Submission not allowed due to date restrictions');
       toast({
         title: "Submissão não permitida",
         description: getSubmissionMessage(),
@@ -143,6 +151,15 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail: propUser
 
   const canSubmitSchedule = editCount < 2;
   const submissionBlocked = !isSubmissionAllowed();
+
+  console.log('Current render state:', {
+    selectedDates,
+    selectedOvernights,
+    editCount,
+    canSubmitSchedule,
+    submissionBlocked,
+    isLoading
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
