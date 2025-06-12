@@ -27,9 +27,15 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
   isAdmin = false,
   userEmail
 }) => {
-  const shifts = [
-    'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira',
-    'Sábado_manhã', 'Sábado_tarde', 'Sábado_noite',
+  const weekdayShifts = [
+    'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira'
+  ];
+
+  const saturdayShifts = [
+    'Sábado_manhã', 'Sábado_tarde', 'Sábado_noite'
+  ];
+
+  const sundayShifts = [
     'Domingo_manhã', 'Domingo_noite'
   ];
 
@@ -60,21 +66,87 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
             Turnos
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {shifts.map(shift => (
-              <div key={shift} className="flex items-center space-x-2">
-                <Checkbox
-                  id={shift}
-                  checked={selectedDates.includes(shift)}
-                  onCheckedChange={() => onDateToggle(shift)}
-                />
-                <Label htmlFor={shift} className="text-sm cursor-pointer">
-                  {shift.replace('_', ' ')}
-                </Label>
-              </div>
-            ))}
+        <CardContent className="space-y-6">
+          {/* Weekday Shifts */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-700 mb-4">Dias da Semana</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {weekdayShifts.map(shift => (
+                <div key={shift} className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                  <Checkbox
+                    id={shift}
+                    checked={selectedDates.includes(shift)}
+                    onCheckedChange={() => onDateToggle(shift)}
+                    className="h-5 w-5"
+                  />
+                  <Label htmlFor={shift} className="text-base cursor-pointer font-medium">
+                    {shift}
+                  </Label>
+                </div>
+              ))}
+            </div>
           </div>
+
+          {/* Weekend Shifts */}
+          <div>
+            <h3 className="text-lg font-medium text-gray-700 mb-4">Fim de Semana</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Saturday */}
+              <div className="bg-orange-50 p-4 rounded-lg">
+                <h4 className="text-base font-medium text-orange-800 mb-3">Sábado</h4>
+                <div className="space-y-3">
+                  {saturdayShifts.map(shift => (
+                    <div key={shift} className="flex items-center space-x-3 p-2 bg-white rounded hover:bg-orange-100 transition-colors">
+                      <Checkbox
+                        id={shift}
+                        checked={selectedDates.includes(shift)}
+                        onCheckedChange={() => onDateToggle(shift)}
+                        className="h-5 w-5"
+                      />
+                      <Label htmlFor={shift} className="text-base cursor-pointer">
+                        {shift.replace('Sábado_', '')}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sunday */}
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <h4 className="text-base font-medium text-purple-800 mb-3">Domingo</h4>
+                <div className="space-y-3">
+                  {sundayShifts.map(shift => (
+                    <div key={shift} className="flex items-center space-x-3 p-2 bg-white rounded hover:bg-purple-100 transition-colors">
+                      <Checkbox
+                        id={shift}
+                        checked={selectedDates.includes(shift)}
+                        onCheckedChange={() => onDateToggle(shift)}
+                        className="h-5 w-5"
+                      />
+                      <Label htmlFor={shift} className="text-base cursor-pointer">
+                        {shift.replace('Domingo_', '')}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Shifts Notes */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Observações - Turnos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            placeholder="Adicione observações sobre a sua disponibilidade para turnos..."
+            value={notes}
+            onChange={(e) => onNotesChange(e.target.value)}
+            className="min-h-[100px]"
+          />
         </CardContent>
       </Card>
 
@@ -87,15 +159,16 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {overnights.map(overnight => (
-              <div key={overnight} className="flex items-center space-x-2">
+              <div key={overnight} className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
                 <Checkbox
                   id={overnight}
                   checked={selectedOvernights.includes(overnight)}
                   onCheckedChange={() => onOvernightToggle(overnight)}
+                  className="h-5 w-5"
                 />
-                <Label htmlFor={overnight} className="text-sm cursor-pointer">
+                <Label htmlFor={overnight} className="text-base cursor-pointer font-medium">
                   {overnight}
                 </Label>
               </div>
@@ -104,14 +177,14 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
         </CardContent>
       </Card>
 
-      {/* Notes */}
+      {/* Overnights Notes */}
       <Card>
         <CardHeader>
-          <CardTitle>Observações</CardTitle>
+          <CardTitle>Observações - Pernoites</CardTitle>
         </CardHeader>
         <CardContent>
           <Textarea
-            placeholder="Adicione observações sobre a sua disponibilidade..."
+            placeholder="Adicione observações sobre a sua disponibilidade para pernoites..."
             value={notes}
             onChange={(e) => onNotesChange(e.target.value)}
             className="min-h-[100px]"
