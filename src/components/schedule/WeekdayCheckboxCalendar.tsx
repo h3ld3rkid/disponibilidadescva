@@ -53,6 +53,32 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
     label: string;
     color?: string;
   }) => {
+    const getColorClasses = () => {
+      if (checked) {
+        switch (color) {
+          case "blue":
+            return "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/30";
+          case "orange":
+            return "bg-orange-600 border-orange-600 text-white shadow-lg shadow-orange-500/30";
+          case "purple":
+            return "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-500/30";
+          default:
+            return "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/30";
+        }
+      } else {
+        switch (color) {
+          case "blue":
+            return "bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50";
+          case "orange":
+            return "bg-white border-gray-300 text-gray-700 hover:border-orange-400 hover:bg-orange-50";
+          case "purple":
+            return "bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50";
+          default:
+            return "bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50";
+        }
+      }
+    };
+
     return (
       <div className="relative">
         <input
@@ -66,20 +92,17 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
           htmlFor={id}
           className={`
             flex items-center justify-center p-4 rounded-xl cursor-pointer transition-all duration-300 ease-in-out
-            border-2 font-medium text-sm min-h-[60px]
-            ${checked 
-              ? `bg-${color}-500 border-${color}-500 text-white shadow-lg shadow-${color}-500/25 scale-105` 
-              : `bg-gray-50 border-gray-200 text-gray-700 hover:border-${color}-300 hover:bg-${color}-50`
-            }
-            hover:scale-102 active:scale-95
+            border-2 font-semibold text-sm min-h-[60px]
+            ${getColorClasses()}
+            transform hover:scale-105 active:scale-95
           `}
         >
-          <span className="text-center">
+          <span className="text-center font-medium">
             {label.replace('_', ' ')}
           </span>
           {checked && (
             <div className="absolute top-2 right-2">
-              <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+              <div className="w-3 h-3 bg-white rounded-full opacity-90 animate-pulse"></div>
             </div>
           )}
         </Label>
