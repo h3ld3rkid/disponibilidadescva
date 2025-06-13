@@ -23,12 +23,17 @@ const UserScheduleViewer: React.FC<UserScheduleViewerProps> = ({
   
   const displayName = userName || getUserNameFromEmail(userEmail);
   
+  // Calculate the target month (next month)
+  const now = new Date();
+  const targetMonth = new Date(now.getFullYear(), now.getMonth() + 1);
+  const monthName = targetMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+  
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Escala de {displayName}</CardTitle>
-          <CardDescription>Visualize a escala detalhada deste utilizador</CardDescription>
+          <CardTitle>Escala mês de {monthName}</CardTitle>
+          <CardDescription>Visualize a escala detalhada de {displayName}</CardDescription>
         </div>
         <Button 
           variant="outline" 

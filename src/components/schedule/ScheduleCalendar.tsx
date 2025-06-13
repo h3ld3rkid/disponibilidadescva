@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import WeekdayCheckboxCalendar from './WeekdayCheckboxCalendar';
@@ -22,6 +21,13 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const [hasExistingSchedule, setHasExistingSchedule] = useState(false);
   const [showSingleShiftWarning, setShowSingleShiftWarning] = useState(false);
   const { toast } = useToast();
+
+  // Calculate the target month (next month)
+  const getTargetMonth = () => {
+    const now = new Date();
+    const targetMonth = new Date(now.getFullYear(), now.getMonth() + 1);
+    return targetMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+  };
 
   useEffect(() => {
     console.log('=== SCHEDULE CALENDAR INITIALIZATION ===');
@@ -206,6 +212,17 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {!isAdmin && (
+        <div className="p-6 pb-0">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Escala mês de {getTargetMonth()}
+          </h1>
+          <p className="text-gray-600">
+            Selecione os seus turnos para o próximo mês
+          </p>
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
         <div className="lg:col-span-2">
           <WeekdayCheckboxCalendar 

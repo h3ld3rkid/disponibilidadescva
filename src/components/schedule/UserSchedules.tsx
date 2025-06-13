@@ -1,7 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { scheduleService } from "@/services/supabase/scheduleService";
+import { userService } from "@/services/supabase/userService";
 import UserSchedulesHeader from './UserSchedulesHeader';
 import MigrationStatus from './MigrationStatus';
 import UserScheduleViewer from './UserScheduleViewer';
@@ -16,6 +16,7 @@ const UserSchedules = () => {
   const [userEmails, setUserEmails] = useState<string[]>([]);
   const [viewingUserSchedule, setViewingUserSchedule] = useState<string | null>(null);
   const [viewingUserName, setViewingUserName] = useState<string | null>(null);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
   const { toast } = useToast();
 
   const loadAllSchedules = async () => {
@@ -36,6 +37,10 @@ const UserSchedules = () => {
         setSchedules([]);
         setUserEmails([]);
       }
+
+      // Load all users to get names and mechanographic numbers
+      const users = await userService.getAllUsers();
+      setAllUsers(users);
     } catch (error) {
       console.error("Error loading schedules:", error);
       toast({
@@ -139,13 +144,37 @@ const UserSchedules = () => {
     }
   };
 
-  // Get username for display
-  const getUserNameFromEmail = (email: string): string => {
-    // Try to find user in schedules
+  // Get username and mechanographic number for display
+  const getUserDisplayName = (email: string): string => {
+    // First try to find user in allUsers (from users table)
+    const user = allUsers.find(u => u.email === email);
+    if (user) {
+      return `${user.name} - ${user.mechanographic_number}`;
+    }
+    
+    // Fallback to schedule data
     const userSchedule = schedules.find(schedule => schedule.email === email);
     if (userSchedule && userSchedule.user) {
       return userSchedule.user;
     }
+    
+    return email;
+  };
+
+  // Get username for display (without mechanographic number)
+  const getUserNameFromEmail = (email: string): string => {
+    // First try to find user in allUsers (from users table)
+    const user = allUsers.find(u => u.email === email);
+    if (user) {
+      return user.name;
+    }
+    
+    // Fallback to schedule data
+    const userSchedule = schedules.find(schedule => schedule.email === email);
+    if (userSchedule && userSchedule.user) {
+      return userSchedule.user;
+    }
+    
     return email;
   };
 
@@ -203,7 +232,7 @@ const UserSchedules = () => {
           onViewSchedule={handleViewSchedule}
           onDeleteSchedule={deleteUserSchedules}
           onResetEditCounter={resetEditCounter}
-          getUserNameFromEmail={getUserNameFromEmail}
+          getUserNameFromEmail={getUserDisplayName}
         />
       )}
     </div>
