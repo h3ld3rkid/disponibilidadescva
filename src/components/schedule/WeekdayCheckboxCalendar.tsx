@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Moon } from 'lucide-react';
@@ -9,10 +8,12 @@ import { Calendar, Moon } from 'lucide-react';
 interface WeekdayCheckboxCalendarProps {
   selectedDates: string[];
   selectedOvernights: string[];
-  notes: string;
+  shiftNotes: string;
+  overnightNotes: string;
   onDateToggle: (date: string) => void;
   onOvernightToggle: (overnight: string) => void;
-  onNotesChange: (notes: string) => void;
+  onShiftNotesChange: (notes: string) => void;
+  onOvernightNotesChange: (notes: string) => void;
   isAdmin?: boolean;
   userEmail?: string;
 }
@@ -20,10 +21,12 @@ interface WeekdayCheckboxCalendarProps {
 const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
   selectedDates,
   selectedOvernights,
-  notes,
+  shiftNotes,
+  overnightNotes,
   onDateToggle,
   onOvernightToggle,
-  onNotesChange,
+  onShiftNotesChange,
+  onOvernightNotesChange,
   isAdmin = false,
   userEmail
 }) => {
@@ -42,6 +45,47 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
   const overnights = [
     'Dom/Seg', 'Seg/Ter', 'Ter/Qua', 'Qua/Qui', 'Qui/Sex', 'Sex/Sab', 'Sab/Dom'
   ];
+
+  const FuturisticToggle = ({ id, checked, onToggle, label, color = "blue" }: {
+    id: string;
+    checked: boolean;
+    onToggle: () => void;
+    label: string;
+    color?: string;
+  }) => {
+    return (
+      <div className="relative">
+        <input
+          type="checkbox"
+          id={id}
+          checked={checked}
+          onChange={onToggle}
+          className="sr-only"
+        />
+        <Label
+          htmlFor={id}
+          className={`
+            flex items-center justify-center p-4 rounded-xl cursor-pointer transition-all duration-300 ease-in-out
+            border-2 font-medium text-sm min-h-[60px]
+            ${checked 
+              ? `bg-${color}-500 border-${color}-500 text-white shadow-lg shadow-${color}-500/25 scale-105` 
+              : `bg-gray-50 border-gray-200 text-gray-700 hover:border-${color}-300 hover:bg-${color}-50`
+            }
+            hover:scale-102 active:scale-95
+          `}
+        >
+          <span className="text-center">
+            {label.replace('_', ' ')}
+          </span>
+          {checked && (
+            <div className="absolute top-2 right-2">
+              <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+            </div>
+          )}
+        </Label>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -66,67 +110,58 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
             Turnos
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-8">
           {/* Weekday Shifts */}
           <div>
-            <h3 className="text-lg font-medium text-gray-700 mb-4">Dias da Semana</h3>
+            <h3 className="text-lg font-medium text-gray-700 mb-6">Dias da Semana</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {weekdayShifts.map(shift => (
-                <div key={shift} className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
-                  <Checkbox
-                    id={shift}
-                    checked={selectedDates.includes(shift)}
-                    onCheckedChange={() => onDateToggle(shift)}
-                    className="h-5 w-5"
-                  />
-                  <Label htmlFor={shift} className="text-base cursor-pointer font-medium">
-                    {shift}
-                  </Label>
-                </div>
+                <FuturisticToggle
+                  key={shift}
+                  id={shift}
+                  checked={selectedDates.includes(shift)}
+                  onToggle={() => onDateToggle(shift)}
+                  label={shift}
+                  color="blue"
+                />
               ))}
             </div>
           </div>
 
           {/* Weekend Shifts */}
           <div>
-            <h3 className="text-lg font-medium text-gray-700 mb-4">Fim de Semana</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <h3 className="text-lg font-medium text-gray-700 mb-6">Fim de Semana</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Saturday */}
-              <div className="bg-orange-50 p-4 rounded-lg">
-                <h4 className="text-base font-medium text-orange-800 mb-3">Sábado</h4>
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-xl border border-orange-200">
+                <h4 className="text-lg font-semibold text-orange-800 mb-4 text-center">Sábado</h4>
                 <div className="space-y-3">
                   {saturdayShifts.map(shift => (
-                    <div key={shift} className="flex items-center space-x-3 p-2 bg-white rounded hover:bg-orange-100 transition-colors">
-                      <Checkbox
-                        id={shift}
-                        checked={selectedDates.includes(shift)}
-                        onCheckedChange={() => onDateToggle(shift)}
-                        className="h-5 w-5"
-                      />
-                      <Label htmlFor={shift} className="text-base cursor-pointer">
-                        {shift.replace('Sábado_', '')}
-                      </Label>
-                    </div>
+                    <FuturisticToggle
+                      key={shift}
+                      id={shift}
+                      checked={selectedDates.includes(shift)}
+                      onToggle={() => onDateToggle(shift)}
+                      label={shift.replace('Sábado_', '')}
+                      color="orange"
+                    />
                   ))}
                 </div>
               </div>
 
               {/* Sunday */}
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <h4 className="text-base font-medium text-purple-800 mb-3">Domingo</h4>
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl border border-purple-200">
+                <h4 className="text-lg font-semibold text-purple-800 mb-4 text-center">Domingo</h4>
                 <div className="space-y-3">
                   {sundayShifts.map(shift => (
-                    <div key={shift} className="flex items-center space-x-3 p-2 bg-white rounded hover:bg-purple-100 transition-colors">
-                      <Checkbox
-                        id={shift}
-                        checked={selectedDates.includes(shift)}
-                        onCheckedChange={() => onDateToggle(shift)}
-                        className="h-5 w-5"
-                      />
-                      <Label htmlFor={shift} className="text-base cursor-pointer">
-                        {shift.replace('Domingo_', '')}
-                      </Label>
-                    </div>
+                    <FuturisticToggle
+                      key={shift}
+                      id={shift}
+                      checked={selectedDates.includes(shift)}
+                      onToggle={() => onDateToggle(shift)}
+                      label={shift.replace('Domingo_', '')}
+                      color="purple"
+                    />
                   ))}
                 </div>
               </div>
@@ -143,9 +178,9 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
         <CardContent>
           <Textarea
             placeholder="Adicione observações sobre a sua disponibilidade para turnos..."
-            value={notes}
-            onChange={(e) => onNotesChange(e.target.value)}
-            className="min-h-[100px]"
+            value={shiftNotes}
+            onChange={(e) => onShiftNotesChange(e.target.value)}
+            className="min-h-[120px] resize-none border-2 focus:border-blue-500 transition-colors"
           />
         </CardContent>
       </Card>
@@ -161,17 +196,14 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {overnights.map(overnight => (
-              <div key={overnight} className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
-                <Checkbox
-                  id={overnight}
-                  checked={selectedOvernights.includes(overnight)}
-                  onCheckedChange={() => onOvernightToggle(overnight)}
-                  className="h-5 w-5"
-                />
-                <Label htmlFor={overnight} className="text-base cursor-pointer font-medium">
-                  {overnight}
-                </Label>
-              </div>
+              <FuturisticToggle
+                key={overnight}
+                id={overnight}
+                checked={selectedOvernights.includes(overnight)}
+                onToggle={() => onOvernightToggle(overnight)}
+                label={overnight}
+                color="purple"
+              />
             ))}
           </div>
         </CardContent>
@@ -185,9 +217,9 @@ const WeekdayCheckboxCalendar: React.FC<WeekdayCheckboxCalendarProps> = ({
         <CardContent>
           <Textarea
             placeholder="Adicione observações sobre a sua disponibilidade para pernoites..."
-            value={notes}
-            onChange={(e) => onNotesChange(e.target.value)}
-            className="min-h-[100px]"
+            value={overnightNotes}
+            onChange={(e) => onOvernightNotesChange(e.target.value)}
+            className="min-h-[120px] resize-none border-2 focus:border-purple-500 transition-colors"
           />
         </CardContent>
       </Card>

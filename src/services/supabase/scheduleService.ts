@@ -1,20 +1,18 @@
-
 import { supabase } from "./client";
 
 export const scheduleService = {
   // Save user schedule
-  async saveSchedule(userEmail: string, userName: string, scheduleData: any, notes: string): Promise<{ success: boolean }> {
+  async saveSchedule(userEmail: string, userName: string, scheduleData: any): Promise<{ success: boolean }> {
     console.log('=== SAVING SCHEDULE TO SUPABASE ===');
     console.log('User Email:', userEmail);
     console.log('User Name:', userName);
     console.log('Schedule Data:', scheduleData);
-    console.log('Notes:', notes);
     
     try {
       const month = new Date().getFullYear() + '-' + String(new Date().getMonth() + 2).padStart(2, '0'); // Next month
       console.log('Month:', month);
       
-      // Check if schedule already exists
+      // Check if schedule already exists for THIS SPECIFIC USER
       const { data: existing, error: selectError } = await supabase
         .from('schedules')
         .select('id, edit_count')
@@ -30,22 +28,22 @@ export const scheduleService = {
       let result;
       
       if (existing) {
-        // Update existing schedule
-        console.log('Updating existing schedule with ID:', existing.id);
+        // Update existing schedule for THIS USER
+        console.log('Updating existing schedule with ID:', existing.id, 'for user:', userEmail);
         result = await supabase
           .from('schedules')
           .update({
             user_name: userName,
             dates: scheduleData,
-            notes: notes || null,
             edit_count: (existing.edit_count || 0) + 1,
             updated_at: new Date().toISOString()
           })
           .eq('id', existing.id)
+          .eq('user_email', userEmail) // CRITICAL: Also filter by user email
           .select();
       } else {
-        // Create new schedule
-        console.log('Creating new schedule');
+        // Create new schedule for THIS USER
+        console.log('Creating new schedule for user:', userEmail);
         result = await supabase
           .from('schedules')
           .insert({
@@ -53,7 +51,6 @@ export const scheduleService = {
             user_name: userName,
             month: month,
             dates: scheduleData,
-            notes: notes || null,
             edit_count: 1
           })
           .select();
@@ -64,7 +61,7 @@ export const scheduleService = {
         throw result.error;
       }
       
-      console.log('Schedule saved successfully:', result.data);
+      console.log('Schedule saved successfully for user:', userEmail, result.data);
       return { success: true };
       
     } catch (error) {
@@ -96,7 +93,6 @@ export const scheduleService = {
           user: schedule.user_name,
           month: schedule.month,
           dates: schedule.dates,
-          notes: schedule.notes,
           editCount: schedule.edit_count
         }));
       }

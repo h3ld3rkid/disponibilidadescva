@@ -13,7 +13,8 @@ interface ScheduleCalendarProps {
 const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin = false }) => {
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [selectedOvernights, setSelectedOvernights] = useState<string[]>([]);
-  const [notes, setNotes] = useState('');
+  const [shiftNotes, setShiftNotes] = useState('');
+  const [overnightNotes, setOvernightNotes] = useState('');
   const [userInfo, setUserInfo] = useState<any>(null);
   const [editCount, setEditCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,24 +29,39 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       console.log('User info loaded:', parsedUserInfo);
       setUserInfo(parsedUserInfo);
       
-      // Load existing schedule if available
-      loadExistingSchedule(parsedUserInfo.email);
+      // Load existing schedule if available - use the correct email
+      const currentUserEmail = userEmail || parsedUserInfo.email;
+      console.log('Loading schedule for email:', currentUserEmail);
+      loadExistingSchedule(currentUserEmail);
     }
   }, [userEmail]);
 
   const loadExistingSchedule = async (email: string) => {
     try {
-      console.log('Loading existing schedule for:', email);
+      console.log('Loading existing schedule for email:', email);
       const schedules = await scheduleService.getUserSchedules();
+      console.log('All schedules loaded:', schedules);
+      
       const userSchedule = schedules.find(s => s.email === email);
+      console.log('Found user schedule:', userSchedule);
       
       if (userSchedule && userSchedule.dates) {
-        console.log('Found existing schedule:', userSchedule);
+        console.log('Setting existing schedule data:', userSchedule);
         setSelectedDates(userSchedule.dates.shifts || []);
         setSelectedOvernights(userSchedule.dates.overnights || []);
-        setNotes(userSchedule.notes || '');
+        setShiftNotes(userSchedule.dates.shiftNotes || '');
+        setOvernightNotes(userSchedule.dates.overnightNotes || '');
         setEditCount(userSchedule.editCount || 0);
         setHasExistingSchedule(true);
+      } else {
+        console.log('No existing schedule found for user:', email);
+        // Reset to empty state
+        setSelectedDates([]);
+        setSelectedOvernights([]);
+        setShiftNotes('');
+        setOvernightNotes('');
+        setEditCount(0);
+        setHasExistingSchedule(false);
       }
     } catch (error) {
       console.error('Error loading existing schedule:', error);
@@ -74,13 +90,23 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     });
   };
 
-  const handleNotesChange = (newNotes: string) => {
-    console.log('Notes changed:', newNotes);
-    setNotes(newNotes);
+  const handleShiftNotesChange = (newNotes: string) => {
+    console.log('Shift notes changed:', newNotes);
+    setShiftNotes(newNotes);
+  };
+
+  const handleOvernightNotesChange = (newNotes: string) => {
+    console.log('Overnight notes changed:', newNotes);
+    setOvernightNotes(newNotes);
   };
 
   const handleSubmit = async () => {
     const currentUserEmail = userEmail || userInfo?.email;
+    
+    console.log('=== SUBMITTING SCHEDULE ===');
+    console.log('Current user email from userEmail prop:', userEmail);
+    console.log('Current user email from userInfo:', userInfo?.email);
+    console.log('Final current user email:', currentUserEmail);
     
     if (!currentUserEmail) {
       toast({
@@ -103,22 +129,23 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     setIsLoading(true);
     
     try {
-      console.log('=== SUBMITTING SCHEDULE ===');
-      console.log('User Email:', currentUserEmail);
+      console.log('Submitting schedule for user:', currentUserEmail);
       console.log('Selected Dates:', selectedDates);
       console.log('Selected Overnights:', selectedOvernights);
-      console.log('Notes:', notes);
+      console.log('Shift Notes:', shiftNotes);
+      console.log('Overnight Notes:', overnightNotes);
       
       const scheduleData = {
         shifts: selectedDates,
-        overnights: selectedOvernights
+        overnights: selectedOvernights,
+        shiftNotes: shiftNotes,
+        overnightNotes: overnightNotes
       };
       
       const result = await scheduleService.saveSchedule(
         currentUserEmail,
         userInfo?.name || currentUserEmail,
-        scheduleData,
-        notes
+        scheduleData
       );
       
       if (result.success) {
@@ -155,10 +182,12 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
           <WeekdayCheckboxCalendar 
             selectedDates={selectedDates}
             selectedOvernights={selectedOvernights}
-            notes={notes}
+            shiftNotes={shiftNotes}
+            overnightNotes={overnightNotes}
             onDateToggle={handleDateToggle}
             onOvernightToggle={handleOvernightToggle}
-            onNotesChange={handleNotesChange}
+            onShiftNotesChange={handleShiftNotesChange}
+            onOvernightNotesChange={handleOvernightNotesChange}
             isAdmin={isAdmin}
             userEmail={userEmail || userInfo?.email}
           />
