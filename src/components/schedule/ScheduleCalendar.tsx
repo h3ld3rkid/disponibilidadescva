@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import WeekdayCheckboxCalendar from './WeekdayCheckboxCalendar';
 import ScheduleSummary from './ScheduleSummary';
+import SingleShiftWarning from './SingleShiftWarning';
 import { scheduleService } from "@/services/supabase/scheduleService";
 
 interface ScheduleCalendarProps {
@@ -19,6 +20,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const [editCount, setEditCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [hasExistingSchedule, setHasExistingSchedule] = useState(false);
+  const [showSingleShiftWarning, setShowSingleShiftWarning] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -100,6 +102,11 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     setOvernightNotes(newNotes);
   };
 
+  const checkForSingleShift = () => {
+    const totalShifts = selectedDates.length + selectedOvernights.length;
+    return totalShifts === 1;
+  };
+
   const handleSubmit = async () => {
     const currentUserEmail = userEmail || userInfo?.email;
     
@@ -126,6 +133,16 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       return;
     }
 
+    // Check if only one shift is selected and show warning
+    if (checkForSingleShift()) {
+      setShowSingleShiftWarning(true);
+      return;
+    }
+
+    await submitSchedule(currentUserEmail);
+  };
+
+  const submitSchedule = async (currentUserEmail: string) => {
     setIsLoading(true);
     
     try {
@@ -172,6 +189,18 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     }
   };
 
+  const handleWarningContinue = () => {
+    setShowSingleShiftWarning(false);
+    const currentUserEmail = userEmail || userInfo?.email;
+    if (currentUserEmail) {
+      submitSchedule(currentUserEmail);
+    }
+  };
+
+  const handleWarningClose = () => {
+    setShowSingleShiftWarning(false);
+  };
+
   const canSubmitSchedule = selectedDates.length > 0 || selectedOvernights.length > 0;
   const submissionBlocked = editCount >= 2;
 
@@ -205,6 +234,12 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
           />
         </div>
       </div>
+
+      <SingleShiftWarning 
+        isOpen={showSingleShiftWarning}
+        onClose={handleWarningClose}
+        onContinue={handleWarningContinue}
+      />
     </div>
   );
 };
