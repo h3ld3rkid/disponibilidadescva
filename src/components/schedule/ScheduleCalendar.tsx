@@ -31,6 +31,9 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
 
   useEffect(() => {
     console.log('=== SCHEDULE CALENDAR INITIALIZATION ===');
+    console.log('userEmail prop:', userEmail);
+    console.log('isAdmin prop:', isAdmin);
+    
     const storedUser = localStorage.getItem('mysqlConnection');
     if (storedUser) {
       const parsedUserInfo = JSON.parse(storedUser);
@@ -209,6 +212,12 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
 
   const canSubmitSchedule = selectedDates.length > 0 || selectedOvernights.length > 0;
   const submissionBlocked = editCount >= 2;
+
+  console.log('=== RENDER DEBUG ===');
+  console.log('isAdmin:', isAdmin);
+  console.log('userEmail prop:', userEmail);
+  console.log('userInfo:', userInfo);
+  console.log('Target month:', getTargetMonth());
 
   return (
     <div className="min-h-screen bg-gray-50">
