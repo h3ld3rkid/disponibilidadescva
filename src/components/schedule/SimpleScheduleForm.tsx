@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -82,14 +81,15 @@ const SimpleScheduleForm: React.FC<SimpleScheduleFormProps> = ({ userEmail: prop
       
       const scheduleData = {
         shifts: selectedShifts,
-        overnights: selectedOvernights
+        overnights: selectedOvernights,
+        shiftNotes: notes,
+        overnightNotes: notes
       };
       
       const result = await scheduleService.saveSchedule(
         currentUserEmail,
         userInfo?.name || currentUserEmail,
-        scheduleData,
-        notes
+        scheduleData
       );
       
       if (result.success) {
