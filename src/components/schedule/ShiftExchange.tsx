@@ -1,0 +1,410 @@
+
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { shiftExchangeService, ShiftExchangeRequest } from "@/services/supabase/shiftExchangeService";
+import { userService } from "@/services/supabase/userService";
+import { ArrowLeftRight, Send, Check, X, Search } from 'lucide-react';
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  mechanographic_number: string;
+}
+
+const ShiftExchange = () => {
+  const [userInfo, setUserInfo] = useState<any>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [requestedDate, setRequestedDate] = useState('');
+  const [requestedShift, setRequestedShift] = useState('');
+  const [offeredDate, setOfferedDate] = useState('');
+  const [offeredShift, setOfferedShift] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [exchangeRequests, setExchangeRequests] = useState<ShiftExchangeRequest[]>([]);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('mysqlConnection');
+    if (storedUser) {
+      const parsedUserInfo = JSON.parse(storedUser);
+      setUserInfo(parsedUserInfo);
+      loadUsers();
+      loadExchangeRequests(parsedUserInfo.email);
+    }
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      const allUsers = await userService.getAllUsers();
+      setUsers(allUsers.filter(user => user.active));
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
+  };
+
+  const loadExchangeRequests = async (userEmail: string) => {
+    try {
+      const requests = await shiftExchangeService.getUserExchangeRequests(userEmail);
+      setExchangeRequests(requests);
+    } catch (error) {
+      console.error('Error loading exchange requests:', error);
+    }
+  };
+
+  const filteredUsers = users.filter(user => 
+    user.email !== userInfo?.email && // Exclude current user
+    (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     user.mechanographic_number.includes(searchTerm))
+  );
+
+  const handleSubmitRequest = async () => {
+    if (!selectedUser || !requestedDate || !requestedShift || !offeredDate || !offeredShift) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const result = await shiftExchangeService.createExchangeRequest({
+        requester_email: userInfo.email,
+        requester_name: userInfo.name || userInfo.email,
+        target_email: selectedUser.email,
+        target_name: selectedUser.name,
+        requested_date: requestedDate,
+        requested_shift: requestedShift,
+        offered_date: offeredDate,
+        offered_shift: offeredShift,
+        message: message
+      });
+
+      if (result.success) {
+        toast({
+          title: "Pedido enviado",
+          description: `Pedido de troca enviado para ${selectedUser.name}.`,
+        });
+        
+        // Reset form
+        setSelectedUser(null);
+        setSearchTerm('');
+        setRequestedDate('');
+        setRequestedShift('');
+        setOfferedDate('');
+        setOfferedShift('');
+        setMessage('');
+        
+        // Reload requests
+        loadExchangeRequests(userInfo.email);
+      } else {
+        throw new Error('Failed to create exchange request');
+      }
+    } catch (error) {
+      console.error('Error creating exchange request:', error);
+      toast({
+        title: "Erro ao enviar",
+        description: "Ocorreu um erro ao enviar o pedido.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRespondToRequest = async (requestId: string, status: 'accepted' | 'rejected') => {
+    try {
+      const result = await shiftExchangeService.respondToExchangeRequest(requestId, status);
+      
+      if (result.success) {
+        toast({
+          title: status === 'accepted' ? "Troca aceite" : "Troca recusada",
+          description: `O pedido foi ${status === 'accepted' ? 'aceite' : 'recusado'} com sucesso.`,
+        });
+        
+        loadExchangeRequests(userInfo.email);
+      } else {
+        throw new Error('Failed to respond to request');
+      }
+    } catch (error) {
+      console.error('Error responding to request:', error);
+      toast({
+        title: "Erro ao responder",
+        description: "Ocorreu um erro ao responder ao pedido.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getShiftTypeLabel = (shift: string) => {
+    switch (shift) {
+      case 'day': return 'Turno Diurno';
+      case 'overnight': return 'Pernoite';
+      default: return shift;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'text-yellow-600';
+      case 'accepted': return 'text-green-600';
+      case 'rejected': return 'text-red-600';
+      default: return 'text-gray-600';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending': return 'Pendente';
+      case 'accepted': return 'Aceite';
+      case 'rejected': return 'Recusado';
+      default: return status;
+    }
+  };
+
+  if (!userInfo) {
+    return <div>A carregar...</div>;
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Trocas de Turnos</h1>
+        <p className="text-gray-600">Proponha trocas de turnos com outros utilizadores</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Create new exchange request */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ArrowLeftRight className="h-5 w-5" />
+              Nova Proposta de Troca
+            </CardTitle>
+            <CardDescription>
+              Propor uma troca de turno com outro utilizador
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-4">
+            {/* User search */}
+            <div className="space-y-2">
+              <Label htmlFor="userSearch">Procurar Utilizador</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  id="userSearch"
+                  placeholder="Nome, email ou número mecanográfico..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              
+              {searchTerm && filteredUsers.length > 0 && (
+                <div className="border rounded-md max-h-40 overflow-y-auto">
+                  {filteredUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setSearchTerm(user.name);
+                      }}
+                    >
+                      <div className="font-medium">{user.name}</div>
+                      <div className="text-sm text-gray-500">
+                        {user.email} - {user.mechanographic_number}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {selectedUser && (
+              <>
+                <div className="p-3 bg-blue-50 rounded-md">
+                  <div className="font-medium">Utilizador selecionado:</div>
+                  <div className="text-sm text-gray-600">
+                    {selectedUser.name} - {selectedUser.mechanographic_number}
+                  </div>
+                </div>
+
+                {/* What you want from them */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">O que pretende do {selectedUser.name}:</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="requestedDate">Data</Label>
+                      <Input
+                        id="requestedDate"
+                        type="date"
+                        value={requestedDate}
+                        onChange={(e) => setRequestedDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="requestedShift">Tipo de Turno</Label>
+                      <Select value={requestedShift} onValueChange={setRequestedShift}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="day">Turno Diurno</SelectItem>
+                          <SelectItem value="overnight">Pernoite</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* What you offer */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">O que oferece em troca:</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="offeredDate">Data</Label>
+                      <Input
+                        id="offeredDate"
+                        type="date"
+                        value={offeredDate}
+                        onChange={(e) => setOfferedDate(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="offeredShift">Tipo de Turno</Label>
+                      <Select value={offeredShift} onValueChange={setOfferedShift}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="day">Turno Diurno</SelectItem>
+                          <SelectItem value="overnight">Pernoite</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="message">Mensagem (opcional)</Label>
+                  <Textarea
+                    id="message"
+                    placeholder="Adicione uma mensagem para explicar a troca..."
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
+                <Button
+                  onClick={handleSubmitRequest}
+                  disabled={isSubmitting}
+                  className="w-full"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {isSubmitting ? 'A enviar...' : 'Enviar Proposta'}
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Exchange requests history */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Histórico de Trocas</CardTitle>
+            <CardDescription>
+              Pedidos enviados e recebidos
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent>
+            {exchangeRequests.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">
+                Ainda não há pedidos de troca
+              </p>
+            ) : (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {exchangeRequests.map((request) => (
+                  <div key={request.id} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="text-sm">
+                        {request.requester_email === userInfo.email ? (
+                          <span className="font-medium">Enviado para: {request.target_name}</span>
+                        ) : (
+                          <span className="font-medium">Recebido de: {request.requester_name}</span>
+                        )}
+                      </div>
+                      <span className={`text-xs font-medium ${getStatusColor(request.status)}`}>
+                        {getStatusLabel(request.status)}
+                      </span>
+                    </div>
+                    
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <div>
+                        <strong>Pretende:</strong> {getShiftTypeLabel(request.requested_shift)} em{' '}
+                        {new Date(request.requested_date).toLocaleDateString('pt-PT')}
+                      </div>
+                      <div>
+                        <strong>Oferece:</strong> {getShiftTypeLabel(request.offered_shift)} em{' '}
+                        {new Date(request.offered_date).toLocaleDateString('pt-PT')}
+                      </div>
+                      {request.message && (
+                        <div className="mt-2">
+                          <strong>Mensagem:</strong> {request.message}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {request.target_email === userInfo.email && request.status === 'pending' && (
+                      <div className="flex gap-2 mt-3">
+                        <Button
+                          size="sm"
+                          onClick={() => handleRespondToRequest(request.id, 'accepted')}
+                          className="flex items-center gap-1"
+                        >
+                          <Check className="h-3 w-3" />
+                          Aceitar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRespondToRequest(request.id, 'rejected')}
+                          className="flex items-center gap-1"
+                        >
+                          <X className="h-3 w-3" />
+                          Recusar
+                        </Button>
+                      </div>
+                    )}
+                    
+                    <div className="text-xs text-gray-400 mt-2">
+                      {new Date(request.created_at).toLocaleDateString('pt-PT')} às{' '}
+                      {new Date(request.created_at).toLocaleTimeString('pt-PT')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default ShiftExchange;

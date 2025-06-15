@@ -1,388 +1,215 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
-import { Button } from "@/components/ui/button";
-import { 
-  LogOut, Users, Calendar, Home,
-  ListChecks, UserCog, FileText, Pencil, Users as UsersIcon,
-  BellRing, Menu, FileUp, Settings, Database
-} from "lucide-react";
+
+import React, { useState } from 'react';
+import { Menu, X, LogOut, User, Calendar, Users, FileText, Upload, Bell, ArrowLeftRight, Settings, Home } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { supabaseService } from '@/services/supabaseService';
+import ExchangeNotifications from './schedule/ExchangeNotifications';
 
 interface NavbarProps {
   email: string;
   role: string;
 }
 
-const Navbar = ({ email, role }: NavbarProps) => {
-  const { toast } = useToast();
+const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
-  const [userName, setUserName] = useState('');
-  const adminMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const fetchUserName = async () => {
-      try {
-        const users = await supabaseService.getAllUsers();
-        const currentUser = users.find(user => user.email === email);
-        if (currentUser) {
-          setUserName(currentUser.name);
-        }
-      } catch (error) {
-        console.error('Error fetching user name:', error);
-      }
-    };
-
-    if (email) {
-      fetchUserName();
-    }
-  }, [email]);
+  const location = useLocation();
+  const { toast } = useToast();
 
   const handleLogout = () => {
     localStorage.removeItem('mysqlConnection');
     toast({
       title: "Sessão terminada",
-      description: "Terminou a sessão com sucesso",
+      description: "Logout realizado com sucesso.",
     });
     navigate('/login');
   };
 
-  const navigateToUserManagement = () => {
-    navigate('/dashboard/users');
-    setIsMenuOpen(false);
-    setAdminMenuOpen(false);
+  const isActive = (path: string) => {
+    if (path === '/dashboard' && location.pathname === '/dashboard') return true;
+    if (path !== '/dashboard' && location.pathname.startsWith(path)) return true;
+    return false;
   };
 
-  const navigateToHome = () => {
-    navigate('/dashboard');
-    setIsMenuOpen(false);
-  };
+  const isAdmin = role === 'admin';
 
-  const navigateToCalendar = () => {
-    navigate('/dashboard/schedule');
-    setIsMenuOpen(false);
-  };
+  const navigation = [
+    { name: 'Início', href: '/dashboard', icon: Home },
+    { name: 'Minha Escala', href: '/dashboard/schedule', icon: Calendar },
+    { name: 'Escala Atual', href: '/dashboard/current-schedule', icon: FileText },
+    { name: 'Trocas', href: '/dashboard/exchanges', icon: ArrowLeftRight },
+  ];
 
-  const navigateToCurrentSchedule = () => {
-    navigate('/dashboard/current-schedule');
-    setIsMenuOpen(false);
-  };
-
-  const navigateToUserSchedules = () => {
-    navigate('/dashboard/user-schedules');
-    setIsMenuOpen(false);
-    setAdminMenuOpen(false);
-  };
-
-  const navigateToProfile = () => {
-    navigate('/dashboard/profile');
-    setIsMenuOpen(false);
-  };
-
-  const navigateToAnnouncements = () => {
-    navigate('/dashboard/announcements');
-    setIsMenuOpen(false);
-    setAdminMenuOpen(false);
-  };
-
-  const navigateToScheduleUpload = () => {
-    navigate('/dashboard/schedule-upload');
-    setIsMenuOpen(false);
-    setAdminMenuOpen(false);
-  };
-
-  const navigateToDatabaseConfig = () => {
-    navigate('/config/database');
-    setIsMenuOpen(false);
-    setAdminMenuOpen(false);
-  };
-
-  const toggleAdminMenu = () => {
-    setAdminMenuOpen(!adminMenuOpen);
-  };
-
-  const renderMenuContent = () => (
-    <>
-      <Button 
-        variant="ghost" 
-        className="flex items-center"
-        onClick={navigateToHome}
-      >
-        <Home className="h-4 w-4 mr-2" />
-        Início
-      </Button>
-
-      <Button 
-        variant="ghost" 
-        className="flex items-center"
-        onClick={navigateToCalendar}
-      >
-        <Calendar className="h-4 w-4 mr-2" />
-        Inserir Escala
-      </Button>
-      
-      <Button 
-        variant="ghost" 
-        className="flex items-center"
-        onClick={navigateToCurrentSchedule}
-      >
-        <FileText className="h-4 w-4 mr-2" />
-        Escala Atual
-      </Button>
-      
-      {role === 'admin' && (
-        <Button 
-          variant="ghost" 
-          className="flex items-center"
-          onClick={navigateToAnnouncements}
-        >
-          <BellRing className="h-4 w-4 mr-2" />
-          Avisos
-        </Button>
-      )}
-
-      {role === 'admin' && (
-        <div className="relative" ref={adminMenuRef}>
-          <Button 
-            variant="ghost" 
-            onClick={toggleAdminMenu}
-            className="flex items-center"
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Administração
-          </Button>
-          
-          {adminMenuOpen && (
-            <div className="absolute top-full left-0 mt-2 bg-white shadow-lg rounded-md p-2 z-50 min-w-[200px]">
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start mb-1"
-                onClick={navigateToUserManagement}
-              >
-                <UsersIcon className="h-4 w-4 mr-2" />
-                Gerir Utilizadores
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start mb-1"
-                onClick={navigateToAnnouncements}
-              >
-                <Pencil className="h-4 w-4 mr-2" />
-                Editar Avisos
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start mb-1"
-                onClick={navigateToUserSchedules}
-              >
-                <ListChecks className="h-4 w-4 mr-2" />
-                Escalas dos Utilizadores
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start mb-1"
-                onClick={navigateToScheduleUpload}
-              >
-                <FileUp className="h-4 w-4 mr-2" />
-                Carregar Escala Atual
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start"
-                onClick={navigateToDatabaseConfig}
-              >
-                <Database className="h-4 w-4 mr-2" />
-                Configurar Base de Dados
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
-
-      <Button 
-        variant="ghost" 
-        className="flex items-center"
-        onClick={navigateToProfile}
-      >
-        <UserCog className="h-4 w-4 mr-2" />
-        Meu Perfil
-      </Button>
-    </>
-  );
-
-  const renderMobileMenu = () => (
-    <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <Menu className="h-6 w-6" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="flex flex-col gap-4 py-8">
-        <div className="flex items-center mb-6">
-          <img 
-            src="https://amares.cruzvermelha.pt/images/site/Amares.webp" 
-            alt="Cruz Vermelha Amares" 
-            className="h-8 object-contain mr-2" 
-          />
-          <span className="font-semibold">Cruz Vermelha Amares</span>
-        </div>
-        
-        <Button 
-          variant="ghost" 
-          className="justify-start"
-          onClick={navigateToHome}
-        >
-          <Home className="h-4 w-4 mr-2" />
-          Início
-        </Button>
-        
-        <Button 
-          variant="ghost" 
-          className="justify-start"
-          onClick={navigateToCalendar}
-        >
-          <Calendar className="h-4 w-4 mr-2" />
-          Inserir Escala
-        </Button>
-        
-        <Button 
-          variant="ghost" 
-          className="justify-start"
-          onClick={navigateToCurrentSchedule}
-        >
-          <FileText className="h-4 w-4 mr-2" />
-          Escala Atual
-        </Button>
-        
-        {role === 'admin' && (
-          <Button 
-            variant="ghost" 
-            className="justify-start"
-            onClick={navigateToAnnouncements}
-          >
-            <BellRing className="h-4 w-4 mr-2" />
-            Avisos
-          </Button>
-        )}
-        
-        {role === 'admin' && (
-          <>
-            <Button 
-              variant="ghost" 
-              className="justify-start"
-              onClick={navigateToUserManagement}
-            >
-              <Users className="h-4 w-4 mr-2" />
-              Gerir Utilizadores
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              className="justify-start"
-              onClick={navigateToUserSchedules}
-            >
-              <ListChecks className="h-4 w-4 mr-2" />
-              Escalas dos Utilizadores
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              className="justify-start"
-              onClick={navigateToScheduleUpload}
-            >
-              <FileUp className="h-4 w-4 mr-2" />
-              Carregar Escala Atual
-            </Button>
-
-            <Button 
-              variant="ghost" 
-              className="justify-start"
-              onClick={navigateToDatabaseConfig}
-            >
-              <Database className="h-4 w-4 mr-2" />
-              Configurar Base de Dados
-            </Button>
-          </>
-        )}
-        
-        <Button 
-          variant="ghost" 
-          className="justify-start"
-          onClick={navigateToProfile}
-        >
-          <UserCog className="h-4 w-4 mr-2" />
-          O Meu Perfil
-        </Button>
-        
-        <div className="mt-auto">
-          <p className="text-sm text-gray-600 mb-2">
-            {userName}
-            {role === 'admin' && <span className="ml-1 text-brand-indigo">(Admin)</span>}
-          </p>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleLogout}
-            className="flex items-center gap-1 w-full"
-          >
-            <LogOut className="h-4 w-4" />
-            Sair
-          </Button>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
+  const adminNavigation = [
+    { name: 'Utilizadores', href: '/dashboard/users', icon: Users },
+    { name: 'Escalas dos Utilizadores', href: '/dashboard/user-schedules', icon: Calendar },
+    { name: 'Carregar Escala', href: '/dashboard/schedule-upload', icon: Upload },
+    { name: 'Avisos', href: '/dashboard/announcements', icon: Bell },
+    { name: 'Configurações', href: '/dashboard/config/database', icon: Settings },
+  ];
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50 w-full">
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <img 
-              src="https://amares.cruzvermelha.pt/images/site/Amares.webp" 
-              alt="Cruz Vermelha Amares" 
-              className="h-8 object-contain" 
-            />
-          </div>
-          
-          <div className="hidden md:flex items-center space-x-6">
-            {renderMenuContent()}
-            
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600 hidden lg:inline">
-                Sessão iniciada como <span className="font-medium">{userName}</span>
-                {role === 'admin' && <span className="ml-1 text-brand-indigo">(Admin)</span>}
+    <nav className="bg-red-700 shadow-lg">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex justify-between h-16">
+          <div className="flex items-center">
+            <div className="flex-shrink-0 flex items-center">
+              <span className="text-white text-xl font-semibold">
+                Cruz Vermelha Amares
               </span>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleLogout}
-                className="flex items-center gap-1"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Sair</span>
-              </Button>
+            </div>
+            
+            <div className="hidden md:ml-10 md:flex md:space-x-8">
+              {navigation.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => navigate(item.href)}
+                    className={`${
+                      isActive(item.href)
+                        ? 'border-white text-white'
+                        : 'border-transparent text-red-100 hover:border-red-300 hover:text-white'
+                    } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200`}
+                  >
+                    <Icon className="h-4 w-4 mr-2" />
+                    {item.name}
+                  </button>
+                );
+              })}
+              
+              {isAdmin && (
+                <>
+                  <div className="border-l border-red-600 mx-4" />
+                  {adminNavigation.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.name}
+                        onClick={() => navigate(item.href)}
+                        className={`${
+                          isActive(item.href)
+                            ? 'border-white text-white'
+                            : 'border-transparent text-red-100 hover:border-red-300 hover:text-white'
+                        } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200`}
+                      >
+                        <Icon className="h-4 w-4 mr-2" />
+                        {item.name}
+                      </button>
+                    );
+                  })}
+                </>
+              )}
             </div>
           </div>
-          
-          <div className="md:hidden flex items-center">
-            {renderMobileMenu()}
+
+          <div className="hidden md:flex items-center space-x-4">
+            {/* Exchange notifications */}
+            <ExchangeNotifications userEmail={email} />
+            
+            <div className="flex items-center space-x-3">
+              <div className="text-red-100 text-sm">
+                <div className="flex items-center">
+                  <User className="h-4 w-4 mr-1" />
+                  {email}
+                </div>
+                {isAdmin && (
+                  <div className="text-xs text-red-200">Administrador</div>
+                )}
+              </div>
+              <button
+                onClick={handleLogout}
+                className="bg-red-800 hover:bg-red-900 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </button>
+            </div>
+          </div>
+
+          <div className="md:hidden flex items-center space-x-2">
+            <ExchangeNotifications userEmail={email} />
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="text-red-100 hover:text-white hover:bg-red-800 p-2 rounded-md transition-colors duration-200"
+            >
+              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
           </div>
         </div>
       </div>
-    </header>
+
+      {isOpen && (
+        <div className="md:hidden">
+          <div className="px-2 pt-2 pb-3 space-y-1 bg-red-800">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => {
+                    navigate(item.href);
+                    setIsOpen(false);
+                  }}
+                  className={`${
+                    isActive(item.href)
+                      ? 'bg-red-900 text-white'
+                      : 'text-red-100 hover:bg-red-700 hover:text-white'
+                  } block px-3 py-2 rounded-md text-base font-medium w-full text-left transition-colors duration-200`}
+                >
+                  <Icon className="h-5 w-5 mr-3 inline" />
+                  {item.name}
+                </button>
+              );
+            })}
+            
+            {isAdmin && (
+              <>
+                <div className="border-t border-red-600 my-3" />
+                <div className="text-red-200 text-xs uppercase font-semibold px-3 py-2">
+                  Administração
+                </div>
+                {adminNavigation.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.name}
+                      onClick={() => {
+                        navigate(item.href);
+                        setIsOpen(false);
+                      }}
+                      className={`${
+                        isActive(item.href)
+                          ? 'bg-red-900 text-white'
+                          : 'text-red-100 hover:bg-red-700 hover:text-white'
+                      } block px-3 py-2 rounded-md text-base font-medium w-full text-left transition-colors duration-200`}
+                    >
+                      <Icon className="h-5 w-5 mr-3 inline" />
+                      {item.name}
+                    </button>
+                  );
+                })}
+              </>
+            )}
+            
+            <div className="border-t border-red-600 my-3" />
+            <div className="px-3 py-2">
+              <div className="text-red-100 text-sm">{email}</div>
+              {isAdmin && (
+                <div className="text-xs text-red-200">Administrador</div>
+              )}
+              <button
+                onClick={handleLogout}
+                className="mt-2 w-full bg-red-900 hover:bg-red-950 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center justify-center"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </nav>
   );
 };
 

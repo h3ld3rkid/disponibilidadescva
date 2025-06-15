@@ -79,6 +79,7 @@ export type Database = {
           id: string
           month: string
           notes: string | null
+          printed_at: string | null
           updated_at: string
           user_email: string
           user_name: string
@@ -90,6 +91,7 @@ export type Database = {
           id?: string
           month: string
           notes?: string | null
+          printed_at?: string | null
           updated_at?: string
           user_email: string
           user_name: string
@@ -101,9 +103,61 @@ export type Database = {
           id?: string
           month?: string
           notes?: string | null
+          printed_at?: string | null
           updated_at?: string
           user_email?: string
           user_name?: string
+        }
+        Relationships: []
+      }
+      shift_exchange_requests: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          offered_date: string
+          offered_shift: string
+          requested_date: string
+          requested_shift: string
+          requester_email: string
+          requester_name: string
+          responded_at: string | null
+          status: string
+          target_email: string
+          target_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          offered_date: string
+          offered_shift: string
+          requested_date: string
+          requested_shift: string
+          requester_email: string
+          requester_name: string
+          responded_at?: string | null
+          status?: string
+          target_email: string
+          target_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          offered_date?: string
+          offered_shift?: string
+          requested_date?: string
+          requested_shift?: string
+          requester_email?: string
+          requester_name?: string
+          responded_at?: string | null
+          status?: string
+          target_email?: string
+          target_name?: string
+          updated_at?: string
         }
         Relationships: []
       }

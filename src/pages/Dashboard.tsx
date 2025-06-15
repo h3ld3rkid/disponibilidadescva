@@ -139,6 +139,7 @@ const Dashboard = () => {
             <Route path="/schedule" element={<ScheduleCalendar key={`schedule-calendar-${forceUpdate}`} userEmail={userInfo.email} isAdmin={isAdmin} />} />
             <Route path="/current-schedule" element={<CurrentSchedule isAdmin={isAdmin} />} />
             <Route path="/profile" element={<ProfileEdit />} />
+            <Route path="/exchanges" element={<ShiftExchange />} />
             
             <Route path="/users" element={checkAdminRoute(<UserManagement key={`user-management-${forceUpdate}`} />)} />
             <Route path="/user-schedules" element={checkAdminRoute(<UserSchedules key={`user-schedules-${forceUpdate}`} />)} />

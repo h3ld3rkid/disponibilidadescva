@@ -1,21 +1,12 @@
 
 import React from 'react';
-import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
-import { 
-  Table, TableBody, TableCell, TableHead, 
-  TableHeader, TableRow 
-} from "@/components/ui/table";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar, Trash2, RotateCcw } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogTrigger
-} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Eye, Trash2, RotateCcw, User, Mail, Hash, Calendar } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import SchedulePrintButton from './SchedulePrintButton';
 
 interface UserScheduleListProps {
   isLoading: boolean;
@@ -42,17 +33,25 @@ const UserScheduleList: React.FC<UserScheduleListProps> = ({
   onResetEditCounter,
   getUserNameFromEmail
 }) => {
+  const getUserSchedule = (email: string) => {
+    return schedules.find(schedule => schedule.email === email);
+  };
+
+  const getUserDetails = (email: string) => {
+    const schedule = getUserSchedule(email);
+    return {
+      name: schedule?.user || email,
+      mechanographicNumber: email.split('@')[0] // Fallback if not found
+    };
+  };
+
+  const isAdmin = userInfo?.role === 'admin';
+
   if (isLoading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Escalas dos Utilizadores</CardTitle>
-          <CardDescription>Visualize os utilizadores que submeteram escalas</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="py-10 text-center">
-            <div className="animate-pulse text-gray-500">A carregar escalas...</div>
-          </div>
+        <CardContent className="flex justify-center items-center py-8">
+          <div className="animate-pulse text-lg text-gray-600">A carregar escalas...</div>
         </CardContent>
       </Card>
     );
@@ -62,13 +61,18 @@ const UserScheduleList: React.FC<UserScheduleListProps> = ({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Escalas dos Utilizadores</CardTitle>
-          <CardDescription>Visualize os utilizadores que submeteram escalas</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-6 w-6" />
+            Escalas Submetidas
+          </CardTitle>
+          <CardDescription>
+            Lista de utilizadores que submeteram as suas escalas
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="py-10 text-center">
-            <div className="text-gray-500">Não existem escalas submetidas.</div>
-          </div>
+          <p className="text-center text-gray-500 py-8">
+            Ainda não foram submetidas escalas para o próximo mês.
+          </p>
         </CardContent>
       </Card>
     );
@@ -77,139 +81,132 @@ const UserScheduleList: React.FC<UserScheduleListProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Escalas dos Utilizadores</CardTitle>
-        <CardDescription>Visualize os utilizadores que submeteram escalas</CardDescription>
+        <CardTitle className="flex items-center gap-2">
+          <Calendar className="h-6 w-6" />
+          Escalas Submetidas ({userEmails.length})
+        </CardTitle>
+        <CardDescription>
+          Lista de utilizadores que submeteram as suas escalas
+        </CardDescription>
       </CardHeader>
-      
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {userInfo && userInfo.role === 'admin' && (
-                <TableHead className="w-[50px]"></TableHead>
-              )}
-              <TableHead>Utilizador</TableHead>
-              <TableHead>Meses com Escalas</TableHead>
-              {userInfo && userInfo.role === 'admin' && (
-                <TableHead className="w-[200px] text-right">Ações</TableHead>
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {userEmails.map((email) => {
-              // Get user name from email
-              const userName = getUserNameFromEmail(email);
-              
-              // Get months for this user
-              const userMonths = Array.from(new Set(
-                schedules
-                  .filter(s => s.email === email)
-                  .map(s => s.month)
-              ));
-              
-              return (
-                <TableRow key={email}>
-                  {userInfo && userInfo.role === 'admin' && (
-                    <TableCell>
-                      <Checkbox 
-                        checked={selectedUsers.includes(email)}
-                        onCheckedChange={() => toggleUserSelection(email)}
-                        className="ml-1"
-                      />
-                    </TableCell>
+        <div className="space-y-4">
+          {userEmails.map((email) => {
+            const userSchedule = getUserSchedule(email);
+            const userDetails = getUserDetails(email);
+            const isSelected = selectedUsers.includes(email);
+            const displayName = getUserNameFromEmail(email);
+            
+            return (
+              <div key={email} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                <div className="flex items-center space-x-4">
+                  {isAdmin && (
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => toggleUserSelection(email)}
+                    />
                   )}
-                  <TableCell className="font-medium">
-                    <Button 
-                      variant="link" 
-                      className="p-0 h-auto font-medium"
-                      onClick={() => onViewSchedule(email, userName)}
-                    >
-                      {userName}
-                    </Button>
-                  </TableCell>
-                  <TableCell>
-                    {userMonths.map((month) => (
-                      <span 
-                        key={`${email}-${month}`}
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-1"
-                      >
-                        {String(month)}
-                      </span>
-                    ))}
-                  </TableCell>
-                  {userInfo && userInfo.role === 'admin' && (
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => onViewSchedule(email, userName)}
-                          className="h-8 flex items-center"
-                        >
-                          <Calendar className="h-4 w-4 mr-1" />
-                          Ver Escala
-                        </Button>
-                        
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="destructive" 
-                              size="sm" 
-                              className="h-8 flex items-center"
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Eliminar
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Confirmar eliminação</DialogTitle>
-                            </DialogHeader>
-                            <p>Tem a certeza que deseja eliminar as escalas de {userName}?</p>
-                            <DialogFooter>
-                              <Button 
-                                variant="destructive" 
-                                onClick={() => onDeleteSchedule(email)}
-                              >
-                                Eliminar
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                        
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="h-8 flex items-center"
-                            >
-                              <RotateCcw className="h-4 w-4 mr-1" />
-                              Resetar
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Reiniciar contador</DialogTitle>
-                            </DialogHeader>
-                            <p>Deseja reiniciar o contador de edições para {userName}?</p>
-                            <DialogFooter>
-                              <Button 
-                                onClick={() => onResetEditCounter(email)}
-                              >
-                                Reiniciar (0/2)
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
+                  
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <User className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">{displayName}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        {email}
                       </div>
-                    </TableCell>
+                      {userSchedule?.editCount !== undefined && (
+                        <div className="flex items-center gap-1">
+                          <Hash className="h-3 w-3" />
+                          Edições: {userSchedule.editCount}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {userSchedule?.printedAt && (
+                      <Badge variant="secondary" className="text-xs mt-1">
+                        Impresso em {new Date(userSchedule.printedAt).toLocaleDateString('pt-PT')}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  {/* Print button for admin */}
+                  {isAdmin && userSchedule && (
+                    <SchedulePrintButton
+                      userEmail={email}
+                      userName={userDetails.name}
+                      mechanographicNumber={userDetails.mechanographicNumber}
+                      scheduleData={userSchedule.dates}
+                      printedAt={userSchedule.printedAt}
+                      onPrintComplete={() => window.location.reload()}
+                    />
                   )}
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onViewSchedule(email, userDetails.name)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  
+                  {isAdmin && (
+                    <>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Reiniciar contador de edições</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem a certeza que pretende reiniciar o contador de edições para {displayName}? Esta ação permitirá ao utilizador editar a escala novamente.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onResetEditCounter(email)}>
+                              Reiniciar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Eliminar escalas</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem a certeza que pretende eliminar as escalas de {displayName}? Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDeleteSchedule(email)}>
+                              Eliminar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </CardContent>
     </Card>
   );

@@ -1,3 +1,4 @@
+
 import { supabase } from "./client";
 
 export const scheduleService = {
@@ -28,7 +29,7 @@ export const scheduleService = {
       let result;
       
       if (existing) {
-        // Update existing schedule for THIS USER
+        // Update existing schedule for THIS USER - reset printed_at when user submits new schedule
         console.log('Updating existing schedule with ID:', existing.id, 'for user:', userEmail);
         result = await supabase
           .from('schedules')
@@ -36,6 +37,7 @@ export const scheduleService = {
             user_name: userName,
             dates: scheduleData,
             edit_count: (existing.edit_count || 0) + 1,
+            printed_at: null, // Reset print status when schedule is updated
             updated_at: new Date().toISOString()
           })
           .eq('id', existing.id)
@@ -51,7 +53,8 @@ export const scheduleService = {
             user_name: userName,
             month: month,
             dates: scheduleData,
-            edit_count: 1
+            edit_count: 1,
+            printed_at: null
           })
           .select();
       }
@@ -93,7 +96,8 @@ export const scheduleService = {
           user: schedule.user_name,
           month: schedule.month,
           dates: schedule.dates,
-          editCount: schedule.edit_count
+          editCount: schedule.edit_count,
+          printedAt: schedule.printed_at
         }));
       }
       
@@ -101,6 +105,36 @@ export const scheduleService = {
     } catch (error) {
       console.error('Error getting schedules:', error);
       return [];
+    }
+  },
+
+  // Mark schedule as printed
+  async markScheduleAsPrinted(userEmail: string): Promise<{ success: boolean }> {
+    console.log('=== MARKING SCHEDULE AS PRINTED ===');
+    console.log('User email:', userEmail);
+    
+    try {
+      const month = new Date().getFullYear() + '-' + String(new Date().getMonth() + 2).padStart(2, '0');
+      
+      const { error } = await supabase
+        .from('schedules')
+        .update({ 
+          printed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_email', userEmail)
+        .eq('month', month);
+        
+      if (error) {
+        console.error('Error marking schedule as printed:', error);
+        throw error;
+      }
+      
+      console.log('Schedule marked as printed successfully');
+      return { success: true };
+    } catch (error) {
+      console.error('Error in markScheduleAsPrinted:', error);
+      return { success: false };
     }
   },
   
