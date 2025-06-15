@@ -57,7 +57,7 @@ export const shiftExchangeService = {
       }
       
       console.log('Exchange request created successfully:', result);
-      return { success: true, data: result };
+      return { success: true, data: result as ShiftExchangeRequest };
     } catch (error) {
       console.error('Error in createExchangeRequest:', error);
       return { success: false };
@@ -82,7 +82,7 @@ export const shiftExchangeService = {
       }
       
       console.log('Exchange requests retrieved:', data);
-      return data || [];
+      return (data || []) as ShiftExchangeRequest[];
     } catch (error) {
       console.error('Error in getUserExchangeRequests:', error);
       return [];
@@ -108,7 +108,7 @@ export const shiftExchangeService = {
       }
       
       console.log('Pending requests retrieved:', data);
-      return data || [];
+      return (data || []) as ShiftExchangeRequest[];
     } catch (error) {
       console.error('Error in getPendingRequestsForUser:', error);
       return [];

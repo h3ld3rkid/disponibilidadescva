@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +12,7 @@ import ScheduleUpload from '@/components/admin/ScheduleUpload';
 import DatabaseConfigForm from '@/components/config/DatabaseConfig';
 import Announcements from '@/components/announcements/Announcements';
 import AnnouncementBanner from '@/components/announcements/AnnouncementBanner';
+import ShiftExchange from '@/components/schedule/ShiftExchange';
 
 interface UserInfo {
   email: string;
