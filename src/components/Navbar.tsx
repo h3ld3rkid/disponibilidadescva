@@ -4,6 +4,7 @@ import { Menu, X, LogOut, User, Calendar, Users, FileText, Upload, Bell, ArrowLe
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
 import ExchangeNotifications from './schedule/ExchangeNotifications';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface NavbarProps {
   email: string;
@@ -15,6 +16,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const handleLogout = () => {
     localStorage.removeItem('mysqlConnection');
@@ -54,67 +56,75 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <div className="flex-shrink-0 flex items-center">
-              <span className="text-white text-xl font-semibold">
-                Cruz Vermelha Amares
+              <span className="text-white text-lg md:text-xl font-semibold">
+                {isMobile ? 'CVA' : 'Cruz Vermelha Amares'}
               </span>
             </div>
             
-            <div className="hidden md:ml-10 md:flex md:space-x-8">
-              {navigation.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.name}
-                    onClick={() => navigate(item.href)}
-                    className={`${
-                      isActive(item.href)
-                        ? 'border-white text-white'
-                        : 'border-transparent text-red-100 hover:border-red-300 hover:text-white'
-                    } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200`}
-                  >
-                    <Icon className="h-4 w-4 mr-2" />
-                    {item.name}
-                  </button>
-                );
-              })}
-              
-              {isAdmin && (
-                <>
-                  <div className="border-l border-red-600 mx-4" />
-                  {adminNavigation.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.name}
-                        onClick={() => navigate(item.href)}
-                        className={`${
-                          isActive(item.href)
-                            ? 'border-white text-white'
-                            : 'border-transparent text-red-100 hover:border-red-300 hover:text-white'
-                        } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200`}
-                      >
-                        <Icon className="h-4 w-4 mr-2" />
-                        {item.name}
-                      </button>
-                    );
-                  })}
-                </>
-              )}
-            </div>
+            {!isMobile && (
+              <div className="hidden lg:ml-6 lg:flex lg:space-x-4">
+                {navigation.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.name}
+                      onClick={() => navigate(item.href)}
+                      className={`${
+                        isActive(item.href)
+                          ? 'border-white text-white'
+                          : 'border-transparent text-red-100 hover:border-red-300 hover:text-white'
+                      } inline-flex items-center px-2 xl:px-3 pt-1 border-b-2 text-sm font-medium transition-colors duration-200`}
+                    >
+                      <Icon className="h-4 w-4 mr-1 xl:mr-2" />
+                      <span className="hidden xl:inline">{item.name}</span>
+                      <span className="xl:hidden">{item.name.split(' ')[0]}</span>
+                    </button>
+                  );
+                })}
+                
+                {isAdmin && (
+                  <>
+                    <div className="border-l border-red-600 mx-2" />
+                    {adminNavigation.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.name}
+                          onClick={() => navigate(item.href)}
+                          className={`${
+                            isActive(item.href)
+                              ? 'border-white text-white'
+                              : 'border-transparent text-red-100 hover:border-red-300 hover:text-white'
+                          } inline-flex items-center px-2 xl:px-3 pt-1 border-b-2 text-sm font-medium transition-colors duration-200`}
+                        >
+                          <Icon className="h-4 w-4 mr-1 xl:mr-2" />
+                          <span className="hidden xl:inline">{item.name}</span>
+                          <span className="xl:hidden">
+                            {item.name === 'Utilizadores' ? 'Users' : 
+                             item.name === 'Escalas dos Utilizadores' ? 'Escalas' :
+                             item.name === 'Carregar Escala' ? 'Upload' :
+                             item.name === 'Configurações' ? 'Config' : item.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="hidden md:flex items-center space-x-4">
-            {/* Exchange notifications */}
+          <div className="hidden lg:flex items-center space-x-3">
             <ExchangeNotifications userEmail={email} />
             
             <div className="flex items-center space-x-3">
               <div className="text-red-100 text-sm">
                 <div className="flex items-center">
                   <User className="h-4 w-4 mr-1" />
-                  {email}
+                  <span className="max-w-32 xl:max-w-none truncate">{email}</span>
                 </div>
                 {isAdmin && (
-                  <div className="text-xs text-red-200">Administrador</div>
+                  <div className="text-xs text-red-200">Admin</div>
                 )}
               </div>
               <button
@@ -122,12 +132,12 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
                 className="bg-red-800 hover:bg-red-900 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center"
               >
                 <LogOut className="h-4 w-4 mr-2" />
-                Sair
+                <span className="hidden xl:inline">Sair</span>
               </button>
             </div>
           </div>
 
-          <div className="md:hidden flex items-center space-x-2">
+          <div className="lg:hidden flex items-center space-x-2">
             <ExchangeNotifications userEmail={email} />
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -140,7 +150,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
       </div>
 
       {isOpen && (
-        <div className="md:hidden">
+        <div className="lg:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 bg-red-800">
             {navigation.map((item) => {
               const Icon = item.icon;

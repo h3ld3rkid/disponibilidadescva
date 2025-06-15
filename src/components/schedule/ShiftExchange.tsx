@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { shiftExchangeService, ShiftExchangeRequest } from "@/services/supabase/shiftExchangeService";
 import { userService } from "@/services/supabase/userService";
-import { ArrowLeftRight, Send, Check, X, Search } from 'lucide-react';
+import { ArrowLeftRight, Send, Check, X, Search, Info } from 'lucide-react';
+import { isWeekendOrHoliday, getDayType } from '@/utils/dateUtils';
 
 interface User {
   id: string;
@@ -58,6 +59,40 @@ const ShiftExchange = () => {
     } catch (error) {
       console.error('Error loading exchange requests:', error);
     }
+  };
+
+  const getShiftOptions = (date: string) => {
+    if (!date) return [];
+    
+    const dayType = getDayType(date);
+    
+    if (dayType === 'weekday') {
+      return [
+        { value: 'day', label: 'Turno Diurno' },
+        { value: 'overnight', label: 'Pernoite' },
+      ];
+    } else {
+      return [
+        { value: 'morning', label: 'Turno Manhã' },
+        { value: 'afternoon', label: 'Turno Tarde' },
+        { value: 'night', label: 'Turno Noite' },
+      ];
+    }
+  };
+
+  const getDayTypeLabel = (date: string) => {
+    if (!date) return '';
+    
+    const dayType = getDayType(date);
+    const dateObj = new Date(date);
+    const dayName = dateObj.toLocaleDateString('pt-PT', { weekday: 'long' });
+    
+    if (dayType === 'holiday') {
+      return `${dayName} (Feriado)`;
+    } else if (dayType === 'weekend') {
+      return `${dayName} (Fim de semana)`;
+    }
+    return dayName;
   };
 
   const filteredUsers = users.filter(user => 
@@ -152,6 +187,9 @@ const ShiftExchange = () => {
     switch (shift) {
       case 'day': return 'Turno Diurno';
       case 'overnight': return 'Pernoite';
+      case 'morning': return 'Turno Manhã';
+      case 'afternoon': return 'Turno Tarde';
+      case 'night': return 'Turno Noite';
       default: return shift;
     }
   };
@@ -246,15 +284,24 @@ const ShiftExchange = () => {
                 {/* What you want from them */}
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">O que pretende do {selectedUser.name}:</Label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <Label htmlFor="requestedDate">Data</Label>
                       <Input
                         id="requestedDate"
                         type="date"
                         value={requestedDate}
-                        onChange={(e) => setRequestedDate(e.target.value)}
+                        onChange={(e) => {
+                          setRequestedDate(e.target.value);
+                          setRequestedShift(''); // Reset shift when date changes
+                        }}
                       />
+                      {requestedDate && (
+                        <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                          <Info className="h-3 w-3" />
+                          {getDayTypeLabel(requestedDate)}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="requestedShift">Tipo de Turno</Label>
@@ -263,8 +310,11 @@ const ShiftExchange = () => {
                           <SelectValue placeholder="Selecionar" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="day">Turno Diurno</SelectItem>
-                          <SelectItem value="overnight">Pernoite</SelectItem>
+                          {getShiftOptions(requestedDate).map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -274,15 +324,24 @@ const ShiftExchange = () => {
                 {/* What you offer */}
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">O que oferece em troca:</Label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <Label htmlFor="offeredDate">Data</Label>
                       <Input
                         id="offeredDate"
                         type="date"
                         value={offeredDate}
-                        onChange={(e) => setOfferedDate(e.target.value)}
+                        onChange={(e) => {
+                          setOfferedDate(e.target.value);
+                          setOfferedShift(''); // Reset shift when date changes
+                        }}
                       />
+                      {offeredDate && (
+                        <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                          <Info className="h-3 w-3" />
+                          {getDayTypeLabel(offeredDate)}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="offeredShift">Tipo de Turno</Label>
@@ -291,8 +350,11 @@ const ShiftExchange = () => {
                           <SelectValue placeholder="Selecionar" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="day">Turno Diurno</SelectItem>
-                          <SelectItem value="overnight">Pernoite</SelectItem>
+                          {getShiftOptions(offeredDate).map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -358,10 +420,16 @@ const ShiftExchange = () => {
                       <div>
                         <strong>Pretende:</strong> {getShiftTypeLabel(request.requested_shift)} em{' '}
                         {new Date(request.requested_date).toLocaleDateString('pt-PT')}
+                        <span className="text-xs text-gray-400 ml-1">
+                          ({getDayTypeLabel(request.requested_date)})
+                        </span>
                       </div>
                       <div>
                         <strong>Oferece:</strong> {getShiftTypeLabel(request.offered_shift)} em{' '}
                         {new Date(request.offered_date).toLocaleDateString('pt-PT')}
+                        <span className="text-xs text-gray-400 ml-1">
+                          ({getDayTypeLabel(request.offered_date)})
+                        </span>
                       </div>
                       {request.message && (
                         <div className="mt-2">
