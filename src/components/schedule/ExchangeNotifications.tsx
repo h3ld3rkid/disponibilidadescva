@@ -79,6 +79,9 @@ const ExchangeNotifications: React.FC<ExchangeNotificationsProps> = ({ userEmail
     switch (shift) {
       case 'day': return 'Turno Diurno';
       case 'overnight': return 'Pernoite';
+      case 'morning': return 'Turno Manhã';
+      case 'afternoon': return 'Turno Tarde';
+      case 'night': return 'Turno Noite';
       default: return shift;
     }
   };
