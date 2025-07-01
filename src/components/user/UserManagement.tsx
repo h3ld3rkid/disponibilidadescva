@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { Button } from "@/components/ui/button";
@@ -12,9 +13,17 @@ import {
 } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast";
 import { userService } from "@/services/supabase/userService";
-import { ReloadIcon, Plus, Edit, Trash, CheckCheck, UserCog } from 'lucide-react';
+import { Loader, Plus, Edit, Trash, CheckCheck, UserCog } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +38,7 @@ import {
 import PasswordResetSection from '@/components/admin/PasswordResetSection';
 
 interface User {
-  id: string; // Made required to match component expectations
+  id: string;
   name: string;
   email: string;
   password?: string;
@@ -147,7 +156,7 @@ const UserForm = ({ onUserCreated }: { onUserCreated: () => void }) => {
           <Button disabled={isLoading} type="submit">
             {isLoading ? (
               <>
-                <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+                <Loader className="mr-2 h-4 w-4 animate-spin" />
                 A criar...
               </>
             ) : (
@@ -431,7 +440,7 @@ const UserList = ({
             <Button onClick={handleUpdateUser} disabled={isUpdating}>
               {isUpdating ? (
                 <>
-                  <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
                   A atualizar...
                 </>
               ) : (
@@ -459,7 +468,7 @@ const UserList = ({
             <AlertDialogAction onClick={handleDeleteUser} disabled={isDeleting}>
               {isDeleting ? (
                 <>
-                  <ReloadIcon className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
                   A apagar...
                 </>
               ) : (
@@ -472,8 +481,6 @@ const UserList = ({
     </>
   );
 };
-
-import PasswordResetSection from '@/components/admin/PasswordResetSection';
 
 const UserManagement = () => {
   const [users, setUsers] = useState<User[]>([]);
