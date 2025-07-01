@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import ExchangeNotifications from '@/components/schedule/ExchangeNotifications';
+import { userService } from "@/services/supabase/userService";
 
 interface NavbarProps {
   email: string;
@@ -34,16 +35,36 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
   const isAdmin = role === 'admin';
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('mysqlConnection');
-    if (storedUser) {
+    const fetchUserInfo = async () => {
       try {
-        const parsedUser = JSON.parse(storedUser);
-        setUserInfo(parsedUser);
+        // Get user info from localStorage first
+        const storedUser = localStorage.getItem('mysqlConnection');
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUserInfo(parsedUser);
+          
+          // If mechanographic number is missing, fetch from database
+          if (!parsedUser.mechanographic_number || parsedUser.mechanographic_number === 'N/A') {
+            const allUsers = await userService.getAllUsers();
+            const currentUser = allUsers.find(user => user.email === email);
+            if (currentUser) {
+              const updatedUser = {
+                ...parsedUser,
+                mechanographic_number: currentUser.mechanographic_number,
+                name: currentUser.name
+              };
+              setUserInfo(updatedUser);
+              localStorage.setItem('mysqlConnection', JSON.stringify(updatedUser));
+            }
+          }
+        }
       } catch (error) {
-        console.error("Error parsing user info:", error);
+        console.error("Error fetching user info:", error);
       }
-    }
-  }, []);
+    };
+
+    fetchUserInfo();
+  }, [email]);
 
   const handleLogout = () => {
     localStorage.removeItem('mysqlConnection');
@@ -74,34 +95,32 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
     { path: '/dashboard/config/database', icon: Settings, label: 'Configurações' },
   ];
 
-  const allNavItems = isAdmin ? [...userNavItems, ...adminNavItems] : userNavItems;
-
   return (
     <nav className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
-      <div className="w-full px-2 sm:px-4 max-w-full">
+      <div className="w-full px-2 sm:px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo and Brand */}
-          <div className="flex items-center space-x-2 flex-shrink-0 min-w-0">
+          <div className="flex items-center space-x-2 flex-shrink-0">
             <Link to="/dashboard" className="flex items-center space-x-2">
               <img 
                 src="https://amares.cruzvermelha.pt/images/site/Amares.webp" 
                 alt="Cruz Vermelha Amares" 
-                className="h-8 w-auto flex-shrink-0" 
+                className="h-8 w-auto" 
               />
-              <span className="font-semibold text-lg text-gray-900 hidden lg:block truncate">
+              <span className="font-semibold text-lg text-gray-900 hidden lg:block">
                 Escalas CVA
               </span>
             </Link>
           </div>
 
-          {/* Desktop Navigation - Scrollable */}
-          <div className="hidden md:flex items-center flex-1 justify-center mx-4 min-w-0">
-            <div className="flex items-center space-x-1 overflow-x-auto scrollbar-hide max-w-full pb-1">
+          {/* Desktop Navigation - Full Width */}
+          <div className="hidden md:flex items-center justify-center flex-1 mx-4">
+            <div className="flex items-center space-x-1">
               {userNavItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center space-x-1 px-2 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
+                  className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                     isActivePath(item.path)
                       ? 'bg-red-100 text-red-700'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -114,12 +133,12 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
               
               {isAdmin && (
                 <>
-                  <div className="h-6 w-px bg-gray-300 mx-2 flex-shrink-0" />
+                  <div className="h-6 w-px bg-gray-300 mx-2" />
                   {adminNavItems.map((item) => (
                     <Link
                       key={item.path}
                       to={item.path}
-                      className={`flex items-center space-x-1 px-2 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
+                      className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                         isActivePath(item.path)
                           ? 'bg-red-100 text-red-700'
                           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -135,15 +154,15 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
           </div>
 
           {/* User Info and Actions */}
-          <div className="flex items-center space-x-2 flex-shrink-0 min-w-0">
+          <div className="flex items-center space-x-2 flex-shrink-0">
             {/* Exchange Notifications */}
             {userInfo?.email && (
               <ExchangeNotifications userEmail={userInfo.email} />
             )}
             
             {/* User Info */}
-            <div className="hidden sm:flex flex-col items-end min-w-0">
-              <span className="text-sm font-medium text-gray-900 truncate max-w-32">
+            <div className="hidden sm:flex flex-col items-end">
+              <span className="text-sm font-medium text-gray-900 max-w-32 truncate">
                 {userInfo?.name || email}
               </span>
               <div className="flex items-center space-x-1">
@@ -163,7 +182,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
               onClick={handleLogout}
               variant="ghost"
               size="sm"
-              className="text-gray-600 hover:text-red-600 flex-shrink-0"
+              className="text-gray-600 hover:text-red-600"
             >
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:ml-2 sm:inline">Sair</span>
@@ -174,7 +193,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
               onClick={() => setIsOpen(!isOpen)}
               variant="ghost"
               size="sm"
-              className="md:hidden flex-shrink-0"
+              className="md:hidden"
             >
               {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
@@ -244,18 +263,6 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
           </div>
         )}
       </div>
-      
-      <style>
-        {`
-          .scrollbar-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-          }
-          .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-          }
-        `}
-      </style>
     </nav>
   );
 };

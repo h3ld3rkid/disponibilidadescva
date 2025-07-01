@@ -65,6 +65,9 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
       const targetMonth = new Date(now.getFullYear(), now.getMonth() + 1);
       const monthName = targetMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
       
+      console.log('PDF Generation - Schedule data:', scheduleData);
+      console.log('PDF Generation - User info:', { userName, mechanographicNumber });
+      
       // Header
       doc.setFontSize(20);
       doc.text('Cruz Vermelha Portuguesa - Amares', 20, 20);
@@ -72,28 +75,38 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
       doc.setFontSize(16);
       doc.text(`Escala - ${monthName}`, 20, 35);
       
-      // User info - FIXED: Now shows mechanographic number correctly
+      // User info
       doc.setFontSize(12);
       doc.text(`Nome: ${userName}`, 20, 55);
       doc.text(`Número Mecanográfico: ${mechanographicNumber}`, 20, 65);
       
       let yPosition = 85;
       
-      // FIXED: Process all shifts correctly from scheduleData
+      // Process schedule data to extract shifts
       if (scheduleData && typeof scheduleData === 'object') {
         const allShifts = [];
         
+        console.log('Processing schedule data:', scheduleData);
+        
         // Handle different schedule data formats
-        if (scheduleData.dates) {
+        if (scheduleData.dates && typeof scheduleData.dates === 'object') {
           // New format with dates object
+          console.log('Using new format with dates object');
           Object.entries(scheduleData.dates).forEach(([date, shifts]: [string, any]) => {
+            // Skip non-date keys like 'notes'
+            if (date === 'notes' || !date.includes('-')) return;
+            
+            console.log(`Processing date ${date}:`, shifts);
+            
             if (Array.isArray(shifts)) {
               shifts.forEach(shift => {
+                console.log(`Adding shift: ${date} - ${shift}`);
                 allShifts.push({ date, shift });
               });
             } else if (typeof shifts === 'object' && shifts !== null) {
               Object.entries(shifts).forEach(([shiftType, isSelected]) => {
-                if (isSelected) {
+                if (isSelected === true) {
+                  console.log(`Adding selected shift: ${date} - ${shiftType}`);
                   allShifts.push({ date, shift: shiftType });
                 }
               });
@@ -101,23 +114,30 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
           });
         } else {
           // Legacy format - direct date keys
+          console.log('Using legacy format');
           Object.entries(scheduleData).forEach(([date, shifts]: [string, any]) => {
             // Skip non-date keys
             if (date === 'notes' || !date.includes('-')) return;
             
+            console.log(`Processing legacy date ${date}:`, shifts);
+            
             if (Array.isArray(shifts)) {
               shifts.forEach(shift => {
+                console.log(`Adding legacy shift: ${date} - ${shift}`);
                 allShifts.push({ date, shift });
               });
             } else if (typeof shifts === 'object' && shifts !== null) {
               Object.entries(shifts).forEach(([shiftType, isSelected]) => {
-                if (isSelected) {
+                if (isSelected === true) {
+                  console.log(`Adding selected legacy shift: ${date} - ${shiftType}`);
                   allShifts.push({ date, shift: shiftType });
                 }
               });
             }
           });
         }
+        
+        console.log('All processed shifts:', allShifts);
         
         // Sort shifts by date
         allShifts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -130,6 +150,7 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
           doc.setFontSize(11);
           allShifts.forEach(({ date, shift }) => {
             const formattedShift = formatShiftForPDF(date, shift);
+            console.log(`Adding to PDF: ${formattedShift}`);
             doc.text(formattedShift, 25, yPosition);
             yPosition += 8;
             
@@ -140,10 +161,16 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
             }
           });
         } else {
+          console.log('No shifts found, adding "no shifts" message');
           doc.setFontSize(12);
           doc.text('Nenhum turno selecionado', 20, yPosition);
           yPosition += 15;
         }
+      } else {
+        console.log('Invalid schedule data format');
+        doc.setFontSize(12);
+        doc.text('Dados de escala inválidos', 20, yPosition);
+        yPosition += 15;
       }
       
       yPosition += 15;
@@ -166,7 +193,9 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
       doc.text(`Impresso em: ${new Date().toLocaleDateString('pt-PT')} às ${new Date().toLocaleTimeString('pt-PT')}`, 20, 280);
       
       // Save PDF
-      doc.save(`Escala_${userName.replace(/\s+/g, '_')}_${monthName.replace(/\s+/g, '_')}.pdf`);
+      const fileName = `Escala_${userName.replace(/\s+/g, '_')}_${monthName.replace(/\s+/g, '_')}.pdf`;
+      console.log(`Saving PDF as: ${fileName}`);
+      doc.save(fileName);
       
       // Mark as printed in database
       const result = await scheduleService.markScheduleAsPrinted(userEmail);

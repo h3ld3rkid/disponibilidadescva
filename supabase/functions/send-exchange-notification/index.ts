@@ -29,10 +29,15 @@ serve(async (req) => {
   }
 
   try {
+    console.log('=== SEND EXCHANGE NOTIFICATION FUNCTION START ===');
+    
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+
+    const requestData: NotificationRequest = await req.json();
+    console.log('Request data received:', requestData);
 
     const {
       requestId,
@@ -45,22 +50,45 @@ serve(async (req) => {
       offeredDate,
       offeredShift,
       message
-    }: NotificationRequest = await req.json();
+    } = requestData;
+
+    // Check if RESEND_API_KEY is available
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY not found in environment variables');
+      return new Response(JSON.stringify({ 
+        success: false, 
+        message: 'Email service not configured' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     // Get app settings
-    const { data: settings } = await supabase
+    const { data: settings, error: settingsError } = await supabase
       .from('system_settings')
       .select('key, value')
       .in('key', ['email_notifications_enabled', 'smtp_from_email', 'app_name']);
+
+    if (settingsError) {
+      console.error('Error fetching settings:', settingsError);
+    }
 
     const settingsMap = settings?.reduce((acc, setting) => {
       acc[setting.key] = setting.value;
       return acc;
     }, {} as Record<string, string>) || {};
 
+    console.log('System settings:', settingsMap);
+
+    // Check if email notifications are enabled
     if (settingsMap.email_notifications_enabled !== 'true') {
-      console.log('Email notifications are disabled');
-      return new Response(JSON.stringify({ success: false, message: 'Email notifications disabled' }), {
+      console.log('Email notifications are disabled in system settings');
+      return new Response(JSON.stringify({ 
+        success: false, 
+        message: 'Email notifications disabled' 
+      }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -129,37 +157,65 @@ serve(async (req) => {
       </div>
     `;
 
-    const { error: emailError } = await resend.emails.send({
-      from: settingsMap.smtp_from_email || 'noreply@cruzvermelha-amares.pt',
-      to: [targetEmail],
-      subject: `Novo pedido de troca de turno - ${settingsMap.app_name || 'Cruz Vermelha Amares'}`,
-      html: emailContent,
-    });
+    console.log('Sending email to:', targetEmail);
+    console.log('From email:', settingsMap.smtp_from_email || 'noreply@cruzvermelha-amares.pt');
 
-    if (emailError) {
-      console.error('Error sending email:', emailError);
-      throw emailError;
+    try {
+      const { data: emailResult, error: emailError } = await resend.emails.send({
+        from: settingsMap.smtp_from_email || 'noreply@cruzvermelha-amares.pt',
+        to: [targetEmail],
+        subject: `Novo pedido de troca de turno - ${settingsMap.app_name || 'Cruz Vermelha Amares'}`,
+        html: emailContent,
+      });
+
+      if (emailError) {
+        console.error('Resend API error:', emailError);
+        throw emailError;
+      }
+
+      console.log('Email sent successfully:', emailResult);
+
+      // Mark email as sent
+      const { error: updateError } = await supabase
+        .from('shift_exchange_requests')
+        .update({
+          email_sent: true,
+          email_sent_at: new Date().toISOString()
+        })
+        .eq('id', requestId);
+
+      if (updateError) {
+        console.error('Error updating email sent status:', updateError);
+        // Don't fail the entire operation for this
+      }
+
+      console.log('Exchange notification email sent successfully to:', targetEmail);
+
+      return new Response(JSON.stringify({ 
+        success: true,
+        message: 'Email sent successfully' 
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+
+    } catch (emailError) {
+      console.error('Error sending email via Resend:', emailError);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: `Email sending failed: ${emailError.message}` 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
-
-    // Mark email as sent
-    await supabase
-      .from('shift_exchange_requests')
-      .update({
-        email_sent: true,
-        email_sent_at: new Date().toISOString()
-      })
-      .eq('id', requestId);
-
-    console.log('Exchange notification email sent successfully to:', targetEmail);
-
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
 
   } catch (error) {
     console.error('Error in send-exchange-notification function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: error.message 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
