@@ -29,7 +29,8 @@ import {
 } from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast";
 import { userService } from "@/services/supabase/userService";
-import { Loader, Plus, Edit, Trash, CheckCheck, UserCog } from 'lucide-react';
+import { authService } from "@/services/supabase/authService";
+import { Loader, Plus, Edit, Trash, CheckCheck, UserCog, RotateCcw } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,7 +42,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import PasswordResetSection from '@/components/admin/PasswordResetSection';
 
 interface User {
   id: string;
@@ -195,6 +195,7 @@ const UserList = ({
   const [editRole, setEditRole] = useState<'admin' | 'user'>('user');
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const { toast } = useToast();
 
   const handleOpenEditDialog = (user: User) => {
@@ -306,6 +307,32 @@ const UserList = ({
     }
   };
 
+  const handleResetPassword = async (user: User) => {
+    setIsResettingPassword(true);
+    try {
+      const result = await authService.resetPassword(user.email);
+      
+      if (result.success) {
+        toast({
+          title: "Password reposta",
+          description: `A password do utilizador ${user.name} foi reposta para "CVAmares".`,
+        });
+        onUserUpdated();
+      } else {
+        throw new Error('Failed to reset password');
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast({
+        title: "Erro ao repor password",
+        description: `Não foi possível repor a password para ${user.name}.`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   return (
     <>
       <Card>
@@ -353,6 +380,44 @@ const UserList = ({
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isResettingPassword}
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Repor Password</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem a certeza que quer repor a password do utilizador "{user.name}" para "CVAmares"?
+                              O utilizador terá de alterar a password no próximo login.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleResetPassword(user)}
+                              disabled={isResettingPassword}
+                            >
+                              {isResettingPassword ? (
+                                <>
+                                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                                  A repor...
+                                </>
+                              ) : (
+                                "Repor Password"
+                              )}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="destructive" size="sm">
@@ -528,9 +593,6 @@ const UserManagement = () => {
       <div className="space-y-6">
         {/* User Form */}
         <UserForm onUserCreated={handleUserCreated} />
-        
-        {/* Password Reset Section */}
-        <PasswordResetSection />
         
         {/* User List */}
         <UserList 

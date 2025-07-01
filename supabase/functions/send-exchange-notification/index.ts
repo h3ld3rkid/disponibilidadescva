@@ -21,8 +21,6 @@ interface NotificationRequest {
   message?: string;
 }
 
-const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -65,6 +63,8 @@ serve(async (req) => {
       });
     }
 
+    const resend = new Resend(resendApiKey);
+
     // Get app settings
     const { data: settings, error: settingsError } = await supabase
       .from('system_settings')
@@ -82,8 +82,9 @@ serve(async (req) => {
 
     console.log('System settings:', settingsMap);
 
-    // Check if email notifications are enabled
-    if (settingsMap.email_notifications_enabled !== 'true') {
+    // Check if email notifications are enabled (default to true if not set)
+    const emailNotificationsEnabled = settingsMap.email_notifications_enabled !== 'false';
+    if (!emailNotificationsEnabled) {
       console.log('Email notifications are disabled in system settings');
       return new Response(JSON.stringify({ 
         success: false, 
@@ -157,12 +158,13 @@ serve(async (req) => {
       </div>
     `;
 
+    const fromEmail = settingsMap.smtp_from_email || 'noreply@cruzvermelha-amares.pt';
     console.log('Sending email to:', targetEmail);
-    console.log('From email:', settingsMap.smtp_from_email || 'noreply@cruzvermelha-amares.pt');
+    console.log('From email:', fromEmail);
 
     try {
       const { data: emailResult, error: emailError } = await resend.emails.send({
-        from: settingsMap.smtp_from_email || 'noreply@cruzvermelha-amares.pt',
+        from: fromEmail,
         to: [targetEmail],
         subject: `Novo pedido de troca de turno - ${settingsMap.app_name || 'Cruz Vermelha Amares'}`,
         html: emailContent,

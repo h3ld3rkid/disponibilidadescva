@@ -97,55 +97,55 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
 
   return (
     <nav className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
-      <div className="w-full px-2 sm:px-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo and Brand */}
-          <div className="flex items-center space-x-2 flex-shrink-0">
-            <Link to="/dashboard" className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3 flex-shrink-0">
+            <Link to="/dashboard" className="flex items-center space-x-3">
               <img 
                 src="https://amares.cruzvermelha.pt/images/site/Amares.webp" 
                 alt="Cruz Vermelha Amares" 
                 className="h-8 w-auto" 
               />
-              <span className="font-semibold text-lg text-gray-900 hidden lg:block">
+              <span className="font-semibold text-lg text-gray-900 hidden sm:block">
                 Escalas CVA
               </span>
             </Link>
           </div>
 
-          {/* Desktop Navigation - Full Width */}
-          <div className="hidden md:flex items-center justify-center flex-1 mx-4">
+          {/* Desktop Navigation - Centered */}
+          <div className="hidden md:flex items-center justify-center flex-1 max-w-4xl mx-8">
             <div className="flex items-center space-x-1">
               {userNavItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                     isActivePath(item.path)
                       ? 'bg-red-100 text-red-700'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
                   <item.icon className="h-4 w-4" />
-                  <span className="hidden lg:inline">{item.label}</span>
+                  <span>{item.label}</span>
                 </Link>
               ))}
               
               {isAdmin && (
                 <>
-                  <div className="h-6 w-px bg-gray-300 mx-2" />
+                  <div className="h-6 w-px bg-gray-300 mx-3" />
                   {adminNavItems.map((item) => (
                     <Link
                       key={item.path}
                       to={item.path}
-                      className={`flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
+                      className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
                         isActivePath(item.path)
                           ? 'bg-red-100 text-red-700'
                           : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                       }`}
                     >
                       <item.icon className="h-4 w-4" />
-                      <span className="hidden lg:inline">{item.label}</span>
+                      <span>{item.label}</span>
                     </Link>
                   ))}
                 </>
@@ -154,7 +154,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
           </div>
 
           {/* User Info and Actions */}
-          <div className="flex items-center space-x-2 flex-shrink-0">
+          <div className="flex items-center space-x-3 flex-shrink-0">
             {/* Exchange Notifications */}
             {userInfo?.email && (
               <ExchangeNotifications userEmail={userInfo.email} />

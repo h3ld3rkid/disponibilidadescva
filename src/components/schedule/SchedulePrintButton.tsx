@@ -75,69 +75,53 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
       doc.setFontSize(16);
       doc.text(`Escala - ${monthName}`, 20, 35);
       
-      // User info
+      // User info - Use actual mechanographic number, not role
       doc.setFontSize(12);
       doc.text(`Nome: ${userName}`, 20, 55);
       doc.text(`Número Mecanográfico: ${mechanographicNumber}`, 20, 65);
       
       let yPosition = 85;
       
-      // Process schedule data to extract shifts
+      // Process schedule data to extract user's selected shifts
       if (scheduleData && typeof scheduleData === 'object') {
         const allShifts = [];
         
-        console.log('Processing schedule data:', scheduleData);
+        console.log('Processing schedule data for PDF:', scheduleData);
         
-        // Handle different schedule data formats
-        if (scheduleData.dates && typeof scheduleData.dates === 'object') {
-          // New format with dates object
-          console.log('Using new format with dates object');
-          Object.entries(scheduleData.dates).forEach(([date, shifts]: [string, any]) => {
+        // Handle the dates structure properly
+        const datesData = scheduleData.dates || scheduleData;
+        
+        if (datesData && typeof datesData === 'object') {
+          Object.entries(datesData).forEach(([date, shifts]: [string, any]) => {
             // Skip non-date keys like 'notes'
             if (date === 'notes' || !date.includes('-')) return;
             
             console.log(`Processing date ${date}:`, shifts);
             
+            // Handle different shift data formats
             if (Array.isArray(shifts)) {
+              // Format: ["day", "overnight"] or similar
               shifts.forEach(shift => {
-                console.log(`Adding shift: ${date} - ${shift}`);
+                console.log(`Adding array shift: ${date} - ${shift}`);
                 allShifts.push({ date, shift });
               });
             } else if (typeof shifts === 'object' && shifts !== null) {
+              // Format: { day: true, overnight: false } or similar
               Object.entries(shifts).forEach(([shiftType, isSelected]) => {
                 if (isSelected === true) {
-                  console.log(`Adding selected shift: ${date} - ${shiftType}`);
+                  console.log(`Adding object shift: ${date} - ${shiftType}`);
                   allShifts.push({ date, shift: shiftType });
                 }
               });
-            }
-          });
-        } else {
-          // Legacy format - direct date keys
-          console.log('Using legacy format');
-          Object.entries(scheduleData).forEach(([date, shifts]: [string, any]) => {
-            // Skip non-date keys
-            if (date === 'notes' || !date.includes('-')) return;
-            
-            console.log(`Processing legacy date ${date}:`, shifts);
-            
-            if (Array.isArray(shifts)) {
-              shifts.forEach(shift => {
-                console.log(`Adding legacy shift: ${date} - ${shift}`);
-                allShifts.push({ date, shift });
-              });
-            } else if (typeof shifts === 'object' && shifts !== null) {
-              Object.entries(shifts).forEach(([shiftType, isSelected]) => {
-                if (isSelected === true) {
-                  console.log(`Adding selected legacy shift: ${date} - ${shiftType}`);
-                  allShifts.push({ date, shift: shiftType });
-                }
-              });
+            } else if (typeof shifts === 'string') {
+              // Format: single shift as string
+              console.log(`Adding string shift: ${date} - ${shifts}`);
+              allShifts.push({ date, shift: shifts });
             }
           });
         }
         
-        console.log('All processed shifts:', allShifts);
+        console.log('All processed shifts for PDF:', allShifts);
         
         // Sort shifts by date
         allShifts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
