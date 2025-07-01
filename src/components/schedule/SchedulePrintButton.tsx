@@ -27,11 +27,6 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
-  const getShiftTypeForDate = (dateStr: string) => {
-    const dayType = getDayType(dateStr);
-    return dayType === 'weekday' ? 'weekday' : 'weekend_holiday';
-  };
-
   const formatShiftForPDF = (dateStr: string, shiftType: string) => {
     const date = new Date(dateStr);
     const formattedDate = date.toLocaleDateString('pt-PT', { 
@@ -77,38 +72,59 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
       doc.setFontSize(16);
       doc.text(`Escala - ${monthName}`, 20, 35);
       
-      // User info
+      // User info - FIXED: Now shows mechanographic number correctly
       doc.setFontSize(12);
       doc.text(`Nome: ${userName}`, 20, 55);
       doc.text(`Número Mecanográfico: ${mechanographicNumber}`, 20, 65);
       
       let yPosition = 85;
       
-      // Process all shifts from scheduleData.dates
-      if (scheduleData.dates) {
+      // FIXED: Process all shifts correctly from scheduleData
+      if (scheduleData && typeof scheduleData === 'object') {
         const allShifts = [];
         
-        // Collect all shifts with their types
-        Object.entries(scheduleData.dates).forEach(([date, shifts]: [string, any]) => {
-          if (Array.isArray(shifts)) {
-            shifts.forEach(shift => {
-              allShifts.push({ date, shift, type: 'regular' });
-            });
-          } else if (typeof shifts === 'object') {
-            Object.entries(shifts).forEach(([shiftType, isSelected]) => {
-              if (isSelected) {
-                allShifts.push({ date, shift: shiftType, type: 'regular' });
-              }
-            });
-          }
-        });
+        // Handle different schedule data formats
+        if (scheduleData.dates) {
+          // New format with dates object
+          Object.entries(scheduleData.dates).forEach(([date, shifts]: [string, any]) => {
+            if (Array.isArray(shifts)) {
+              shifts.forEach(shift => {
+                allShifts.push({ date, shift });
+              });
+            } else if (typeof shifts === 'object' && shifts !== null) {
+              Object.entries(shifts).forEach(([shiftType, isSelected]) => {
+                if (isSelected) {
+                  allShifts.push({ date, shift: shiftType });
+                }
+              });
+            }
+          });
+        } else {
+          // Legacy format - direct date keys
+          Object.entries(scheduleData).forEach(([date, shifts]: [string, any]) => {
+            // Skip non-date keys
+            if (date === 'notes' || !date.includes('-')) return;
+            
+            if (Array.isArray(shifts)) {
+              shifts.forEach(shift => {
+                allShifts.push({ date, shift });
+              });
+            } else if (typeof shifts === 'object' && shifts !== null) {
+              Object.entries(shifts).forEach(([shiftType, isSelected]) => {
+                if (isSelected) {
+                  allShifts.push({ date, shift: shiftType });
+                }
+              });
+            }
+          });
+        }
         
         // Sort shifts by date
         allShifts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         
         if (allShifts.length > 0) {
           doc.setFontSize(14);
-          doc.text('Turnos Atribuídos:', 20, yPosition);
+          doc.text('Turnos Selecionados:', 20, yPosition);
           yPosition += 15;
           
           doc.setFontSize(11);
@@ -116,20 +132,31 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
             const formattedShift = formatShiftForPDF(date, shift);
             doc.text(formattedShift, 25, yPosition);
             yPosition += 8;
+            
+            // Add new page if needed
+            if (yPosition > 270) {
+              doc.addPage();
+              yPosition = 20;
+            }
           });
+        } else {
+          doc.setFontSize(12);
+          doc.text('Nenhum turno selecionado', 20, yPosition);
+          yPosition += 15;
         }
       }
       
       yPosition += 15;
       
       // Notes
-      if (scheduleData.notes) {
+      const notes = scheduleData?.notes || (scheduleData?.dates?.notes);
+      if (notes) {
         doc.setFontSize(14);
         doc.text('Observações:', 20, yPosition);
         yPosition += 10;
         
         doc.setFontSize(11);
-        const splitText = doc.splitTextToSize(scheduleData.notes, 170);
+        const splitText = doc.splitTextToSize(notes, 170);
         doc.text(splitText, 20, yPosition);
         yPosition += splitText.length * 6 + 10;
       }

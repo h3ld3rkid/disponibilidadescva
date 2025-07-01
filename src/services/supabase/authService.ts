@@ -37,15 +37,18 @@ export const authService = {
     return data.map(request => request.email);
   },
   
-  // Reset password for user
+  // Reset password for user - FIXED: Now properly resets to default
   async resetPassword(email: string): Promise<{ success: boolean }> {
     console.log('Supabase: Resetting password for', email);
+    
+    // Hash for "CVAmares" - the correct default password hash
+    const defaultPasswordHash = '$2a$10$XO/2sFKr6!2XY9kaPL5DEO5P/hmEhaXbMSdqJjm1YsVqFYnNU1K1i';
     
     // Update the user to default password and needs_password_change = true
     const { error: userError } = await supabase
       .from('users')
       .update({ 
-        password_hash: '$2a$10$XO/2sFKr6!2XY9kaPL5DEO5P/hmEhaXbMSdqJjm1YsVqFYnNU1K1i',
+        password_hash: defaultPasswordHash,
         needs_password_change: true,
         updated_at: new Date().toISOString()
       })

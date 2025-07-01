@@ -1,15 +1,55 @@
-
 import { supabase } from "./client";
+import { systemSettingsService } from "./systemSettingsService";
 
 export const scheduleService = {
+  // Check if user can submit schedule after 15th
+  async canUserSubmitAfter15th(userEmail: string): Promise<boolean> {
+    try {
+      const setting = await systemSettingsService.getSystemSetting(`allow_submission_after_15th_${userEmail}`);
+      return setting === 'true';
+    } catch (error) {
+      console.log('No specific permission found for user, defaulting to false');
+      return false;
+    }
+  },
+
+  // Validate if submission is allowed
+  async validateSubmission(userEmail: string): Promise<{ allowed: boolean; reason?: string }> {
+    const today = new Date();
+    const dayOfMonth = today.getDate();
+    
+    // If it's before or on the 15th, always allow
+    if (dayOfMonth <= 15) {
+      return { allowed: true };
+    }
+    
+    // After 15th, check user permission
+    const canSubmit = await this.canUserSubmitAfter15th(userEmail);
+    
+    if (!canSubmit) {
+      return { 
+        allowed: false, 
+        reason: 'Não é possível submeter escalas após o dia 15 do mês. Contacte o administrador se necessário.' 
+      };
+    }
+    
+    return { allowed: true };
+  },
+
   // Save user schedule
-  async saveSchedule(userEmail: string, userName: string, scheduleData: any): Promise<{ success: boolean }> {
+  async saveSchedule(userEmail: string, userName: string, scheduleData: any): Promise<{ success: boolean; message?: string }> {
     console.log('=== SAVING SCHEDULE TO SUPABASE ===');
     console.log('User Email:', userEmail);
     console.log('User Name:', userName);
     console.log('Schedule Data:', scheduleData);
     
     try {
+      // Validate submission
+      const validation = await this.validateSubmission(userEmail);
+      if (!validation.allowed) {
+        return { success: false, message: validation.reason };
+      }
+
       const month = new Date().getFullYear() + '-' + String(new Date().getMonth() + 2).padStart(2, '0'); // Next month
       console.log('Month:', month);
       
