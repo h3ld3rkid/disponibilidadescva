@@ -113,6 +113,8 @@ export type Database = {
       shift_exchange_requests: {
         Row: {
           created_at: string
+          email_sent: boolean | null
+          email_sent_at: string | null
           id: string
           message: string | null
           offered_date: string
@@ -129,6 +131,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          email_sent?: boolean | null
+          email_sent_at?: string | null
           id?: string
           message?: string | null
           offered_date: string
@@ -145,6 +149,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          email_sent?: boolean | null
+          email_sent_at?: string | null
           id?: string
           message?: string | null
           offered_date?: string

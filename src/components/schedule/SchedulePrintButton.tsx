@@ -5,6 +5,7 @@ import { Printer, Check } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { scheduleService } from "@/services/supabase/scheduleService";
 import jsPDF from 'jspdf';
+import { getDayType } from '@/utils/dateUtils';
 
 interface SchedulePrintButtonProps {
   userEmail: string;
@@ -25,6 +26,40 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
+
+  const getShiftTypeForDate = (dateStr: string) => {
+    const dayType = getDayType(dateStr);
+    return dayType === 'weekday' ? 'weekday' : 'weekend_holiday';
+  };
+
+  const formatShiftForPDF = (dateStr: string, shiftType: string) => {
+    const date = new Date(dateStr);
+    const formattedDate = date.toLocaleDateString('pt-PT', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    const dayType = getDayType(dateStr);
+    let shiftLabel = '';
+    
+    if (dayType === 'weekday') {
+      shiftLabel = shiftType === 'day' ? 'Turno Diurno' : 'Pernoite';
+    } else {
+      switch (shiftType) {
+        case 'morning': shiftLabel = 'Turno Manhã'; break;
+        case 'afternoon': shiftLabel = 'Turno Tarde'; break;
+        case 'night': shiftLabel = 'Turno Noite'; break;
+        default: shiftLabel = shiftType;
+      }
+    }
+    
+    const dayTypeLabel = dayType === 'holiday' ? ' (Feriado)' : 
+                        dayType === 'weekend' ? ' (Fim de semana)' : '';
+    
+    return `• ${formattedDate}${dayTypeLabel} - ${shiftLabel}`;
+  };
 
   const generatePDF = async () => {
     setIsGenerating(true);
@@ -49,71 +84,54 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
       
       let yPosition = 85;
       
-      // Regular shifts
-      if (scheduleData.shifts && scheduleData.shifts.length > 0) {
-        doc.setFontSize(14);
-        doc.text('Turnos Regulares:', 20, yPosition);
-        yPosition += 15;
+      // Process all shifts from scheduleData.dates
+      if (scheduleData.dates) {
+        const allShifts = [];
         
-        doc.setFontSize(11);
-        scheduleData.shifts.forEach((shift: string) => {
-          const date = new Date(shift);
-          const formattedDate = date.toLocaleDateString('pt-PT', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          });
-          doc.text(`• ${formattedDate}`, 30, yPosition);
-          yPosition += 8;
+        // Collect all shifts with their types
+        Object.entries(scheduleData.dates).forEach(([date, shifts]: [string, any]) => {
+          if (Array.isArray(shifts)) {
+            shifts.forEach(shift => {
+              allShifts.push({ date, shift, type: 'regular' });
+            });
+          } else if (typeof shifts === 'object') {
+            Object.entries(shifts).forEach(([shiftType, isSelected]) => {
+              if (isSelected) {
+                allShifts.push({ date, shift: shiftType, type: 'regular' });
+              }
+            });
+          }
         });
-      }
-      
-      yPosition += 10;
-      
-      // Overnight shifts
-      if (scheduleData.overnights && scheduleData.overnights.length > 0) {
-        doc.setFontSize(14);
-        doc.text('Pernoites:', 20, yPosition);
-        yPosition += 15;
         
-        doc.setFontSize(11);
-        scheduleData.overnights.forEach((overnight: string) => {
-          const date = new Date(overnight);
-          const formattedDate = date.toLocaleDateString('pt-PT', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+        // Sort shifts by date
+        allShifts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        
+        if (allShifts.length > 0) {
+          doc.setFontSize(14);
+          doc.text('Turnos Atribuídos:', 20, yPosition);
+          yPosition += 15;
+          
+          doc.setFontSize(11);
+          allShifts.forEach(({ date, shift }) => {
+            const formattedShift = formatShiftForPDF(date, shift);
+            doc.text(formattedShift, 25, yPosition);
+            yPosition += 8;
           });
-          doc.text(`• ${formattedDate}`, 30, yPosition);
-          yPosition += 8;
-        });
+        }
       }
       
       yPosition += 15;
       
-      // Notes for shifts
-      if (scheduleData.shiftNotes) {
+      // Notes
+      if (scheduleData.notes) {
         doc.setFontSize(14);
-        doc.text('Observações dos Turnos:', 20, yPosition);
+        doc.text('Observações:', 20, yPosition);
         yPosition += 10;
         
         doc.setFontSize(11);
-        const splitText = doc.splitTextToSize(scheduleData.shiftNotes, 170);
+        const splitText = doc.splitTextToSize(scheduleData.notes, 170);
         doc.text(splitText, 20, yPosition);
         yPosition += splitText.length * 6 + 10;
-      }
-      
-      // Notes for overnights
-      if (scheduleData.overnightNotes) {
-        doc.setFontSize(14);
-        doc.text('Observações dos Pernoites:', 20, yPosition);
-        yPosition += 10;
-        
-        doc.setFontSize(11);
-        const splitText = doc.splitTextToSize(scheduleData.overnightNotes, 170);
-        doc.text(splitText, 20, yPosition);
       }
       
       // Footer

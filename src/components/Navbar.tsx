@@ -35,6 +35,22 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
 
   const isAdmin = role === 'admin';
 
+  // Get user info from localStorage to access mechanographic number
+  const getUserInfo = () => {
+    const storedUser = localStorage.getItem('mysqlConnection');
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser);
+      } catch (error) {
+        console.error('Error parsing user info:', error);
+      }
+    }
+    return null;
+  };
+
+  const userInfo = getUserInfo();
+  const displayId = userInfo?.mechanographic_number || email;
+
   const navigation = [
     { name: 'Início', href: '/dashboard', icon: Home },
     { name: 'Minha Escala', href: '/dashboard/schedule', icon: Calendar },
@@ -121,7 +137,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
               <div className="text-red-100 text-sm">
                 <div className="flex items-center">
                   <User className="h-4 w-4 mr-1" />
-                  <span className="max-w-32 xl:max-w-none truncate">{email}</span>
+                  <span className="max-w-32 xl:max-w-none truncate">{displayId}</span>
                 </div>
                 {isAdmin && (
                   <div className="text-xs text-red-200">Admin</div>
@@ -204,7 +220,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
             
             <div className="border-t border-red-600 my-3" />
             <div className="px-3 py-2">
-              <div className="text-red-100 text-sm">{email}</div>
+              <div className="text-red-100 text-sm">{displayId}</div>
               {isAdmin && (
                 <div className="text-xs text-red-200">Administrador</div>
               )}

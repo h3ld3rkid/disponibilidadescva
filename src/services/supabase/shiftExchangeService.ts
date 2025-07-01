@@ -1,4 +1,3 @@
-
 import { supabase } from "./client";
 
 export interface ShiftExchangeRequest {
@@ -16,6 +15,8 @@ export interface ShiftExchangeRequest {
   created_at: string;
   updated_at: string;
   responded_at?: string;
+  email_sent?: boolean;
+  email_sent_at?: string;
 }
 
 export const shiftExchangeService = {
@@ -57,6 +58,29 @@ export const shiftExchangeService = {
       }
       
       console.log('Exchange request created successfully:', result);
+      
+      // Send email notification
+      try {
+        await supabase.functions.invoke('send-exchange-notification', {
+          body: {
+            requestId: result.id,
+            requesterName: data.requester_name,
+            requesterEmail: data.requester_email,
+            targetName: data.target_name,
+            targetEmail: data.target_email,
+            requestedDate: data.requested_date,
+            requestedShift: data.requested_shift,
+            offeredDate: data.offered_date,
+            offeredShift: data.offered_shift,
+            message: data.message
+          }
+        });
+        console.log('Email notification sent successfully');
+      } catch (emailError) {
+        console.error('Error sending email notification:', emailError);
+        // Don't fail the request if email fails
+      }
+      
       return { success: true, data: result as ShiftExchangeRequest };
     } catch (error) {
       console.error('Error in createExchangeRequest:', error);
