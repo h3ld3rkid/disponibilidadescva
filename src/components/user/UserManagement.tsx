@@ -1,6 +1,4 @@
-
 import React, { useState, useEffect } from 'react';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +19,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { useToast } from "@/hooks/use-toast";
 import { userService } from "@/services/supabase/userService";
 import { Loader, Plus, Edit, Trash, CheckCheck, UserCog } from 'lucide-react';
@@ -300,64 +306,6 @@ const UserList = ({
     }
   };
 
-  const columns: GridColDef[] = [
-    { field: 'name', headerName: 'Nome', width: 200 },
-    { field: 'email', headerName: 'Email', width: 250 },
-    { field: 'mechanographic_number', headerName: 'Nº Mecanográfico', width: 150 },
-    {
-      field: 'role',
-      headerName: 'Role',
-      width: 120,
-      valueOptions: ['admin', 'user'],
-      editable: false,
-    },
-    {
-      field: 'active',
-      headerName: 'Ativo',
-      width: 100,
-      renderCell: (params: GridRenderCellParams<any, any>) => (
-        <Switch
-          checked={params.value}
-          onCheckedChange={() => handleToggleUserStatus(params.row)}
-        />
-      ),
-    },
-    {
-      field: 'actions',
-      headerName: 'Ações',
-      width: 200,
-      renderCell: (params: GridRenderCellParams<any, any>) => (
-        <div className="flex gap-2">
-          <Button
-            size="icon"
-            onClick={() => handleOpenEditDialog(params.row)}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="icon">
-                <Trash className="h-4 w-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Tem a certeza?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Esta ação é irreversível. Tem a certeza que quer apagar este utilizador?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => handleOpenDeleteDialog(params.row)}>Apagar</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      ),
-    },
-  ];
-
   return (
     <>
       <Card>
@@ -372,14 +320,64 @@ const UserList = ({
         </CardHeader>
         
         <CardContent>
-          <div style={{ height: 500, width: '100%' }}>
-            <DataGrid
-              rows={users}
-              columns={columns}
-              getRowId={(row) => row.id}
-              disableRowSelectionOnClick
-            />
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Nº Mecanográfico</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Ativo</TableHead>
+                <TableHead>Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>{user.name}</TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.mechanographic_number}</TableCell>
+                  <TableCell>{user.role}</TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={user.active}
+                      onCheckedChange={() => handleToggleUserStatus(user)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenEditDialog(user)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm">
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Tem a certeza?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta ação é irreversível. Tem a certeza que quer apagar este utilizador?
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleOpenDeleteDialog(user)}>Apagar</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
