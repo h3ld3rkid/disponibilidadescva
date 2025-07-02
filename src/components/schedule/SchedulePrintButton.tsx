@@ -46,6 +46,8 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
         case 'morning': shiftLabel = 'Turno Manhã'; break;
         case 'afternoon': shiftLabel = 'Turno Tarde'; break;
         case 'night': shiftLabel = 'Turno Noite'; break;
+        case 'day': shiftLabel = 'Turno Diurno'; break;
+        case 'overnight': shiftLabel = 'Pernoite'; break;
         default: shiftLabel = shiftType;
       }
     }
@@ -75,7 +77,7 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
       doc.setFontSize(16);
       doc.text(`Escala - ${monthName}`, 20, 35);
       
-      // User info - Use actual mechanographic number, not role
+      // User info
       doc.setFontSize(12);
       doc.text(`Nome: ${userName}`, 20, 55);
       doc.text(`Número Mecanográfico: ${mechanographicNumber}`, 20, 65);
@@ -88,36 +90,19 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
         
         console.log('Processing schedule data for PDF:', scheduleData);
         
-        // Handle the dates structure properly
-        const datesData = scheduleData.dates || scheduleData;
+        // Handle shifts array
+        if (scheduleData.shifts && Array.isArray(scheduleData.shifts)) {
+          scheduleData.shifts.forEach((date: string) => {
+            console.log(`Adding shift: ${date} - day`);
+            allShifts.push({ date, shift: 'day' });
+          });
+        }
         
-        if (datesData && typeof datesData === 'object') {
-          Object.entries(datesData).forEach(([date, shifts]: [string, any]) => {
-            // Skip non-date keys like 'notes'
-            if (date === 'notes' || !date.includes('-')) return;
-            
-            console.log(`Processing date ${date}:`, shifts);
-            
-            // Handle different shift data formats
-            if (Array.isArray(shifts)) {
-              // Format: ["day", "overnight"] or similar
-              shifts.forEach(shift => {
-                console.log(`Adding array shift: ${date} - ${shift}`);
-                allShifts.push({ date, shift });
-              });
-            } else if (typeof shifts === 'object' && shifts !== null) {
-              // Format: { day: true, overnight: false } or similar
-              Object.entries(shifts).forEach(([shiftType, isSelected]) => {
-                if (isSelected === true) {
-                  console.log(`Adding object shift: ${date} - ${shiftType}`);
-                  allShifts.push({ date, shift: shiftType });
-                }
-              });
-            } else if (typeof shifts === 'string') {
-              // Format: single shift as string
-              console.log(`Adding string shift: ${date} - ${shifts}`);
-              allShifts.push({ date, shift: shifts });
-            }
+        // Handle overnights array
+        if (scheduleData.overnights && Array.isArray(scheduleData.overnights)) {
+          scheduleData.overnights.forEach((date: string) => {
+            console.log(`Adding overnight: ${date} - overnight`);
+            allShifts.push({ date, shift: 'overnight' });
           });
         }
         
@@ -159,17 +144,29 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
       
       yPosition += 15;
       
-      // Notes
-      const notes = scheduleData?.notes || (scheduleData?.dates?.notes);
-      if (notes) {
+      // Notes section
+      if (scheduleData?.shiftNotes || scheduleData?.overnightNotes) {
         doc.setFontSize(14);
         doc.text('Observações:', 20, yPosition);
         yPosition += 10;
         
         doc.setFontSize(11);
-        const splitText = doc.splitTextToSize(notes, 170);
-        doc.text(splitText, 20, yPosition);
-        yPosition += splitText.length * 6 + 10;
+        
+        if (scheduleData.shiftNotes) {
+          doc.text('Turnos:', 20, yPosition);
+          yPosition += 6;
+          const shiftNotesText = doc.splitTextToSize(scheduleData.shiftNotes, 170);
+          doc.text(shiftNotesText, 25, yPosition);
+          yPosition += shiftNotesText.length * 6 + 8;
+        }
+        
+        if (scheduleData.overnightNotes) {
+          doc.text('Pernoites:', 20, yPosition);
+          yPosition += 6;
+          const overnightNotesText = doc.splitTextToSize(scheduleData.overnightNotes, 170);
+          doc.text(overnightNotesText, 25, yPosition);
+          yPosition += overnightNotesText.length * 6 + 8;
+        }
       }
       
       // Footer

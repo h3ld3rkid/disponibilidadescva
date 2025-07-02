@@ -3,6 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import WeekdayCheckboxCalendar from './WeekdayCheckboxCalendar';
 import ScheduleSummary from './ScheduleSummary';
 import SingleShiftWarning from './SingleShiftWarning';
+import SubmissionDeadlineAlert from './SubmissionDeadlineAlert';
 import { scheduleService } from "@/services/supabase/scheduleService";
 
 interface ScheduleCalendarProps {
@@ -226,9 +227,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Escala mês de {getTargetMonth()}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mb-4">
             Selecione os seus turnos para o próximo mês
           </p>
+          <SubmissionDeadlineAlert />
         </div>
       )}
       

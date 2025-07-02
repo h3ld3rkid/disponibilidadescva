@@ -15,8 +15,16 @@ import {
   LogOut, 
   User,
   ArrowLeftRight,
-  CalendarCheck
+  CalendarCheck,
+  ChevronDown
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import ExchangeNotifications from '@/components/schedule/ExchangeNotifications';
 import { userService } from "@/services/supabase/userService";
@@ -97,7 +105,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
 
   return (
     <nav className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo and Brand */}
           <div className="flex items-center space-x-3 flex-shrink-0">
@@ -134,20 +142,35 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
               {isAdmin && (
                 <>
                   <div className="h-6 w-px bg-gray-300 mx-3" />
-                  {adminNavItems.map((item) => (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${
-                        isActivePath(item.path)
-                          ? 'bg-red-100 text-red-700'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                      }`}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </Link>
-                  ))}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100">
+                        <Settings className="h-4 w-4" />
+                        <span>Administração</span>
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56 bg-white">
+                      {adminNavItems.map((item, index) => (
+                        <React.Fragment key={item.path}>
+                          <DropdownMenuItem asChild>
+                            <Link
+                              to={item.path}
+                              className={`flex items-center space-x-2 w-full px-2 py-2 text-sm ${
+                                isActivePath(item.path)
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'text-gray-600 hover:text-gray-900'
+                              }`}
+                            >
+                              <item.icon className="h-4 w-4" />
+                              <span>{item.label}</span>
+                            </Link>
+                          </DropdownMenuItem>
+                          {index < adminNavItems.length - 1 && <DropdownMenuSeparator />}
+                        </React.Fragment>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </>
               )}
             </div>
