@@ -25,10 +25,7 @@ const ExchangeNotifications: React.FC<ExchangeNotificationsProps> = ({ userEmail
 
   const loadExchangeRequests = async () => {
     try {
-      const allRequests = await shiftExchangeService.getExchangeRequests(userEmail);
-      const pendingRequests = allRequests.filter(req => 
-        req.status === 'pending' && req.target_email === userEmail
-      );
+      const pendingRequests = await shiftExchangeService.getPendingRequestsForUser(userEmail);
       setRequests(pendingRequests);
     } catch (error) {
       console.error('Error loading exchange requests:', error);
@@ -60,14 +57,14 @@ const ExchangeNotifications: React.FC<ExchangeNotificationsProps> = ({ userEmail
     });
   }, [requests, processedRequests, toast]);
 
-  const handleResponse = async (requestId: string, status: 'approved' | 'rejected') => {
+  const handleResponse = async (requestId: string, status: 'accepted' | 'rejected') => {
     setIsLoading(true);
     try {
       const result = await shiftExchangeService.respondToExchangeRequest(requestId, status);
       
       if (result.success) {
         toast({
-          title: status === 'approved' ? "Pedido aceite" : "Pedido rejeitado",
+          title: status === 'accepted' ? "Pedido aceite" : "Pedido rejeitado",
           description: "A resposta foi enviada com sucesso.",
         });
         
@@ -153,7 +150,7 @@ const ExchangeNotifications: React.FC<ExchangeNotificationsProps> = ({ userEmail
                 <div className="flex space-x-2">
                   <Button
                     size="sm"
-                    onClick={() => handleResponse(request.id, 'approved')}
+                    onClick={() => handleResponse(request.id, 'accepted')}
                     disabled={isLoading}
                     className="flex-1 h-8 text-xs"
                   >
