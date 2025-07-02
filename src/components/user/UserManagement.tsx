@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +31,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { userService } from "@/services/supabase/userService";
 import { authService } from "@/services/supabase/authService";
-import { Loader, Plus, Edit, Trash, CheckCheck, UserCog, RotateCcw } from 'lucide-react';
+import { systemSettingsService } from "@/services/supabase/systemSettingsService";
+import { Loader, Plus, Edit, Trash, CheckCheck, UserCog, RotateCcw, Calendar } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -196,7 +198,64 @@ const UserList = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [submissionPermissions, setSubmissionPermissions] = useState<Record<string, boolean>>({});
+  const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
   const { toast } = useToast();
+
+  // Load submission permissions for all users
+  useEffect(() => {
+    const loadSubmissionPermissions = async () => {
+      setIsLoadingPermissions(true);
+      const permissions: Record<string, boolean> = {};
+      
+      for (const user of users) {
+        try {
+          const permission = await systemSettingsService.getSystemSetting(`allow_submission_after_15th_${user.email}`);
+          permissions[user.email] = permission === 'true';
+        } catch (error) {
+          permissions[user.email] = false;
+        }
+      }
+      
+      setSubmissionPermissions(permissions);
+      setIsLoadingPermissions(false);
+    };
+
+    if (users.length > 0) {
+      loadSubmissionPermissions();
+    }
+  }, [users]);
+
+  const handleToggleSubmissionPermission = async (userEmail: string, allowed: boolean) => {
+    try {
+      const success = await systemSettingsService.upsertSystemSetting(
+        `allow_submission_after_15th_${userEmail}`,
+        allowed.toString(),
+        `Allow user ${userEmail} to submit schedule after 15th of month`
+      );
+
+      if (success) {
+        setSubmissionPermissions(prev => ({
+          ...prev,
+          [userEmail]: allowed
+        }));
+
+        toast({
+          title: "Permissão atualizada",
+          description: `Utilizador ${allowed ? 'pode' : 'não pode'} submeter escala após dia 15.`,
+        });
+      } else {
+        throw new Error("Failed to update permission");
+      }
+    } catch (error) {
+      console.error('Error updating submission permission:', error);
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível atualizar a permissão.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleOpenEditDialog = (user: User) => {
     setSelectedUser(user);
@@ -355,6 +414,7 @@ const UserList = ({
                 <TableHead>Nº Mecanográfico</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Ativo</TableHead>
+                <TableHead>Submeter após 15º</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -370,6 +430,19 @@ const UserList = ({
                       checked={user.active}
                       onCheckedChange={() => handleToggleUserStatus(user)}
                     />
+                  </TableCell>
+                  <TableCell>
+                    {isLoadingPermissions ? (
+                      <Loader className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={submissionPermissions[user.email] || false}
+                          onCheckedChange={(checked) => handleToggleSubmissionPermission(user.email, checked)}
+                        />
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">

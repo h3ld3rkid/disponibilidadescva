@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import WeekdayCheckboxCalendar from './WeekdayCheckboxCalendar';
@@ -5,6 +6,7 @@ import ScheduleSummary from './ScheduleSummary';
 import SingleShiftWarning from './SingleShiftWarning';
 import SubmissionDeadlineAlert from './SubmissionDeadlineAlert';
 import { scheduleService } from "@/services/supabase/scheduleService";
+import { systemSettingsService } from "@/services/supabase/systemSettingsService";
 
 interface ScheduleCalendarProps {
   userEmail?: string;
@@ -21,6 +23,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const [isLoading, setIsLoading] = useState(false);
   const [hasExistingSchedule, setHasExistingSchedule] = useState(false);
   const [showSingleShiftWarning, setShowSingleShiftWarning] = useState(false);
+  const [hasSpecialPermission, setHasSpecialPermission] = useState(false);
   const { toast } = useToast();
 
   // Calculate the target month (next month)
@@ -28,6 +31,15 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     const now = new Date();
     const targetMonth = new Date(now.getFullYear(), now.getMonth() + 1);
     return targetMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+  };
+
+  // Check if submission is allowed
+  const isSubmissionAllowed = () => {
+    const today = new Date();
+    const currentDay = today.getDate();
+    
+    // Allow submission if before or on 15th, or if user has special permission
+    return currentDay <= 15 || hasSpecialPermission;
   };
 
   useEffect(() => {
@@ -45,8 +57,21 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       const currentUserEmail = userEmail || parsedUserInfo.email;
       console.log('Loading schedule for email:', currentUserEmail);
       loadExistingSchedule(currentUserEmail);
+      
+      // Check special permissions
+      checkSpecialPermissions(currentUserEmail);
     }
   }, [userEmail]);
+
+  const checkSpecialPermissions = async (email: string) => {
+    try {
+      const permission = await systemSettingsService.getSystemSetting(`allow_submission_after_15th_${email}`);
+      setHasSpecialPermission(permission === 'true');
+    } catch (error) {
+      console.error('Error checking special permissions:', error);
+      setHasSpecialPermission(false);
+    }
+  };
 
   const loadExistingSchedule = async (email: string) => {
     try {
@@ -134,6 +159,16 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       return;
     }
 
+    // Check if submission is allowed
+    if (!isSubmissionAllowed()) {
+      toast({
+        title: "Submissão não permitida",
+        description: "Já não pode submeter a escala após o dia 15 do mês.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (selectedDates.length === 0 && selectedOvernights.length === 0) {
       toast({
         title: "Erro",
@@ -211,14 +246,16 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     setShowSingleShiftWarning(false);
   };
 
-  const canSubmitSchedule = selectedDates.length > 0 || selectedOvernights.length > 0;
-  const submissionBlocked = editCount >= 2;
+  const canSubmitSchedule = (selectedDates.length > 0 || selectedOvernights.length > 0) && isSubmissionAllowed();
+  const submissionBlocked = editCount >= 2 || !isSubmissionAllowed();
 
   console.log('=== RENDER DEBUG ===');
   console.log('isAdmin:', isAdmin);
   console.log('userEmail prop:', userEmail);
   console.log('userInfo:', userInfo);
   console.log('Target month:', getTargetMonth());
+  console.log('Has special permission:', hasSpecialPermission);
+  console.log('Submission allowed:', isSubmissionAllowed());
 
   return (
     <div className="min-h-screen bg-gray-50">

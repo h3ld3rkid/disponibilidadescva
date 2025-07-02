@@ -30,19 +30,17 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
   const formatShiftForPDF = (dateStr: string, shiftType: string) => {
     console.log('Formatting date for PDF:', dateStr, 'type:', typeof dateStr);
     
-    // Handle different date formats
     let date;
     if (typeof dateStr === 'string') {
-      // Try parsing the date string
-      date = new Date(dateStr);
-      
-      // If invalid, try other formats
-      if (isNaN(date.getTime())) {
-        // Try parsing as YYYY-MM-DD format
-        const parts = dateStr.split('-');
-        if (parts.length === 3) {
-          date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-        }
+      // Parse date in YYYY-MM-DD format
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0]);
+        const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+        const day = parseInt(parts[2]);
+        date = new Date(year, month, day);
+      } else {
+        date = new Date(dateStr);
       }
     } else {
       date = new Date(dateStr);
@@ -61,7 +59,7 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
       day: 'numeric' 
     });
     
-    const dayType = getDayType(date.toISOString().split('T')[0]);
+    const dayType = getDayType(dateStr);
     let shiftLabel = '';
     
     if (dayType === 'weekday') {
@@ -83,6 +81,19 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
     return `• ${formattedDate}${dayTypeLabel} - ${shiftLabel}`;
   };
 
+  const addLogoToPDF = (doc: jsPDF) => {
+    // Add a placeholder for logo - in a real implementation, you'd convert the logo to base64
+    // For now, we'll add a colored rectangle as placeholder
+    doc.setFillColor(220, 53, 69); // Red color for Cruz Vermelha
+    doc.roundedRect(20, 15, 30, 30, 3, 3, 'F');
+    
+    // Add Cruz symbol in white
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('+', 34, 35, { align: 'center' });
+  };
+
   const generatePDF = async () => {
     setIsGenerating(true);
     
@@ -95,37 +106,44 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
       console.log('PDF Generation - Schedule data:', scheduleData);
       console.log('PDF Generation - User info:', { userName, mechanographicNumber });
       
-      // Add logo
-      try {
-        const logoUrl = 'https://amares.cruzvermelha.pt/images/site/Amares.webp';
-        // Note: In a real implementation, you'd need to convert the image to base64
-        // For now, we'll add a text placeholder
-      } catch (error) {
-        console.log('Could not load logo for PDF');
-      }
+      // Add logo placeholder
+      addLogoToPDF(doc);
       
       // Header with improved styling
+      doc.setTextColor(0, 0, 0);
       doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
-      doc.text('Cruz Vermelha Portuguesa - Amares', 105, 20, { align: 'center' });
+      doc.text('Cruz Vermelha Portuguesa', 60, 25);
+      doc.setFontSize(14);
+      doc.text('Delegação de Amares', 60, 35);
       
       // Add a line under header
       doc.setLineWidth(0.5);
-      doc.line(20, 25, 190, 25);
+      doc.setDrawColor(220, 53, 69);
+      doc.line(20, 50, 190, 50);
       
-      doc.setFontSize(14);
+      // Title
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text(`Escala de Serviço - ${monthName}`, 105, 35, { align: 'center' });
+      doc.text(`Escala de Serviço - ${monthName}`, 105, 65, { align: 'center' });
       
-      // User info box
-      doc.setFontSize(11);
+      // User info section with better formatting
+      doc.setFillColor(245, 245, 245);
+      doc.roundedRect(20, 75, 170, 35, 2, 2, 'F');
+      
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('DADOS DO COLABORADOR', 25, 85);
+      
       doc.setFont('helvetica', 'normal');
-      doc.rect(20, 45, 170, 25);
-      doc.text(`Nome: ${userName}`, 25, 55);
-      doc.text(`Número Mecanográfico: ${mechanographicNumber}`, 25, 62);
-      doc.text(`Email: ${userEmail}`, 25, 69);
+      doc.setFontSize(11);
+      doc.text(`Nome: ${userName}`, 25, 95);
+      doc.text(`Número Mecanográfico: ${mechanographicNumber}`, 25, 102);
+      doc.text(`Email: ${userEmail}`, 25, 109);
       
-      let yPosition = 85;
+      let yPosition = 125;
       
       // Process schedule data to extract user's selected shifts
       if (scheduleData && typeof scheduleData === 'object') {
@@ -159,18 +177,32 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
         });
         
         if (allShifts.length > 0) {
+          // Shifts section header
+          doc.setFillColor(220, 53, 69);
+          doc.roundedRect(20, yPosition, 170, 8, 1, 1, 'F');
+          
+          doc.setTextColor(255, 255, 255);
           doc.setFontSize(12);
           doc.setFont('helvetica', 'bold');
-          doc.text('Turnos Selecionados:', 20, yPosition);
-          yPosition += 10;
+          doc.text('TURNOS SELECIONADOS', 25, yPosition + 6);
+          yPosition += 18;
           
+          doc.setTextColor(0, 0, 0);
           doc.setFontSize(10);
           doc.setFont('helvetica', 'normal');
-          allShifts.forEach(({ date, shift }) => {
+          
+          allShifts.forEach(({ date, shift }, index) => {
             const formattedShift = formatShiftForPDF(date, shift);
             console.log(`Adding to PDF: ${formattedShift}`);
+            
+            // Add alternating background for better readability
+            if (index % 2 === 0) {
+              doc.setFillColor(248, 249, 250);
+              doc.rect(20, yPosition - 4, 170, 8, 'F');
+            }
+            
             doc.text(formattedShift, 25, yPosition);
-            yPosition += 7;
+            yPosition += 8;
             
             // Add new page if needed
             if (yPosition > 270) {
@@ -182,6 +214,7 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
           console.log('No shifts found, adding "no shifts" message');
           doc.setFontSize(11);
           doc.setFont('helvetica', 'italic');
+          doc.setTextColor(100, 100, 100);
           doc.text('Nenhum turno selecionado', 25, yPosition);
           yPosition += 15;
         }
@@ -189,25 +222,32 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
         console.log('Invalid schedule data format');
         doc.setFontSize(11);
         doc.setFont('helvetica', 'italic');
+        doc.setTextColor(100, 100, 100);
         doc.text('Dados de escala inválidos', 25, yPosition);
         yPosition += 15;
       }
       
-      yPosition += 15;
+      yPosition += 10;
       
       // Notes section with improved formatting
       if (scheduleData?.shiftNotes || scheduleData?.overnightNotes) {
+        // Notes section header
+        doc.setFillColor(220, 53, 69);
+        doc.roundedRect(20, yPosition, 170, 8, 1, 1, 'F');
+        
+        doc.setTextColor(255, 255, 255);
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text('Observações:', 20, yPosition);
-        yPosition += 10;
+        doc.text('OBSERVAÇÕES', 25, yPosition + 6);
+        yPosition += 18;
         
+        doc.setTextColor(0, 0, 0);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
         
         if (scheduleData.shiftNotes) {
           doc.setFont('helvetica', 'bold');
-          doc.text('Turnos:', 25, yPosition);
+          doc.text('Notas dos Turnos:', 25, yPosition);
           yPosition += 6;
           doc.setFont('helvetica', 'normal');
           const shiftNotesText = doc.splitTextToSize(scheduleData.shiftNotes, 160);
@@ -217,7 +257,7 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
         
         if (scheduleData.overnightNotes) {
           doc.setFont('helvetica', 'bold');
-          doc.text('Pernoites:', 25, yPosition);
+          doc.text('Notas das Pernoites:', 25, yPosition);
           yPosition += 6;
           doc.setFont('helvetica', 'normal');
           const overnightNotesText = doc.splitTextToSize(scheduleData.overnightNotes, 160);
@@ -228,9 +268,11 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
       
       // Footer with line
       doc.setLineWidth(0.3);
+      doc.setDrawColor(200, 200, 200);
       doc.line(20, 275, 190, 275);
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 100, 100);
       doc.text(`Documento gerado em: ${new Date().toLocaleDateString('pt-PT')} às ${new Date().toLocaleTimeString('pt-PT')}`, 105, 285, { align: 'center' });
       
       // Save PDF
