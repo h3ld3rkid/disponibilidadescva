@@ -230,7 +230,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
           <p className="text-gray-600 mb-4">
             Selecione os seus turnos para o próximo mês
           </p>
-          <SubmissionDeadlineAlert />
+          <SubmissionDeadlineAlert userEmail={userEmail || userInfo?.email} />
         </div>
       )}
       

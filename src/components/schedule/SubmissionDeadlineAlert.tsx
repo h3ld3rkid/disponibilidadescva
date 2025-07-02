@@ -1,9 +1,42 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Clock, AlertTriangle } from 'lucide-react';
+import { systemSettingsService } from "@/services/supabase/systemSettingsService";
 
-const SubmissionDeadlineAlert: React.FC = () => {
+interface SubmissionDeadlineAlertProps {
+  userEmail?: string;
+}
+
+const SubmissionDeadlineAlert: React.FC<SubmissionDeadlineAlertProps> = ({ userEmail }) => {
+  const [hasSpecialPermission, setHasSpecialPermission] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkPermissions = async () => {
+      if (!userEmail) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const permission = await systemSettingsService.getSystemSetting(`allow_submission_after_15th_${userEmail}`);
+        setHasSpecialPermission(permission === 'true');
+      } catch (error) {
+        console.error('Error checking permissions:', error);
+        setHasSpecialPermission(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkPermissions();
+  }, [userEmail]);
+
+  if (isLoading) {
+    return null;
+  }
+
   const today = new Date();
   const currentDay = today.getDate();
   const currentMonth = today.getMonth();
@@ -35,15 +68,26 @@ const SubmissionDeadlineAlert: React.FC = () => {
       );
     }
   } else {
-    // After 15th - show warning
-    return (
-      <Alert className="mb-6 border-red-200 bg-red-50">
-        <AlertTriangle className="h-4 w-4 text-red-600" />
-        <AlertDescription className="text-red-800">
-          <strong>ATENÇÃO:</strong> Hoje é dia {currentDay} e já não pode submeter a escala.
-        </AlertDescription>
-      </Alert>
-    );
+    // After 15th - show warning unless user has special permission
+    if (hasSpecialPermission) {
+      return (
+        <Alert className="mb-6 border-green-200 bg-green-50">
+          <Clock className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            <strong>Permissão especial:</strong> Pode submeter a escala após o dia 15.
+          </AlertDescription>
+        </Alert>
+      );
+    } else {
+      return (
+        <Alert className="mb-6 border-red-200 bg-red-50">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-800">
+            <strong>ATENÇÃO:</strong> Hoje é dia {currentDay} e já não pode submeter a escala.
+          </AlertDescription>
+        </Alert>
+      );
+    }
   }
   
   return null;

@@ -104,26 +104,26 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
   ];
 
   return (
-    <nav className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
-      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+    <nav className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50 w-full">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16 w-full">
           {/* Logo and Brand */}
-          <div className="flex items-center space-x-3 flex-shrink-0">
+          <div className="flex items-center space-x-3 flex-shrink-0 min-w-0">
             <Link to="/dashboard" className="flex items-center space-x-3">
               <img 
                 src="https://amares.cruzvermelha.pt/images/site/Amares.webp" 
                 alt="Cruz Vermelha Amares" 
-                className="h-8 w-auto" 
+                className="h-8 w-auto flex-shrink-0" 
               />
-              <span className="font-semibold text-lg text-gray-900 hidden sm:block">
+              <span className="font-semibold text-lg text-gray-900 hidden sm:block whitespace-nowrap">
                 Escalas CVA
               </span>
             </Link>
           </div>
 
           {/* Desktop Navigation - Centered */}
-          <div className="hidden md:flex items-center justify-center flex-1 max-w-4xl mx-8">
-            <div className="flex items-center space-x-1">
+          <div className="hidden md:flex items-center justify-center flex-1 px-4 overflow-hidden">
+            <div className="flex items-center space-x-1 flex-wrap justify-center">
               {userNavItems.map((item) => (
                 <Link
                   key={item.path}
@@ -134,20 +134,20 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
-                  <item.icon className="h-4 w-4" />
-                  <span>{item.label}</span>
+                  <item.icon className="h-4 w-4 flex-shrink-0" />
+                  <span className="hidden lg:inline">{item.label}</span>
                 </Link>
               ))}
               
               {isAdmin && (
                 <>
-                  <div className="h-6 w-px bg-gray-300 mx-3" />
+                  <div className="h-6 w-px bg-gray-300 mx-2 hidden lg:block" />
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                        <Settings className="h-4 w-4" />
-                        <span>Administração</span>
-                        <ChevronDown className="h-4 w-4" />
+                      <Button variant="ghost" className="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 whitespace-nowrap">
+                        <Settings className="h-4 w-4 flex-shrink-0" />
+                        <span className="hidden lg:inline">Administração</span>
+                        <ChevronDown className="h-4 w-4 flex-shrink-0" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56 bg-white">
@@ -177,23 +177,23 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
           </div>
 
           {/* User Info and Actions */}
-          <div className="flex items-center space-x-3 flex-shrink-0">
+          <div className="flex items-center space-x-3 flex-shrink-0 min-w-0">
             {/* Exchange Notifications */}
             {userInfo?.email && (
               <ExchangeNotifications userEmail={userInfo.email} />
             )}
             
             {/* User Info */}
-            <div className="hidden sm:flex flex-col items-end">
+            <div className="hidden sm:flex flex-col items-end min-w-0">
               <span className="text-sm font-medium text-gray-900 max-w-32 truncate">
                 {userInfo?.name || email}
               </span>
               <div className="flex items-center space-x-1">
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-gray-500 whitespace-nowrap">
                   Nº {userInfo?.mechanographic_number || 'N/A'}
                 </span>
                 {isAdmin && (
-                  <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                  <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap">
                     Admin
                   </span>
                 )}
@@ -205,7 +205,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
               onClick={handleLogout}
               variant="ghost"
               size="sm"
-              className="text-gray-600 hover:text-red-600"
+              className="text-gray-600 hover:text-red-600 flex-shrink-0"
             >
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:ml-2 sm:inline">Sair</span>
@@ -216,7 +216,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
               onClick={() => setIsOpen(!isOpen)}
               variant="ghost"
               size="sm"
-              className="md:hidden"
+              className="md:hidden flex-shrink-0"
             >
               {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
