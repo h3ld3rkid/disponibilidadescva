@@ -1,4 +1,3 @@
-
 import jsPDF from 'jspdf';
 import { getDayType } from '@/utils/dateUtils';
 
@@ -18,13 +17,13 @@ export class PDFGenerator {
 
   private async addHeader() {
     try {
-      // Add header background - smaller height
-      this.doc.setFillColor(220, 53, 69); // Cruz Vermelha red
-      this.doc.roundedRect(20, 10, 170, 30, 3, 3, 'F');
+      // Clean white background for header
+      this.doc.setFillColor(255, 255, 255);
+      this.doc.rect(0, 0, 210, 50, 'F');
       
-      // Load and add logo from URL
+      // Load and add logo from uploaded image
       try {
-        const logoUrl = 'https://amares.cruzvermelha.pt/images/site/Amares.webp';
+        const logoUrl = '/lovable-uploads/a1f20fae-1bb5-44e2-ab03-37a1183b39d8.png';
         const response = await fetch(logoUrl);
         const blob = await response.blob();
         
@@ -35,44 +34,44 @@ export class PDFGenerator {
           reader.readAsDataURL(blob);
         });
         
-        // Add logo to PDF
-        this.doc.addImage(logoBase64, 'WEBP', 25, 15, 20, 20);
+        // Add logo to PDF - positioned on the left
+        this.doc.addImage(logoBase64, 'PNG', 20, 15, 40, 20);
       } catch (error) {
         console.warn('Could not load logo, using fallback:', error);
-        // Fallback - simple white rectangle with cross
-        this.doc.setFillColor(255, 255, 255);
-        this.doc.roundedRect(25, 15, 20, 20, 2, 2, 'F');
+        // Fallback - Cruz Vermelha cross
+        this.doc.setFillColor(220, 53, 69);
+        this.doc.roundedRect(20, 15, 40, 20, 2, 2, 'F');
         
         // Draw Cruz Vermelha cross
-        this.doc.setFillColor(220, 53, 69);
-        // Vertical bar of cross
-        this.doc.rect(33, 18, 2, 14, 'F');
-        // Horizontal bar of cross
-        this.doc.rect(28, 23, 12, 2, 'F');
+        this.doc.setFillColor(255, 255, 255);
+        this.doc.rect(35, 18, 4, 14, 'F'); // Vertical bar
+        this.doc.rect(25, 23, 24, 4, 'F'); // Horizontal bar
       }
       
-      // Add organization text - smaller font sizes
-      this.doc.setTextColor(255, 255, 255);
-      this.doc.setFontSize(14);
+      // Main title - immediately to the right of logo
+      this.doc.setTextColor(220, 53, 69);
+      this.doc.setFontSize(18);
       this.doc.setFont('helvetica', 'bold');
-      this.doc.text('Cruz Vermelha Portuguesa', 55, 20);
+      this.doc.text('Cruz Vermelha de Amares', 70, 22);
       
-      this.doc.setFontSize(10);
+      // Subtitle - below main title
+      this.doc.setFontSize(12);
       this.doc.setFont('helvetica', 'normal');
-      this.doc.text('Delegação de Amares', 55, 27);
+      this.doc.setTextColor(100, 100, 100);
+      this.doc.text('Sistema de Gestão de Disponibilidades', 70, 30);
       
-      this.doc.setFontSize(8);
-      this.doc.text('Sistema de Gestão de Escalas', 55, 33);
+      // Add a subtle separator line
+      this.doc.setDrawColor(220, 220, 220);
+      this.doc.setLineWidth(0.5);
+      this.doc.line(20, 45, 190, 45);
       
     } catch (error) {
       console.error('Error adding header:', error);
       // Fallback header
-      this.doc.setFillColor(220, 53, 69);
-      this.doc.roundedRect(20, 10, 170, 30, 3, 3, 'F');
-      this.doc.setTextColor(255, 255, 255);
-      this.doc.setFontSize(14);
+      this.doc.setTextColor(220, 53, 69);
+      this.doc.setFontSize(18);
       this.doc.setFont('helvetica', 'bold');
-      this.doc.text('Cruz Vermelha Portuguesa', 105, 25, { align: 'center' });
+      this.doc.text('Cruz Vermelha de Amares', 105, 25, { align: 'center' });
     }
   }
 
@@ -82,30 +81,29 @@ export class PDFGenerator {
     const monthName = targetMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
     
     this.doc.setTextColor(0, 0, 0);
-    this.doc.setFontSize(16); // Reduced from 20
+    this.doc.setFontSize(16);
     this.doc.setFont('helvetica', 'bold');
-    this.doc.text(`Escala de Serviço - ${monthName}`, 105, 55, { align: 'center' }); // Moved up
+    this.doc.text(`Escala de Serviço - ${monthName}`, 105, 60, { align: 'center' });
   }
 
   private addUserInfo(userData: PDFData) {
-    // User info section - smaller height
-    this.doc.setFillColor(248, 249, 250);
-    this.doc.roundedRect(20, 65, 170, 35, 3, 3, 'F'); // Reduced height from 50 to 35
-    this.doc.setDrawColor(220, 53, 69);
+    // Modern user info section with subtle styling
+    this.doc.setFillColor(250, 250, 250);
+    this.doc.roundedRect(20, 70, 170, 30, 5, 5, 'F');
+    this.doc.setDrawColor(240, 240, 240);
     this.doc.setLineWidth(1);
-    this.doc.roundedRect(20, 65, 170, 35, 3, 3, 'S');
+    this.doc.roundedRect(20, 70, 170, 30, 5, 5, 'S');
     
     this.doc.setTextColor(220, 53, 69);
-    this.doc.setFontSize(11); // Reduced from 14
+    this.doc.setFontSize(12);
     this.doc.setFont('helvetica', 'bold');
-    this.doc.text('DADOS DO COLABORADOR', 25, 75);
+    this.doc.text('COLABORADOR', 25, 80);
     
-    this.doc.setTextColor(0, 0, 0);
-    this.doc.setFontSize(10); // Reduced from 12
+    this.doc.setTextColor(60, 60, 60);
+    this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'normal');
-    this.doc.text(`Nome: ${userData.userName}`, 25, 84);
-    this.doc.text(`Número Mecanográfico: ${userData.mechanographicNumber}`, 25, 91);
-    this.doc.text(`Email: ${userData.userEmail}`, 25, 98);
+    this.doc.text(`Nome: ${userData.userName}`, 25, 87);
+    this.doc.text(`Nº Mecanográfico: ${userData.mechanographicNumber}`, 25, 94);
   }
 
   private formatDateForPDF(dateStr: string): string {
@@ -146,14 +144,14 @@ export class PDFGenerator {
   }
 
   private addShifts(scheduleData: any): number {
-    let yPosition = 110; // Moved up from 150
+    let yPosition = 110;
     
     console.log('Processing schedule data for PDF:', scheduleData);
     
     if (!scheduleData || typeof scheduleData !== 'object') {
       console.log('No valid schedule data found');
       this.addNoShiftsMessage(yPosition);
-      return yPosition + 25; // Reduced spacing
+      return yPosition + 25;
     }
 
     const shifts = scheduleData.shifts || [];
@@ -167,99 +165,101 @@ export class PDFGenerator {
       return yPosition + 25;
     }
 
-    // Add shifts section header - smaller
+    // Modern shifts section header
     this.doc.setFillColor(220, 53, 69);
-    this.doc.roundedRect(20, yPosition, 170, 10, 2, 2, 'F'); // Reduced height from 12 to 10
+    this.doc.roundedRect(20, yPosition, 170, 12, 3, 3, 'F');
     
     this.doc.setTextColor(255, 255, 255);
-    this.doc.setFontSize(10); // Reduced from 12
+    this.doc.setFontSize(11);
     this.doc.setFont('helvetica', 'bold');
-    this.doc.text('TURNOS SELECIONADOS', 25, yPosition + 6);
-    yPosition += 15; // Reduced spacing
+    this.doc.text('TURNOS SELECIONADOS', 25, yPosition + 8);
+    yPosition += 18;
     
     this.doc.setTextColor(0, 0, 0);
-    this.doc.setFontSize(9); // Reduced from 10
+    this.doc.setFontSize(9);
     this.doc.setFont('helvetica', 'normal');
     
     let itemIndex = 0;
     
     // Add day shifts
     if (shifts.length > 0) {
-      this.doc.setFontSize(10); // Reduced from 11
+      this.doc.setFontSize(10);
       this.doc.setFont('helvetica', 'bold');
+      this.doc.setTextColor(220, 53, 69);
       this.doc.text('Turnos Diurnos:', 25, yPosition);
-      yPosition += 6; // Reduced spacing
+      yPosition += 8;
       this.doc.setFont('helvetica', 'normal');
       this.doc.setFontSize(9);
+      this.doc.setTextColor(60, 60, 60);
       
-      shifts.forEach((dateStr) => {
-        const formattedDate = this.formatDateForPDF(dateStr);
-        
-        // Add alternating background
+      shifts.forEach((shift) => {
+        // Add alternating background for better readability
         if (itemIndex % 2 === 0) {
           this.doc.setFillColor(248, 249, 250);
-          this.doc.rect(20, yPosition - 3, 170, 8, 'F'); // Reduced height
+          this.doc.rect(20, yPosition - 3, 170, 8, 'F');
         }
         
-        this.doc.text(`• ${formattedDate}`, 30, yPosition + 2);
-        yPosition += 8; // Reduced spacing from 10 to 8
+        // Display weekday names directly without date conversion
+        this.doc.text(`• ${shift}`, 30, yPosition + 2);
+        yPosition += 8;
         itemIndex++;
       });
       
-      yPosition += 3; // Reduced spacing
+      yPosition += 5;
     }
     
     // Add overnight shifts
     if (overnights.length > 0) {
       this.doc.setFontSize(10);
       this.doc.setFont('helvetica', 'bold');
+      this.doc.setTextColor(220, 53, 69);
       this.doc.text('Pernoites:', 25, yPosition);
-      yPosition += 6;
+      yPosition += 8;
       this.doc.setFont('helvetica', 'normal');
       this.doc.setFontSize(9);
+      this.doc.setTextColor(60, 60, 60);
       
-      overnights.forEach((dateStr) => {
-        const formattedDate = this.formatDateForPDF(dateStr);
-        
+      overnights.forEach((overnight) => {
         // Add alternating background
         if (itemIndex % 2 === 0) {
           this.doc.setFillColor(248, 249, 250);
           this.doc.rect(20, yPosition - 3, 170, 8, 'F');
         }
         
-        this.doc.text(`• ${formattedDate}`, 30, yPosition + 2);
+        // Display weekday names directly without date conversion
+        this.doc.text(`• ${overnight}`, 30, yPosition + 2);
         yPosition += 8;
         itemIndex++;
       });
     }
     
-    // Add summary box - smaller
-    yPosition += 8; // Reduced spacing
-    this.doc.setFillColor(240, 248, 255);
-    this.doc.roundedRect(20, yPosition, 170, 20, 2, 2, 'F'); // Reduced height from 30 to 20
-    this.doc.setDrawColor(54, 162, 235);
+    // Modern summary box
+    yPosition += 10;
+    this.doc.setFillColor(245, 247, 250);
+    this.doc.roundedRect(20, yPosition, 170, 20, 3, 3, 'F');
+    this.doc.setDrawColor(220, 220, 220);
     this.doc.setLineWidth(0.5);
-    this.doc.roundedRect(20, yPosition, 170, 20, 2, 2, 'S');
+    this.doc.roundedRect(20, yPosition, 170, 20, 3, 3, 'S');
     
-    this.doc.setTextColor(54, 162, 235);
-    this.doc.setFontSize(10); // Reduced from 12
+    this.doc.setTextColor(220, 53, 69);
+    this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'bold');
     this.doc.text('RESUMO', 25, yPosition + 8);
     
-    this.doc.setTextColor(0, 0, 0);
-    this.doc.setFontSize(9); // Reduced from 10
+    this.doc.setTextColor(60, 60, 60);
+    this.doc.setFontSize(9);
     this.doc.setFont('helvetica', 'normal');
-    this.doc.text(`Total de Turnos Diurnos: ${shifts.length}`, 25, yPosition + 14);
-    this.doc.text(`Total de Pernoites: ${overnights.length}`, 100, yPosition + 14); // Side by side
+    this.doc.text(`Turnos Diurnos: ${shifts.length}`, 25, yPosition + 15);
+    this.doc.text(`Pernoites: ${overnights.length}`, 100, yPosition + 15);
     
-    return yPosition + 25; // Reduced spacing
+    return yPosition + 25;
   }
 
   private addNoShiftsMessage(yPosition: number) {
     this.doc.setFillColor(255, 249, 196);
-    this.doc.roundedRect(20, yPosition, 170, 20, 2, 2, 'F'); // Reduced height
+    this.doc.roundedRect(20, yPosition, 170, 20, 3, 3, 'F');
     this.doc.setTextColor(133, 77, 14);
-    this.doc.setFontSize(10); // Reduced from 12
+    this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'italic');
     this.doc.text('Nenhum turno selecionado para este mês', 105, yPosition + 12, { align: 'center' });
   }
@@ -273,63 +273,69 @@ export class PDFGenerator {
     
     if (!shiftNotes && !overnightNotes && !generalNotes) return yPosition;
     
-    // Add notes header - smaller
+    // Modern notes header
     this.doc.setFillColor(220, 53, 69);
-    this.doc.roundedRect(20, yPosition, 170, 10, 2, 2, 'F');
+    this.doc.roundedRect(20, yPosition, 170, 12, 3, 3, 'F');
     
     this.doc.setTextColor(255, 255, 255);
     this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'bold');
-    this.doc.text('OBSERVAÇÕES', 25, yPosition + 6);
-    yPosition += 15;
+    this.doc.text('OBSERVAÇÕES', 25, yPosition + 8);
+    yPosition += 18;
     
-    this.doc.setTextColor(0, 0, 0);
-    this.doc.setFontSize(8); // Reduced font size
+    this.doc.setTextColor(60, 60, 60);
+    this.doc.setFontSize(8);
     this.doc.setFont('helvetica', 'normal');
     
     if (generalNotes) {
       this.doc.setFont('helvetica', 'bold');
+      this.doc.setTextColor(220, 53, 69);
       this.doc.text('Notas Gerais:', 25, yPosition);
-      yPosition += 4;
+      yPosition += 5;
       this.doc.setFont('helvetica', 'normal');
+      this.doc.setTextColor(60, 60, 60);
       const generalNotesText = this.doc.splitTextToSize(generalNotes, 160);
       this.doc.text(generalNotesText, 30, yPosition);
-      yPosition += generalNotesText.length * 3 + 4; // Reduced spacing
+      yPosition += generalNotesText.length * 4 + 5;
     }
     
     if (shiftNotes) {
       this.doc.setFont('helvetica', 'bold');
+      this.doc.setTextColor(220, 53, 69);
       this.doc.text('Notas dos Turnos:', 25, yPosition);
-      yPosition += 4;
+      yPosition += 5;
       this.doc.setFont('helvetica', 'normal');
+      this.doc.setTextColor(60, 60, 60);
       const shiftNotesText = this.doc.splitTextToSize(shiftNotes, 160);
       this.doc.text(shiftNotesText, 30, yPosition);
-      yPosition += shiftNotesText.length * 3 + 4;
+      yPosition += shiftNotesText.length * 4 + 5;
     }
     
     if (overnightNotes) {
       this.doc.setFont('helvetica', 'bold');
+      this.doc.setTextColor(220, 53, 69);
       this.doc.text('Notas das Pernoites:', 25, yPosition);
-      yPosition += 4;
+      yPosition += 5;
       this.doc.setFont('helvetica', 'normal');
+      this.doc.setTextColor(60, 60, 60);
       const overnightNotesText = this.doc.splitTextToSize(overnightNotes, 160);
       this.doc.text(overnightNotesText, 30, yPosition);
-      yPosition += overnightNotesText.length * 3 + 4;
+      yPosition += overnightNotesText.length * 4 + 5;
     }
     
     return yPosition;
   }
 
   private addFooter() {
-    this.doc.setDrawColor(220, 53, 69);
+    this.doc.setDrawColor(240, 240, 240);
     this.doc.setLineWidth(0.5);
-    this.doc.line(20, 285, 190, 285);
+    this.doc.line(20, 280, 190, 280);
     
-    this.doc.setFontSize(7); // Reduced from 8
+    this.doc.setFontSize(7);
     this.doc.setFont('helvetica', 'normal');
-    this.doc.setTextColor(100, 100, 100);
+    this.doc.setTextColor(150, 150, 150);
     const footerText = `Documento gerado em: ${new Date().toLocaleDateString('pt-PT')} às ${new Date().toLocaleTimeString('pt-PT')}`;
-    this.doc.text(footerText, 105, 292, { align: 'center' });
+    this.doc.text(footerText, 105, 287, { align: 'center' });
   }
 
   async generatePDF(pdfData: PDFData): Promise<void> {
