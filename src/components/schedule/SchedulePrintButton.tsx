@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Printer, Check } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { scheduleService } from "@/services/supabase/scheduleService";
+import { userService } from "@/services/supabase/userService";
 import { PDFGenerator } from './PDFGenerator';
 
 interface SchedulePrintButtonProps {
@@ -33,11 +34,26 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
       console.log('PDF Generation - Schedule data:', scheduleData);
       console.log('PDF Generation - User info:', { userName, mechanographicNumber });
       
+      // Get the actual user data to ensure we have the correct mechanographic number
+      let actualMechanographicNumber = mechanographicNumber;
+      let actualUserName = userName;
+      
+      try {
+        const allUsers = await userService.getAllUsers();
+        const user = allUsers.find(u => u.email === userEmail);
+        if (user) {
+          actualMechanographicNumber = user.mechanographic_number;
+          actualUserName = user.name;
+        }
+      } catch (error) {
+        console.warn('Could not fetch user details, using provided data:', error);
+      }
+      
       const pdfGenerator = new PDFGenerator();
       await pdfGenerator.generatePDF({
         userEmail,
-        userName,
-        mechanographicNumber,
+        userName: actualUserName,
+        mechanographicNumber: actualMechanographicNumber,
         scheduleData
       });
       

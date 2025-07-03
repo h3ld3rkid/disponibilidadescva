@@ -22,15 +22,18 @@ export class PDFGenerator {
       this.doc.setFillColor(220, 53, 69); // Cruz Vermelha red
       this.doc.roundedRect(20, 10, 170, 45, 3, 3, 'F');
       
-      // Add logo placeholder (since we can't load external images directly in jsPDF)
+      // Add logo - Cruz Vermelha symbol
       this.doc.setFillColor(255, 255, 255);
-      this.doc.circle(40, 32, 15, 'F');
+      this.doc.roundedRect(25, 20, 25, 25, 3, 3, 'F');
       
-      // Add Cruz symbol
+      // Draw Cruz Vermelha cross
       this.doc.setTextColor(220, 53, 69);
-      this.doc.setFontSize(20);
+      this.doc.setFontSize(24);
       this.doc.setFont('helvetica', 'bold');
-      this.doc.text('+', 40, 37, { align: 'center' });
+      // Vertical bar of cross
+      this.doc.rect(36, 23, 3, 19, 'F');
+      // Horizontal bar of cross
+      this.doc.rect(29, 30, 17, 3, 'F');
       
       // Add organization text
       this.doc.setTextColor(255, 255, 255);
@@ -93,12 +96,18 @@ export class PDFGenerator {
     try {
       console.log('Formatting date for PDF:', dateStr);
       
-      // Create date from the exact string format used in schedules (YYYY-MM-DD)
+      // Check if it's just a weekday name (not a full date)
+      const weekdays = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
+      if (weekdays.includes(dateStr)) {
+        return dateStr;
+      }
+      
+      // Try to parse as date
       const date = new Date(dateStr + 'T00:00:00');
       
       if (isNaN(date.getTime())) {
         console.error('Invalid date:', dateStr);
-        return `Data inválida: ${dateStr}`;
+        return dateStr; // Return original string instead of "Data inválida"
       }
       
       // Format the date in Portuguese
@@ -116,7 +125,7 @@ export class PDFGenerator {
       return `${formattedDate}${dayTypeLabel}`;
     } catch (error) {
       console.error('Error formatting date:', error, 'for dateStr:', dateStr);
-      return `Erro na data: ${dateStr}`;
+      return dateStr; // Return original string instead of error message
     }
   }
 
@@ -167,10 +176,7 @@ export class PDFGenerator {
       this.doc.setFont('helvetica', 'normal');
       this.doc.setFontSize(10);
       
-      // Sort shifts by date
-      const sortedShifts = [...shifts].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-      
-      sortedShifts.forEach((dateStr) => {
+      shifts.forEach((dateStr) => {
         const formattedDate = this.formatDateForPDF(dateStr);
         
         // Add alternating background
@@ -202,10 +208,7 @@ export class PDFGenerator {
       this.doc.setFont('helvetica', 'normal');
       this.doc.setFontSize(10);
       
-      // Sort overnights by date
-      const sortedOvernights = [...overnights].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-      
-      sortedOvernights.forEach((dateStr) => {
+      overnights.forEach((dateStr) => {
         const formattedDate = this.formatDateForPDF(dateStr);
         
         // Add alternating background
@@ -260,10 +263,17 @@ export class PDFGenerator {
   private addNotes(scheduleData: any, yPosition: number): number {
     if (!scheduleData) return yPosition;
     
-    const shiftNotes = scheduleData.shiftNotes || '';
-    const overnightNotes = scheduleData.overnightNotes || '';
+    const shiftNotes = scheduleData.shiftNotes || scheduleData.shift_notes || '';
+    const overnightNotes = scheduleData.overnightNotes || scheduleData.overnight_notes || '';
+    const generalNotes = scheduleData.notes || '';
     
-    if (!shiftNotes && !overnightNotes) return yPosition;
+    if (!shiftNotes && !overnightNotes && !generalNotes) return yPosition;
+    
+    // Check if we need a new page
+    if (yPosition > 220) {
+      this.doc.addPage();
+      yPosition = 20;
+    }
     
     this.doc.setFillColor(220, 53, 69);
     this.doc.roundedRect(20, yPosition, 170, 12, 2, 2, 'F');
@@ -277,6 +287,16 @@ export class PDFGenerator {
     this.doc.setTextColor(0, 0, 0);
     this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'normal');
+    
+    if (generalNotes) {
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.text('Notas Gerais:', 25, yPosition);
+      yPosition += 6;
+      this.doc.setFont('helvetica', 'normal');
+      const generalNotesText = this.doc.splitTextToSize(generalNotes, 160);
+      this.doc.text(generalNotesText, 30, yPosition);
+      yPosition += generalNotesText.length * 5 + 8;
+    }
     
     if (shiftNotes) {
       this.doc.setFont('helvetica', 'bold');
