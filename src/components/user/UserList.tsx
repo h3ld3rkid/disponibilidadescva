@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { userService } from "@/services/supabase/userService";
-import { Users, UserPlus, Edit, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Users, Edit, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import UserEditDialog from './UserEditDialog';
 import {
   AlertDialog,
@@ -18,7 +19,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-// Use the User type from the service to maintain consistency
 interface User {
   id: string;
   name: string;
@@ -27,41 +27,33 @@ interface User {
   role: 'admin' | 'user';
   active: boolean;
   needs_password_change?: boolean;
+  allow_late_submission?: boolean;
 }
 
-const UserList = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+interface UserListProps {
+  users: User[];
+  onUserUpdated: () => void;
+  onUserDeleted: (deletedUserEmail: string) => void;
+  onUserStatusToggled: () => void;
+}
+
+const UserList: React.FC<UserListProps> = ({ 
+  users, 
+  onUserUpdated, 
+  onUserDeleted, 
+  onUserStatusToggled 
+}) => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const { toast } = useToast();
-
-  const loadUsers = async () => {
-    setIsLoading(true);
-    try {
-      const usersData = await userService.getAllUsers();
-      setUsers(usersData);
-    } catch (error) {
-      console.error('Error loading users:', error);
-      toast({
-        title: "Erro ao carregar",
-        description: "Não foi possível carregar a lista de utilizadores.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadUsers();
-  }, []);
 
   const handleDeleteUser = async (userId: string) => {
     try {
       const result = await userService.deleteUser(userId);
       
       if (result.success) {
-        setUsers(prev => prev.filter(user => user.id !== userId));
+        if (result.email) {
+          onUserDeleted(result.email);
+        }
         toast({
           title: "Utilizador eliminado",
           description: "O utilizador foi eliminado com sucesso.",
@@ -84,10 +76,7 @@ const UserList = () => {
       const result = await userService.toggleUserStatus(userId);
       
       if (result.success) {
-        setUsers(prev => prev.map(user => 
-          user.id === userId ? { ...user, active: result.active } : user
-        ));
-        
+        onUserStatusToggled();
         toast({
           title: "Estado atualizado",
           description: `Utilizador ${result.active ? 'ativado' : 'desativado'} com sucesso.`,
@@ -105,26 +94,38 @@ const UserList = () => {
     }
   };
 
+  const handleToggleLateSubmission = async (userId: string) => {
+    try {
+      const user = users.find(u => u.id === userId);
+      if (!user) return;
+
+      const updatedUser = await userService.updateUser(userId, {
+        allow_late_submission: !user.allow_late_submission
+      });
+
+      onUserUpdated();
+      toast({
+        title: "Permissão atualizada",
+        description: `Submissão após dia 15 ${updatedUser.allow_late_submission ? 'permitida' : 'bloqueada'}.`,
+      });
+    } catch (error) {
+      console.error('Error toggling late submission:', error);
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível atualizar a permissão.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleEditUser = (user: User) => {
     setEditingUser(user);
   };
 
-  const handleUserUpdated = (updatedUser: User) => {
-    setUsers(prev => prev.map(user => 
-      user.id === updatedUser.id ? updatedUser : user
-    ));
+  const handleUserUpdated = () => {
     setEditingUser(null);
+    onUserUpdated();
   };
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -157,6 +158,11 @@ const UserList = () => {
                       <Badge variant={user.role === "admin" ? "destructive" : "outline"}>
                         {user.role === "admin" ? "Administrador" : "Utilizador"}
                       </Badge>
+                      {user.allow_late_submission && (
+                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                          Submissão Tardia
+                        </Badge>
+                      )}
                     </div>
                     <div className="text-sm text-gray-500">{user.email}</div>
                     <div className="text-xs text-gray-400">
@@ -183,6 +189,17 @@ const UserList = () => {
                       ) : (
                         <ToggleLeft className="h-4 w-4 text-gray-400" />
                       )}
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleToggleLateSubmission(user.id)}
+                      title={user.allow_late_submission ? "Desativar submissão após dia 15" : "Permitir submissão após dia 15"}
+                    >
+                      <span className={`text-xs ${user.allow_late_submission ? 'text-yellow-600' : 'text-gray-400'}`}>
+                        15+
+                      </span>
                     </Button>
 
                     <AlertDialog>
