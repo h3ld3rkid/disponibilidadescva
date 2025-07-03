@@ -10,6 +10,7 @@ interface User {
   role: 'admin' | 'user';
   active: boolean;
   needs_password_change?: boolean;
+  allow_late_submission?: boolean;
 }
 
 // Define types for Supabase tables to help TypeScript understand our database schema
@@ -50,7 +51,8 @@ export const userService = {
       mechanographic_number: data.mechanographic_number,
       role: data.role as 'admin' | 'user',
       active: data.active,
-      needs_password_change: data.needs_password_change
+      needs_password_change: data.needs_password_change,
+      allow_late_submission: false // Default value since it's not in the database yet
     };
   },
 
@@ -125,6 +127,17 @@ export const userService = {
     if (!data) {
       throw new Error('No data returned from update user operation');
     }
+
+    // Handle allow_late_submission separately since it's not in the database table yet
+    // For now, we'll use the system_settings approach
+    if (userData.allow_late_submission !== undefined) {
+      const { systemSettingsService } = await import('./systemSettingsService');
+      await systemSettingsService.upsertSystemSetting(
+        `allow_submission_after_15th_${data.email}`,
+        userData.allow_late_submission.toString(),
+        `Allow user ${data.email} to submit schedule after 15th of month`
+      );
+    }
     
     return {
       id: data.id,
@@ -133,7 +146,8 @@ export const userService = {
       mechanographic_number: data.mechanographic_number,
       role: data.role as 'admin' | 'user',
       active: data.active,
-      needs_password_change: data.needs_password_change
+      needs_password_change: data.needs_password_change,
+      allow_late_submission: userData.allow_late_submission
     };
   },
   
@@ -192,15 +206,38 @@ export const userService = {
     if (!data) {
       return [];
     }
-    
-    return data.map(user => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      mechanographic_number: user.mechanographic_number,
-      role: user.role as 'admin' | 'user',
-      active: user.active,
-      needs_password_change: user.needs_password_change
-    }));
+
+    // For each user, check if they have late submission permission
+    const { systemSettingsService } = await import('./systemSettingsService');
+    const usersWithPermissions = await Promise.all(
+      data.map(async (user) => {
+        try {
+          const setting = await systemSettingsService.getSystemSetting(`allow_submission_after_15th_${user.email}`);
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            mechanographic_number: user.mechanographic_number,
+            role: user.role as 'admin' | 'user',
+            active: user.active,
+            needs_password_change: user.needs_password_change,
+            allow_late_submission: setting === 'true'
+          };
+        } catch (error) {
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            mechanographic_number: user.mechanographic_number,
+            role: user.role as 'admin' | 'user',
+            active: user.active,
+            needs_password_change: user.needs_password_change,
+            allow_late_submission: false
+          };
+        }
+      })
+    );
+
+    return usersWithPermissions;
   }
 };

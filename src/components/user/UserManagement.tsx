@@ -22,6 +22,7 @@ interface User {
   role: 'admin' | 'user';
   active: boolean;
   needs_password_change?: boolean;
+  allow_late_submission?: boolean;
 }
 
 const UserManagement = () => {
