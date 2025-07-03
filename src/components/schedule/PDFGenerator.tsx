@@ -89,25 +89,16 @@ export class PDFGenerator {
     this.doc.text(`Email: ${userData.userEmail}`, 25, 132);
   }
 
-  private formatShiftForPDF(dateStr: string, shiftType: string): string {
-    console.log('Formatting shift for PDF:', { dateStr, shiftType, dateType: typeof dateStr });
-    
+  private formatDateForPDF(dateStr: string): string {
     try {
-      let date: Date;
+      console.log('Formatting date for PDF:', dateStr);
       
-      // Parse the date string correctly
-      if (typeof dateStr === 'string' && dateStr.includes('-')) {
-        // Handle YYYY-MM-DD format
-        const [year, month, day] = dateStr.split('-').map(Number);
-        date = new Date(year, month - 1, day); // month is 0-indexed
-      } else {
-        date = new Date(dateStr);
-      }
+      // Create date from the exact string format used in schedules (YYYY-MM-DD)
+      const date = new Date(dateStr + 'T00:00:00');
       
-      // Check if date is valid
       if (isNaN(date.getTime())) {
         console.error('Invalid date:', dateStr);
-        return `• Data inválida - ${shiftType}`;
+        return `Data inválida: ${dateStr}`;
       }
       
       // Format the date in Portuguese
@@ -119,165 +110,192 @@ export class PDFGenerator {
       });
       
       const dayType = getDayType(dateStr);
-      let shiftLabel = '';
-      
-      // Determine shift label based on day type and shift type
-      if (dayType === 'weekday') {
-        shiftLabel = shiftType === 'day' ? 'Turno Diurno' : 'Pernoite';
-      } else {
-        switch (shiftType) {
-          case 'morning': shiftLabel = 'Turno Manhã'; break;
-          case 'afternoon': shiftLabel = 'Turno Tarde'; break;
-          case 'night': shiftLabel = 'Turno Noite'; break;
-          case 'day': shiftLabel = 'Turno Diurno'; break;
-          case 'overnight': shiftLabel = 'Pernoite'; break;
-          default: shiftLabel = shiftType;
-        }
-      }
-      
       const dayTypeLabel = dayType === 'holiday' ? ' (Feriado)' : 
                           dayType === 'weekend' ? ' (Fim de semana)' : '';
       
-      return `• ${formattedDate}${dayTypeLabel} - ${shiftLabel}`;
+      return `${formattedDate}${dayTypeLabel}`;
     } catch (error) {
-      console.error('Error formatting shift:', error);
-      return `• Erro ao formatar data - ${shiftType}`;
+      console.error('Error formatting date:', error, 'for dateStr:', dateStr);
+      return `Erro na data: ${dateStr}`;
     }
   }
 
   private addShifts(scheduleData: any): number {
     let yPosition = 150;
     
-    if (scheduleData && typeof scheduleData === 'object') {
-      const allShifts = [];
-      
-      console.log('Processing schedule data for PDF:', scheduleData);
-      
-      // Process shifts array
-      if (scheduleData.shifts && Array.isArray(scheduleData.shifts)) {
-        scheduleData.shifts.forEach((date: string) => {
-          allShifts.push({ date, shift: 'day' });
-        });
-      }
-      
-      // Process overnights array
-      if (scheduleData.overnights && Array.isArray(scheduleData.overnights)) {
-        scheduleData.overnights.forEach((date: string) => {
-          allShifts.push({ date, shift: 'overnight' });
-        });
-      }
+    console.log('Processing schedule data for PDF:', scheduleData);
+    
+    if (!scheduleData || typeof scheduleData !== 'object') {
+      console.log('No valid schedule data found');
+      this.addNoShiftsMessage(yPosition);
+      return yPosition + 35;
+    }
+
+    const shifts = scheduleData.shifts || [];
+    const overnights = scheduleData.overnights || [];
+    
+    console.log('Shifts found:', shifts);
+    console.log('Overnights found:', overnights);
+    
+    if (shifts.length === 0 && overnights.length === 0) {
+      this.addNoShiftsMessage(yPosition);
+      return yPosition + 35;
+    }
+
+    // Add shifts section header
+    this.doc.setFillColor(220, 53, 69);
+    this.doc.roundedRect(20, yPosition, 170, 12, 2, 2, 'F');
+    
+    this.doc.setTextColor(255, 255, 255);
+    this.doc.setFontSize(12);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.text('TURNOS SELECIONADOS', 25, yPosition + 8);
+    yPosition += 20;
+    
+    this.doc.setTextColor(0, 0, 0);
+    this.doc.setFontSize(10);
+    this.doc.setFont('helvetica', 'normal');
+    
+    let itemIndex = 0;
+    
+    // Add day shifts
+    if (shifts.length > 0) {
+      this.doc.setFontSize(11);
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.text('Turnos Diurnos:', 25, yPosition);
+      yPosition += 8;
+      this.doc.setFont('helvetica', 'normal');
+      this.doc.setFontSize(10);
       
       // Sort shifts by date
-      allShifts.sort((a, b) => {
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
-        return dateA.getTime() - dateB.getTime();
+      const sortedShifts = [...shifts].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+      
+      sortedShifts.forEach((dateStr) => {
+        const formattedDate = this.formatDateForPDF(dateStr);
+        
+        // Add alternating background
+        if (itemIndex % 2 === 0) {
+          this.doc.setFillColor(248, 249, 250);
+          this.doc.rect(20, yPosition - 4, 170, 10, 'F');
+        }
+        
+        this.doc.text(`• ${formattedDate}`, 30, yPosition + 2);
+        yPosition += 10;
+        itemIndex++;
+        
+        // Add new page if needed
+        if (yPosition > 260) {
+          this.doc.addPage();
+          yPosition = 20;
+        }
       });
       
-      if (allShifts.length > 0) {
-        // Shifts section header
-        this.doc.setFillColor(220, 53, 69);
-        this.doc.roundedRect(20, yPosition, 170, 12, 2, 2, 'F');
-        
-        this.doc.setTextColor(255, 255, 255);
-        this.doc.setFontSize(12);
-        this.doc.setFont('helvetica', 'bold');
-        this.doc.text('TURNOS SELECIONADOS', 25, yPosition + 8);
-        yPosition += 20;
-        
-        this.doc.setTextColor(0, 0, 0);
-        this.doc.setFontSize(10);
-        this.doc.setFont('helvetica', 'normal');
-        
-        allShifts.forEach(({ date, shift }, index) => {
-          const formattedShift = this.formatShiftForPDF(date, shift);
-          
-          // Add alternating background
-          if (index % 2 === 0) {
-            this.doc.setFillColor(248, 249, 250);
-            this.doc.rect(20, yPosition - 4, 170, 10, 'F');
-          }
-          
-          this.doc.text(formattedShift, 25, yPosition + 2);
-          yPosition += 10;
-          
-          // Add new page if needed
-          if (yPosition > 260) {
-            this.doc.addPage();
-            yPosition = 20;
-          }
-        });
-        
-        // Add summary box
-        yPosition += 15;
-        this.doc.setFillColor(240, 248, 255);
-        this.doc.roundedRect(20, yPosition, 170, 30, 2, 2, 'F');
-        this.doc.setDrawColor(54, 162, 235);
-        this.doc.setLineWidth(0.5);
-        this.doc.roundedRect(20, yPosition, 170, 30, 2, 2, 'S');
-        
-        this.doc.setTextColor(54, 162, 235);
-        this.doc.setFontSize(12);
-        this.doc.setFont('helvetica', 'bold');
-        this.doc.text('RESUMO', 25, yPosition + 10);
-        
-        this.doc.setTextColor(0, 0, 0);
-        this.doc.setFontSize(10);
-        this.doc.setFont('helvetica', 'normal');
-        const totalShifts = scheduleData.shifts?.length || 0;
-        const totalOvernights = scheduleData.overnights?.length || 0;
-        this.doc.text(`Total de Turnos Diurnos: ${totalShifts}`, 25, yPosition + 18);
-        this.doc.text(`Total de Pernoites: ${totalOvernights}`, 25, yPosition + 25);
-        
-        yPosition += 40;
-      } else {
-        this.doc.setFillColor(255, 249, 196);
-        this.doc.roundedRect(20, yPosition, 170, 25, 2, 2, 'F');
-        this.doc.setTextColor(133, 77, 14);
-        this.doc.setFontSize(12);
-        this.doc.setFont('helvetica', 'italic');
-        this.doc.text('Nenhum turno selecionado para este mês', 105, yPosition + 15, { align: 'center' });
-        yPosition += 35;
-      }
+      yPosition += 5;
     }
     
-    return yPosition;
+    // Add overnight shifts
+    if (overnights.length > 0) {
+      this.doc.setFontSize(11);
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.text('Pernoites:', 25, yPosition);
+      yPosition += 8;
+      this.doc.setFont('helvetica', 'normal');
+      this.doc.setFontSize(10);
+      
+      // Sort overnights by date
+      const sortedOvernights = [...overnights].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+      
+      sortedOvernights.forEach((dateStr) => {
+        const formattedDate = this.formatDateForPDF(dateStr);
+        
+        // Add alternating background
+        if (itemIndex % 2 === 0) {
+          this.doc.setFillColor(248, 249, 250);
+          this.doc.rect(20, yPosition - 4, 170, 10, 'F');
+        }
+        
+        this.doc.text(`• ${formattedDate}`, 30, yPosition + 2);
+        yPosition += 10;
+        itemIndex++;
+        
+        // Add new page if needed
+        if (yPosition > 260) {
+          this.doc.addPage();
+          yPosition = 20;
+        }
+      });
+    }
+    
+    // Add summary box
+    yPosition += 15;
+    this.doc.setFillColor(240, 248, 255);
+    this.doc.roundedRect(20, yPosition, 170, 30, 2, 2, 'F');
+    this.doc.setDrawColor(54, 162, 235);
+    this.doc.setLineWidth(0.5);
+    this.doc.roundedRect(20, yPosition, 170, 30, 2, 2, 'S');
+    
+    this.doc.setTextColor(54, 162, 235);
+    this.doc.setFontSize(12);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.text('RESUMO', 25, yPosition + 10);
+    
+    this.doc.setTextColor(0, 0, 0);
+    this.doc.setFontSize(10);
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.text(`Total de Turnos Diurnos: ${shifts.length}`, 25, yPosition + 18);
+    this.doc.text(`Total de Pernoites: ${overnights.length}`, 25, yPosition + 25);
+    
+    return yPosition + 40;
+  }
+
+  private addNoShiftsMessage(yPosition: number) {
+    this.doc.setFillColor(255, 249, 196);
+    this.doc.roundedRect(20, yPosition, 170, 25, 2, 2, 'F');
+    this.doc.setTextColor(133, 77, 14);
+    this.doc.setFontSize(12);
+    this.doc.setFont('helvetica', 'italic');
+    this.doc.text('Nenhum turno selecionado para este mês', 105, yPosition + 15, { align: 'center' });
   }
 
   private addNotes(scheduleData: any, yPosition: number): number {
-    if (scheduleData?.shiftNotes || scheduleData?.overnightNotes) {
-      this.doc.setFillColor(220, 53, 69);
-      this.doc.roundedRect(20, yPosition, 170, 12, 2, 2, 'F');
-      
-      this.doc.setTextColor(255, 255, 255);
-      this.doc.setFontSize(12);
+    if (!scheduleData) return yPosition;
+    
+    const shiftNotes = scheduleData.shiftNotes || '';
+    const overnightNotes = scheduleData.overnightNotes || '';
+    
+    if (!shiftNotes && !overnightNotes) return yPosition;
+    
+    this.doc.setFillColor(220, 53, 69);
+    this.doc.roundedRect(20, yPosition, 170, 12, 2, 2, 'F');
+    
+    this.doc.setTextColor(255, 255, 255);
+    this.doc.setFontSize(12);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.text('OBSERVAÇÕES', 25, yPosition + 8);
+    yPosition += 20;
+    
+    this.doc.setTextColor(0, 0, 0);
+    this.doc.setFontSize(10);
+    this.doc.setFont('helvetica', 'normal');
+    
+    if (shiftNotes) {
       this.doc.setFont('helvetica', 'bold');
-      this.doc.text('OBSERVAÇÕES', 25, yPosition + 8);
-      yPosition += 20;
-      
-      this.doc.setTextColor(0, 0, 0);
-      this.doc.setFontSize(10);
+      this.doc.text('Notas dos Turnos:', 25, yPosition);
+      yPosition += 6;
       this.doc.setFont('helvetica', 'normal');
-      
-      if (scheduleData.shiftNotes) {
-        this.doc.setFont('helvetica', 'bold');
-        this.doc.text('Notas dos Turnos:', 25, yPosition);
-        yPosition += 6;
-        this.doc.setFont('helvetica', 'normal');
-        const shiftNotesText = this.doc.splitTextToSize(scheduleData.shiftNotes, 160);
-        this.doc.text(shiftNotesText, 30, yPosition);
-        yPosition += shiftNotesText.length * 5 + 8;
-      }
-      
-      if (scheduleData.overnightNotes) {
-        this.doc.setFont('helvetica', 'bold');
-        this.doc.text('Notas das Pernoites:', 25, yPosition);
-        yPosition += 6;
-        this.doc.setFont('helvetica', 'normal');
-        const overnightNotesText = this.doc.splitTextToSize(scheduleData.overnightNotes, 160);
-        this.doc.text(overnightNotesText, 30, yPosition);
-        yPosition += overnightNotesText.length * 5 + 8;
-      }
+      const shiftNotesText = this.doc.splitTextToSize(shiftNotes, 160);
+      this.doc.text(shiftNotesText, 30, yPosition);
+      yPosition += shiftNotesText.length * 5 + 8;
+    }
+    
+    if (overnightNotes) {
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.text('Notas das Pernoites:', 25, yPosition);
+      yPosition += 6;
+      this.doc.setFont('helvetica', 'normal');
+      const overnightNotesText = this.doc.splitTextToSize(overnightNotes, 160);
+      this.doc.text(overnightNotesText, 30, yPosition);
+      yPosition += overnightNotesText.length * 5 + 8;
     }
     
     return yPosition;
@@ -298,6 +316,7 @@ export class PDFGenerator {
   async generatePDF(pdfData: PDFData): Promise<void> {
     try {
       console.log('Starting PDF generation with data:', pdfData);
+      console.log('Schedule data structure:', JSON.stringify(pdfData.scheduleData, null, 2));
       
       await this.addHeader();
       this.addTitle();
