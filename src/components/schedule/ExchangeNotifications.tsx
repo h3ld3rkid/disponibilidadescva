@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, X, Check, Clock } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,63 +23,42 @@ const ExchangeNotifications: React.FC<ExchangeNotificationsProps> = ({ userEmail
   const [processedRequests, setProcessedRequests] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
-  const loadExchangeRequests = useCallback(async () => {
-    if (isLoading) return; // Prevent multiple simultaneous requests
-    
+  const loadExchangeRequests = async () => {
     try {
-      setIsLoading(true);
       const pendingRequests = await shiftExchangeService.getPendingRequestsForUser(userEmail);
       setRequests(pendingRequests);
     } catch (error) {
       console.error('Error loading exchange requests:', error);
-    } finally {
-      setIsLoading(false);
     }
-  }, [userEmail, isLoading]);
+  };
 
   useEffect(() => {
     loadExchangeRequests();
     
-    // Set up polling with exponential backoff
-    let pollCount = 0;
-    const maxPollInterval = 120000; // 2 minutes max
+    // Set up polling for new requests
+    const interval = setInterval(loadExchangeRequests, 30000); // Check every 30 seconds
     
-    const poll = () => {
-      const interval = Math.min(30000 * Math.pow(1.5, pollCount), maxPollInterval);
-      pollCount++;
-      
-      setTimeout(() => {
-        loadExchangeRequests();
-        if (requests.length > 0) {
-          pollCount = 0; // Reset if there are active requests
-        }
-        poll();
-      }, interval);
-    };
-    
-    const timeoutId = setTimeout(poll, 30000);
-    
-    return () => clearTimeout(timeoutId);
-  }, [userEmail, loadExchangeRequests, requests.length]);
+    return () => clearInterval(interval);
+  }, [userEmail]);
 
-  // Memoized toast notifications to prevent duplicates
-  const newRequests = useMemo(() => {
-    return requests.filter(request => !processedRequests.has(request.id));
-  }, [requests, processedRequests]);
-
+  // Show toast notifications for new requests (only once per request)
   useEffect(() => {
-    newRequests.forEach(request => {
-      setProcessedRequests(prev => new Set(prev).add(request.id));
-      
-      toast({
-        title: "Novo pedido de troca",
-        description: `${request.requester_name} quer trocar turnos consigo`,
-        duration: 5000,
-      });
+    requests.forEach(request => {
+      if (!processedRequests.has(request.id)) {
+        setProcessedRequests(prev => new Set(prev).add(request.id));
+        
+        // Only show toast once per request
+        toast({
+          title: "Novo pedido de troca",
+          description: `${request.requester_name} quer trocar turnos consigo`,
+          duration: 5000,
+        });
+      }
     });
-  }, [newRequests, toast]);
+  }, [requests, processedRequests, toast]);
 
-  const handleResponse = useCallback(async (requestId: string, status: 'accepted' | 'rejected') => {
+  const handleResponse = async (requestId: string, status: 'accepted' | 'rejected') => {
+    setIsLoading(true);
     try {
       const result = await shiftExchangeService.respondToExchangeRequest(requestId, status);
       
@@ -89,6 +68,7 @@ const ExchangeNotifications: React.FC<ExchangeNotificationsProps> = ({ userEmail
           description: "A resposta foi enviada com sucesso.",
         });
         
+        // Remove from local state
         setRequests(prev => prev.filter(req => req.id !== requestId));
       } else {
         throw new Error('Failed to respond to request');
@@ -100,17 +80,19 @@ const ExchangeNotifications: React.FC<ExchangeNotificationsProps> = ({ userEmail
         description: "Erro ao responder ao pedido. Tente novamente.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-  }, [toast]);
+  };
 
-  const formatDate = useCallback((dateStr: string) => {
+  const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('pt-PT', { 
       day: 'numeric', 
       month: 'short' 
     });
-  }, []);
+  };
 
-  const formatShift = useCallback((shift: string) => {
+  const formatShift = (shift: string) => {
     const shiftMap: Record<string, string> = {
       'day': 'Diurno',
       'overnight': 'Pernoite',
@@ -119,7 +101,7 @@ const ExchangeNotifications: React.FC<ExchangeNotificationsProps> = ({ userEmail
       'night': 'Noite'
     };
     return shiftMap[shift] || shift;
-  }, []);
+  };
 
   if (requests.length === 0) {
     return null;
@@ -197,4 +179,4 @@ const ExchangeNotifications: React.FC<ExchangeNotificationsProps> = ({ userEmail
   );
 };
 
-export default React.memo(ExchangeNotifications);
+export default ExchangeNotifications;
