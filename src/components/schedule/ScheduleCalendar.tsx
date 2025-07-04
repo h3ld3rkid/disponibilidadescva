@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
-import WeekdayCheckboxCalendar from './WeekdayCheckboxCalendar';
+import ShiftSelector from './ShiftSelector';
 import ScheduleSummary from './ScheduleSummary';
 import SingleShiftWarning from './SingleShiftWarning';
 import SubmissionDeadlineAlert from './SubmissionDeadlineAlert';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { scheduleService } from "@/services/supabase/scheduleService";
 import { systemSettingsService } from "@/services/supabase/systemSettingsService";
 
@@ -25,6 +27,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const [showSingleShiftWarning, setShowSingleShiftWarning] = useState(false);
   const [hasSpecialPermission, setHasSpecialPermission] = useState(false);
   const { toast } = useToast();
+
+  console.log('=== SCHEDULE CALENDAR RENDER ===');
+  console.log('selectedDates:', selectedDates);
+  console.log('selectedOvernights:', selectedOvernights);
 
   // Calculate the target month (next month)
   const getTargetMonth = () => {
@@ -106,37 +112,18 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     }
   }, [userEmail, loadExistingSchedule, checkSpecialPermissions]);
 
-  const handleDateToggle = useCallback((date: string) => {
-    console.log('Date toggled:', date);
-    setSelectedDates(prev => {
-      const newDates = prev.includes(date) 
-        ? prev.filter(d => d !== date)
-        : [...prev, date];
-      console.log('New selected dates:', newDates);
-      return newDates;
-    });
-  }, []);
+  // Simplified handlers that directly update state
+  const handleShiftChange = (newShifts: string[]) => {
+    console.log('=== SHIFT CHANGE ===');
+    console.log('New shifts:', newShifts);
+    setSelectedDates(newShifts);
+  };
 
-  const handleOvernightToggle = useCallback((overnight: string) => {
-    console.log('Overnight toggled:', overnight);
-    setSelectedOvernights(prev => {
-      const newOvernights = prev.includes(overnight) 
-        ? prev.filter(o => o !== overnight)
-        : [...prev, overnight];
-      console.log('New selected overnights:', newOvernights);
-      return newOvernights;
-    });
-  }, []);
-
-  const handleShiftNotesChange = useCallback((newNotes: string) => {
-    console.log('Shift notes changed:', newNotes);
-    setShiftNotes(newNotes);
-  }, []);
-
-  const handleOvernightNotesChange = useCallback((newNotes: string) => {
-    console.log('Overnight notes changed:', newNotes);
-    setOvernightNotes(newNotes);
-  }, []);
+  const handleOvernightChange = (newOvernights: string[]) => {
+    console.log('=== OVERNIGHT CHANGE ===');
+    console.log('New overnights:', newOvernights);
+    setSelectedOvernights(newOvernights);
+  };
 
   const checkForSingleShift = () => {
     const totalShifts = selectedDates.length + selectedOvernights.length;
@@ -250,12 +237,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const canSubmitSchedule = (selectedDates.length > 0 || selectedOvernights.length > 0) && isSubmissionAllowed();
   const submissionBlocked = editCount >= 2 || !isSubmissionAllowed();
 
-  console.log('=== RENDER DEBUG ===');
-  console.log('selectedDates:', selectedDates);
-  console.log('selectedOvernights:', selectedOvernights);
-  console.log('canSubmitSchedule:', canSubmitSchedule);
-  console.log('submissionBlocked:', submissionBlocked);
-
   return (
     <div className="min-h-screen bg-gray-50">
       {!isAdmin && (
@@ -271,19 +252,43 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       )}
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
-        <div className="lg:col-span-2">
-          <WeekdayCheckboxCalendar 
-            selectedDates={selectedDates}
+        <div className="lg:col-span-2 space-y-6">
+          <ShiftSelector
+            selectedShifts={selectedDates}
             selectedOvernights={selectedOvernights}
-            shiftNotes={shiftNotes}
-            overnightNotes={overnightNotes}
-            onDateToggle={handleDateToggle}
-            onOvernightToggle={handleOvernightToggle}
-            onShiftNotesChange={handleShiftNotesChange}
-            onOvernightNotesChange={handleOvernightNotesChange}
-            isAdmin={isAdmin}
-            userEmail={userEmail || userInfo?.email}
+            onShiftChange={handleShiftChange}
+            onOvernightChange={handleOvernightChange}
           />
+          
+          {/* Shift Notes */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Observações - Turnos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                placeholder="Adicione observações sobre a sua disponibilidade para turnos..."
+                value={shiftNotes}
+                onChange={(e) => setShiftNotes(e.target.value)}
+                className="min-h-[120px] resize-none border-2 focus:border-blue-500 transition-colors"
+              />
+            </CardContent>
+          </Card>
+
+          {/* Overnight Notes */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Observações - Pernoites</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                placeholder="Adicione observações sobre a sua disponibilidade para pernoites..."
+                value={overnightNotes}
+                onChange={(e) => setOvernightNotes(e.target.value)}
+                className="min-h-[120px] resize-none border-2 focus:border-purple-500 transition-colors"
+              />
+            </CardContent>
+          </Card>
         </div>
         
         <div className="lg:col-span-1">
