@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import WeekdayCheckboxCalendar from './WeekdayCheckboxCalendar';
 import ScheduleSummary from './ScheduleSummary';
@@ -42,28 +42,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     return currentDay <= 15 || hasSpecialPermission;
   };
 
-  useEffect(() => {
-    console.log('=== SCHEDULE CALENDAR INITIALIZATION ===');
-    console.log('userEmail prop:', userEmail);
-    console.log('isAdmin prop:', isAdmin);
-    
-    const storedUser = localStorage.getItem('mysqlConnection');
-    if (storedUser) {
-      const parsedUserInfo = JSON.parse(storedUser);
-      console.log('User info loaded:', parsedUserInfo);
-      setUserInfo(parsedUserInfo);
-      
-      // Load existing schedule if available - use the correct email
-      const currentUserEmail = userEmail || parsedUserInfo.email;
-      console.log('Loading schedule for email:', currentUserEmail);
-      loadExistingSchedule(currentUserEmail);
-      
-      // Check special permissions
-      checkSpecialPermissions(currentUserEmail);
-    }
-  }, [userEmail]);
-
-  const checkSpecialPermissions = async (email: string) => {
+  const checkSpecialPermissions = useCallback(async (email: string) => {
     try {
       const permission = await systemSettingsService.getSystemSetting(`allow_submission_after_15th_${email}`);
       setHasSpecialPermission(permission === 'true');
@@ -71,9 +50,9 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       console.error('Error checking special permissions:', error);
       setHasSpecialPermission(false);
     }
-  };
+  }, []);
 
-  const loadExistingSchedule = async (email: string) => {
+  const loadExistingSchedule = useCallback(async (email: string) => {
     try {
       console.log('Loading existing schedule for email:', email);
       const schedules = await scheduleService.getUserSchedules();
@@ -103,9 +82,31 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     } catch (error) {
       console.error('Error loading existing schedule:', error);
     }
-  };
+  }, []);
 
-  const handleDateToggle = (date: string) => {
+  useEffect(() => {
+    console.log('=== SCHEDULE CALENDAR INITIALIZATION ===');
+    console.log('userEmail prop:', userEmail);
+    console.log('isAdmin prop:', isAdmin);
+    
+    const storedUser = localStorage.getItem('mysqlConnection');
+    if (storedUser) {
+      const parsedUserInfo = JSON.parse(storedUser);
+      console.log('User info loaded:', parsedUserInfo);
+      setUserInfo(parsedUserInfo);
+      
+      // Load existing schedule if available - use the correct email
+      const currentUserEmail = userEmail || parsedUserInfo.email;
+      console.log('Loading schedule for email:', currentUserEmail);
+      
+      if (currentUserEmail) {
+        loadExistingSchedule(currentUserEmail);
+        checkSpecialPermissions(currentUserEmail);
+      }
+    }
+  }, [userEmail, loadExistingSchedule, checkSpecialPermissions]);
+
+  const handleDateToggle = useCallback((date: string) => {
     console.log('Date toggled:', date);
     setSelectedDates(prev => {
       const newDates = prev.includes(date) 
@@ -114,9 +115,9 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       console.log('New selected dates:', newDates);
       return newDates;
     });
-  };
+  }, []);
 
-  const handleOvernightToggle = (overnight: string) => {
+  const handleOvernightToggle = useCallback((overnight: string) => {
     console.log('Overnight toggled:', overnight);
     setSelectedOvernights(prev => {
       const newOvernights = prev.includes(overnight) 
@@ -125,17 +126,17 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       console.log('New selected overnights:', newOvernights);
       return newOvernights;
     });
-  };
+  }, []);
 
-  const handleShiftNotesChange = (newNotes: string) => {
+  const handleShiftNotesChange = useCallback((newNotes: string) => {
     console.log('Shift notes changed:', newNotes);
     setShiftNotes(newNotes);
-  };
+  }, []);
 
-  const handleOvernightNotesChange = (newNotes: string) => {
+  const handleOvernightNotesChange = useCallback((newNotes: string) => {
     console.log('Overnight notes changed:', newNotes);
     setOvernightNotes(newNotes);
-  };
+  }, []);
 
   const checkForSingleShift = () => {
     const totalShifts = selectedDates.length + selectedOvernights.length;
@@ -250,14 +251,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const submissionBlocked = editCount >= 2 || !isSubmissionAllowed();
 
   console.log('=== RENDER DEBUG ===');
-  console.log('isAdmin:', isAdmin);
-  console.log('userEmail prop:', userEmail);
-  console.log('userInfo:', userInfo);
-  console.log('Target month:', getTargetMonth());
-  console.log('Has special permission:', hasSpecialPermission);
-  console.log('Submission allowed:', isSubmissionAllowed());
-  console.log('Can submit schedule:', canSubmitSchedule);
-  console.log('Submission blocked:', submissionBlocked);
+  console.log('selectedDates:', selectedDates);
+  console.log('selectedOvernights:', selectedOvernights);
+  console.log('canSubmitSchedule:', canSubmitSchedule);
+  console.log('submissionBlocked:', submissionBlocked);
 
   return (
     <div className="min-h-screen bg-gray-50">
