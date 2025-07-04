@@ -51,8 +51,8 @@ export const supabaseService = {
     return scheduleService.saveSchedule(userEmail, userName, scheduleData);
   },
 
-  async getUserSchedules(userEmail?: string) {
-    return scheduleService.getUserSchedules(userEmail);
+  async getUserSchedules() {
+    return scheduleService.getUserSchedules();
   },
 
   async deleteUserSchedule(userEmail: string) {
