@@ -6,7 +6,6 @@ import SingleShiftWarning from './SingleShiftWarning';
 import SubmissionDeadlineAlert from './SubmissionDeadlineAlert';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Calendar, Moon } from 'lucide-react';
 import { scheduleService } from "@/services/supabase/scheduleService";
 import { systemSettingsService } from "@/services/supabase/systemSettingsService";
@@ -29,9 +28,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const [hasSpecialPermission, setHasSpecialPermission] = useState(false);
   const { toast } = useToast();
 
-  console.log('=== SCHEDULE CALENDAR RENDER ===');
-  console.log('selectedDates:', selectedDates);
-  console.log('selectedOvernights:', selectedOvernights);
+  console.log('ScheduleCalendar rendered with:', { selectedDates, selectedOvernights });
 
   const weekdayShifts = [
     'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira'
@@ -49,7 +46,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     'Dom/Seg', 'Seg/Ter', 'Ter/Qua', 'Qua/Qui', 'Qui/Sex', 'Sex/Sab', 'Sab/Dom'
   ];
 
-  // Calculate the target month (next month)
+  // Get target month
   const getTargetMonth = () => {
     const now = new Date();
     const targetMonth = new Date(now.getFullYear(), now.getMonth() + 1);
@@ -60,8 +57,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const isSubmissionAllowed = () => {
     const today = new Date();
     const currentDay = today.getDate();
-    
-    // Allow submission if before or on 15th, or if user has special permission
     return currentDay <= 15 || hasSpecialPermission;
   };
 
@@ -94,7 +89,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         setHasExistingSchedule(true);
       } else {
         console.log('No existing schedule found for user:', email);
-        // Reset to empty state
         setSelectedDates([]);
         setSelectedOvernights([]);
         setShiftNotes('');
@@ -108,17 +102,13 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   }, []);
 
   useEffect(() => {
-    console.log('=== SCHEDULE CALENDAR INITIALIZATION ===');
-    console.log('userEmail prop:', userEmail);
-    console.log('isAdmin prop:', isAdmin);
-    
+    console.log('ScheduleCalendar initialization');
     const storedUser = localStorage.getItem('mysqlConnection');
     if (storedUser) {
       const parsedUserInfo = JSON.parse(storedUser);
       console.log('User info loaded:', parsedUserInfo);
       setUserInfo(parsedUserInfo);
       
-      // Load existing schedule if available - use the correct email
       const currentUserEmail = userEmail || parsedUserInfo.email;
       console.log('Loading schedule for email:', currentUserEmail);
       
@@ -129,25 +119,28 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     }
   }, [userEmail, loadExistingSchedule, checkSpecialPermissions]);
 
-  const handleShiftToggle = (shift: string) => {
-    console.log('Shift toggle for:', shift);
+  // Simple shift toggle handlers
+  const handleShiftClick = (shift: string) => {
+    console.log('Shift clicked:', shift);
     setSelectedDates(prev => {
-      const newShifts = prev.includes(shift)
+      const isSelected = prev.includes(shift);
+      const newSelection = isSelected 
         ? prev.filter(s => s !== shift)
         : [...prev, shift];
-      console.log('New shifts array:', newShifts);
-      return newShifts;
+      console.log('New shift selection:', newSelection);
+      return newSelection;
     });
   };
 
-  const handleOvernightToggle = (overnight: string) => {
-    console.log('Overnight toggle for:', overnight);
+  const handleOvernightClick = (overnight: string) => {
+    console.log('Overnight clicked:', overnight);
     setSelectedOvernights(prev => {
-      const newOvernights = prev.includes(overnight)
+      const isSelected = prev.includes(overnight);
+      const newSelection = isSelected 
         ? prev.filter(o => o !== overnight)
         : [...prev, overnight];
-      console.log('New overnights array:', newOvernights);
-      return newOvernights;
+      console.log('New overnight selection:', newSelection);
+      return newSelection;
     });
   };
 
@@ -159,10 +152,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const handleSubmit = async () => {
     const currentUserEmail = userEmail || userInfo?.email;
     
-    console.log('=== SUBMITTING SCHEDULE ===');
-    console.log('Current user email from userEmail prop:', userEmail);
-    console.log('Current user email from userInfo:', userInfo?.email);
-    console.log('Final current user email:', currentUserEmail);
+    console.log('Submitting schedule for:', currentUserEmail);
     
     if (!currentUserEmail) {
       toast({
@@ -173,7 +163,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       return;
     }
 
-    // Check if submission is allowed
     if (!isSubmissionAllowed()) {
       toast({
         title: "Submissão não permitida",
@@ -192,7 +181,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       return;
     }
 
-    // Check if only one shift is selected and show warning
     if (checkForSingleShift()) {
       setShowSingleShiftWarning(true);
       return;
@@ -208,8 +196,6 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       console.log('Submitting schedule for user:', currentUserEmail);
       console.log('Selected Dates:', selectedDates);
       console.log('Selected Overnights:', selectedOvernights);
-      console.log('Shift Notes:', shiftNotes);
-      console.log('Overnight Notes:', overnightNotes);
       
       const scheduleData = {
         shifts: selectedDates,
@@ -263,6 +249,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const canSubmitSchedule = (selectedDates.length > 0 || selectedOvernights.length > 0) && isSubmissionAllowed();
   const submissionBlocked = editCount >= 2 || !isSubmissionAllowed();
 
+  // Simple shift button component
   const ShiftButton = ({ shift, isSelected, onClick, color = "blue" }: {
     shift: string;
     isSelected: boolean;
@@ -273,37 +260,27 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
       if (isSelected) {
         switch (color) {
           case "blue":
-            return "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/30";
+            return "bg-blue-600 border-blue-600 text-white shadow-lg";
           case "orange":
-            return "bg-orange-600 border-orange-600 text-white shadow-lg shadow-orange-500/30";
+            return "bg-orange-600 border-orange-600 text-white shadow-lg";
           case "purple":
-            return "bg-purple-600 border-purple-600 text-white shadow-lg shadow-purple-500/30";
+            return "bg-purple-600 border-purple-600 text-white shadow-lg";
           default:
-            return "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/30";
+            return "bg-blue-600 border-blue-600 text-white shadow-lg";
         }
       } else {
-        switch (color) {
-          case "blue":
-            return "bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50";
-          case "orange":
-            return "bg-white border-gray-300 text-gray-700 hover:border-orange-400 hover:bg-orange-50";
-          case "purple":
-            return "bg-white border-gray-300 text-gray-700 hover:border-purple-400 hover:bg-purple-50";
-          default:
-            return "bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50";
-        }
+        return "bg-white border-gray-300 text-gray-700 hover:border-blue-400 hover:bg-blue-50";
       }
     };
 
     return (
       <button
-        type="button"
         onClick={onClick}
         className={`
-          flex items-center justify-center p-4 rounded-xl cursor-pointer transition-all duration-300 ease-in-out
-          border-2 font-semibold text-sm min-h-[60px] w-full relative
+          flex items-center justify-center p-4 rounded-xl cursor-pointer transition-all duration-200
+          border-2 font-semibold text-sm min-h-[60px] w-full
           ${getColorClasses()}
-          transform hover:scale-105 active:scale-95
+          hover:scale-105 active:scale-95
         `}
       >
         <span className="text-center font-medium">
@@ -311,7 +288,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         </span>
         {isSelected && (
           <div className="absolute top-2 right-2">
-            <div className="w-3 h-3 bg-white rounded-full opacity-90 animate-pulse"></div>
+            <div className="w-3 h-3 bg-white rounded-full opacity-90"></div>
           </div>
         )}
       </button>
@@ -352,7 +329,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                       key={shift}
                       shift={shift}
                       isSelected={selectedDates.includes(shift)}
-                      onClick={() => handleShiftToggle(shift)}
+                      onClick={() => handleShiftClick(shift)}
                       color="blue"
                     />
                   ))}
@@ -372,7 +349,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                           key={shift}
                           shift={shift.replace('Sábado_', '')}
                           isSelected={selectedDates.includes(shift)}
-                          onClick={() => handleShiftToggle(shift)}
+                          onClick={() => handleShiftClick(shift)}
                           color="orange"
                         />
                       ))}
@@ -388,7 +365,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                           key={shift}
                           shift={shift.replace('Domingo_', '')}
                           isSelected={selectedDates.includes(shift)}
-                          onClick={() => handleShiftToggle(shift)}
+                          onClick={() => handleShiftClick(shift)}
                           color="purple"
                         />
                       ))}
@@ -414,7 +391,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
                     key={overnight}
                     shift={overnight}
                     isSelected={selectedOvernights.includes(overnight)}
-                    onClick={() => handleOvernightToggle(overnight)}
+                    onClick={() => handleOvernightClick(overnight)}
                     color="purple"
                   />
                 ))}
