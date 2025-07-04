@@ -1,4 +1,3 @@
-
 import { supabase } from './supabase/client';
 import { authService } from './supabase/authService';
 import { userService } from './supabase/userService';
@@ -46,26 +45,42 @@ export const supabaseService = {
     return userService.deleteUser(userId);
   },
 
+  async getUserByEmail(email: string) {
+    return userService.getUserByEmail(email);
+  },
+
   // Schedule service methods
-  async saveSchedule(userEmail: string, userName: string, scheduleData: any) {
-    return scheduleService.saveSchedule(userEmail, userName, scheduleData);
+  async getSchedules(filters?: any) {
+    return scheduleService.getSchedules(filters);
   },
 
-  async getUserSchedules() {
-    return scheduleService.getUserSchedules();
+  async createSchedule(scheduleData: any) {
+    return scheduleService.createSchedule(scheduleData);
   },
 
-  async deleteUserSchedule(userEmail: string) {
-    return scheduleService.deleteUserSchedule(userEmail);
+  async updateSchedule(scheduleId: string, scheduleData: any) {
+    return scheduleService.updateSchedule(scheduleId, scheduleData);
+  },
+
+  async deleteSchedule(scheduleId: string) {
+    return scheduleService.deleteSchedule(scheduleId);
+  },
+
+  async getUserSchedules(userEmail: string) {
+    return scheduleService.getUserSchedules(userEmail);
+  },
+
+  async getCurrentSchedules() {
+    return scheduleService.getCurrentSchedules();
+  },
+
+  async uploadSchedules(schedules: any[]) {
+    return scheduleService.uploadSchedules(schedules);
   },
 
   // Announcement service methods
-  async getAllAnnouncements() {
-    return announcementService.getAllAnnouncements();
-  },
-
-  async getActiveAnnouncements() {
-    return announcementService.getActiveAnnouncements();
+  async getAnnouncements() {
+    return announcementService.getAnnouncements();
   },
 
   async createAnnouncement(announcementData: any) {
