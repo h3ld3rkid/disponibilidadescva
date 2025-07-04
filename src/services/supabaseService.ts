@@ -51,16 +51,12 @@ export const supabaseService = {
     return scheduleService.saveSchedule(userEmail, userName, scheduleData);
   },
 
-  async getUserSchedules(userEmail: string) {
+  async getUserSchedules(userEmail?: string) {
     return scheduleService.getUserSchedules(userEmail);
   },
 
-  async getAllSchedules() {
-    return scheduleService.getAllSchedules();
-  },
-
-  async deleteUserSchedule(userEmail: string, month: string) {
-    return scheduleService.deleteUserSchedule(userEmail, month);
+  async deleteUserSchedule(userEmail: string) {
+    return scheduleService.deleteUserSchedule(userEmail);
   },
 
   // Announcement service methods
