@@ -219,14 +219,14 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         setEditCount(prev => prev + 1);
         setHasExistingSchedule(true);
       } else {
-        throw new Error('Failed to save schedule');
+        throw new Error(result.message || 'Failed to save schedule');
       }
       
     } catch (error) {
       console.error('Error submitting schedule:', error);
       toast({
         title: "Erro",
-        description: "Erro ao submeter a escala. Tente novamente.",
+        description: error instanceof Error ? error.message : "Erro ao submeter a escala. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -256,6 +256,8 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   console.log('Target month:', getTargetMonth());
   console.log('Has special permission:', hasSpecialPermission);
   console.log('Submission allowed:', isSubmissionAllowed());
+  console.log('Can submit schedule:', canSubmitSchedule);
+  console.log('Submission blocked:', submissionBlocked);
 
   return (
     <div className="min-h-screen bg-gray-50">
