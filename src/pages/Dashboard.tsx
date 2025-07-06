@@ -40,9 +40,12 @@ const Dashboard = () => {
         console.log("User info updated:", parsedUser);
         
         // Show splash screen only once per session for exchange requests
-        if (parsedUser && !splashShown) {
+        const splashKey = `exchange-splash-shown-${parsedUser.email}`;
+        const hasShownSplash = sessionStorage.getItem(splashKey);
+        
+        if (parsedUser && !hasShownSplash) {
           setShowExchangeSplash(true);
-          setSplashShown(true);
+          sessionStorage.setItem(splashKey, 'true');
         }
       } catch (error) {
         console.error("Error parsing user info:", error);
@@ -107,11 +110,14 @@ const Dashboard = () => {
   }, [navigate, toast]);
 
   const handleDismissSplash = () => {
+    console.log('Dismissing splash screen');
     setShowExchangeSplash(false);
-    // Navigate to exchanges page if user wants to see requests
-    if (window.location.pathname === '/dashboard/') {
-      navigate('/dashboard/exchanges');
-    }
+  };
+
+  const handleViewExchanges = () => {
+    console.log('Navigating to exchanges page');
+    setShowExchangeSplash(false);
+    navigate('/dashboard/exchanges');
   };
 
   if (loading) {
@@ -153,6 +159,7 @@ const Dashboard = () => {
         <ExchangeSplashScreen 
           userEmail={userInfo.email} 
           onDismiss={handleDismissSplash}
+          onViewExchanges={handleViewExchanges}
         />
       )}
 

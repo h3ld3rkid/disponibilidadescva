@@ -7,9 +7,14 @@ import { shiftExchangeService } from "@/services/supabase/shiftExchangeService";
 interface ExchangeSplashScreenProps {
   userEmail: string;
   onDismiss: () => void;
+  onViewExchanges: () => void;
 }
 
-const ExchangeSplashScreen: React.FC<ExchangeSplashScreenProps> = ({ userEmail, onDismiss }) => {
+const ExchangeSplashScreen: React.FC<ExchangeSplashScreenProps> = ({ 
+  userEmail, 
+  onDismiss, 
+  onViewExchanges 
+}) => {
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -33,13 +38,23 @@ const ExchangeSplashScreen: React.FC<ExchangeSplashScreenProps> = ({ userEmail, 
     return null;
   }
 
+  const handleViewExchanges = () => {
+    console.log('View exchanges clicked');
+    onViewExchanges();
+  };
+
+  const handleClose = () => {
+    console.log('Close splash clicked');
+    onDismiss();
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 text-center relative">
         <Button
           variant="ghost"
           size="sm"
-          onClick={onDismiss}
+          onClick={handleClose}
           className="absolute top-2 right-2"
         >
           <X className="h-4 w-4" />
@@ -61,7 +76,7 @@ const ExchangeSplashScreen: React.FC<ExchangeSplashScreenProps> = ({ userEmail, 
         
         <div className="space-y-3">
           <Button 
-            onClick={onDismiss}
+            onClick={handleViewExchanges}
             className="w-full bg-red-600 hover:bg-red-700"
           >
             Ver Pedidos de Troca
@@ -69,7 +84,7 @@ const ExchangeSplashScreen: React.FC<ExchangeSplashScreenProps> = ({ userEmail, 
           
           <Button 
             variant="outline" 
-            onClick={onDismiss}
+            onClick={handleClose}
             className="w-full"
           >
             Fechar
