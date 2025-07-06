@@ -1,11 +1,11 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { userService } from "@/services/supabase/userService";
-import { Users, Edit, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { authService } from "@/services/supabase/authService";
+import { Users, Edit, Trash2, ToggleLeft, ToggleRight, RotateCcw } from 'lucide-react';
 import UserEditDialog from './UserEditDialog';
 import {
   AlertDialog,
@@ -118,6 +118,29 @@ const UserList: React.FC<UserListProps> = ({
     }
   };
 
+  const handleResetPassword = async (userEmail: string) => {
+    try {
+      const result = await authService.resetPassword(userEmail);
+      
+      if (result.success) {
+        onUserUpdated();
+        toast({
+          title: "Password reposta",
+          description: `A password do utilizador foi reposta para "CVAmares".`,
+        });
+      } else {
+        throw new Error("Failed to reset password");
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast({
+        title: "Erro ao repor password",
+        description: "Não foi possível repor a password do utilizador.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleEditUser = (user: User) => {
     setEditingUser(user);
   };
@@ -201,6 +224,36 @@ const UserList: React.FC<UserListProps> = ({
                         15+
                       </span>
                     </Button>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          title="Repor password para CVAmares"
+                        >
+                          <RotateCcw className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Repor password</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem a certeza que deseja repor a password do utilizador "{user.name}" para "CVAmares"? 
+                            O utilizador terá de alterar a password no próximo login.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => handleResetPassword(user.email)}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            Repor Password
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
 
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
