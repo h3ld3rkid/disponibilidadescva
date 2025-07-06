@@ -1,23 +1,13 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { userService } from "@/services/supabase/userService";
 import { authService } from "@/services/supabase/authService";
-import { Users, Edit, Trash2, ToggleLeft, ToggleRight, RotateCcw } from 'lucide-react';
+import { Users } from 'lucide-react';
 import UserEditDialog from './UserEditDialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import UserItem from './UserItem';
+import EmptyUserList from './EmptyUserList';
 
 interface User {
   id: string;
@@ -165,126 +155,18 @@ const UserList: React.FC<UserListProps> = ({
         <CardContent>
           <div className="space-y-4">
             {users.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p>Nenhum utilizador encontrado</p>
-              </div>
+              <EmptyUserList />
             ) : (
               users.map((user) => (
-                <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <div className="font-medium text-gray-900">{user.name}</div>
-                      <Badge variant={user.active ? "default" : "secondary"}>
-                        {user.active ? "Ativo" : "Inativo"}
-                      </Badge>
-                      <Badge variant={user.role === "admin" ? "destructive" : "outline"}>
-                        {user.role === "admin" ? "Administrador" : "Utilizador"}
-                      </Badge>
-                      {user.allow_late_submission && (
-                        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-                          Submissão Tardia
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
-                    <div className="text-xs text-gray-400">
-                      Nº Mecanográfico: {user.mechanographic_number}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditUser(user)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleToggleUserStatus(user.id)}
-                    >
-                      {user.active ? (
-                        <ToggleRight className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <ToggleLeft className="h-4 w-4 text-gray-400" />
-                      )}
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleToggleLateSubmission(user.id)}
-                      title={user.allow_late_submission ? "Desativar submissão após dia 15" : "Permitir submissão após dia 15"}
-                    >
-                      <span className={`text-xs ${user.allow_late_submission ? 'text-yellow-600' : 'text-gray-400'}`}>
-                        15+
-                      </span>
-                    </Button>
-
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          title="Repor password para CVAmares"
-                        >
-                          <RotateCcw className="h-4 w-4 text-blue-600" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Repor password</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tem a certeza que deseja repor a password do utilizador "{user.name}" para "CVAmares"? 
-                            O utilizador terá de alterar a password no próximo login.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={() => handleResetPassword(user.email)}
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            Repor Password
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                        >
-                          <Trash2 className="h-4 w-4 text-red-600" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Eliminar utilizador</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tem a certeza que deseja eliminar o utilizador "{user.name}"? 
-                            Esta ação não pode ser desfeita.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Eliminar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
+                <UserItem
+                  key={user.id}
+                  user={user}
+                  onEdit={handleEditUser}
+                  onToggleStatus={handleToggleUserStatus}
+                  onToggleLateSubmission={handleToggleLateSubmission}
+                  onResetPassword={handleResetPassword}
+                  onDelete={handleDeleteUser}
+                />
               ))
             )}
           </div>
