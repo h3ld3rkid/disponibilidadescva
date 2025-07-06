@@ -13,6 +13,7 @@ import DatabaseConfigForm from '@/components/config/DatabaseConfig';
 import Announcements from '@/components/announcements/Announcements';
 import AnnouncementBanner from '@/components/announcements/AnnouncementBanner';
 import ShiftExchange from '@/components/schedule/ShiftExchange';
+import ExchangeSplashScreen from '@/components/schedule/ExchangeSplashScreen';
 
 interface UserInfo {
   email: string;
@@ -27,6 +28,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [forceUpdate, setForceUpdate] = useState(0);
   const [currentPath, setCurrentPath] = useState<string>(window.location.pathname);
+  const [showExchangeSplash, setShowExchangeSplash] = useState(false);
+  const [splashShown, setSplashShown] = useState(false);
 
   const updateUserInfo = () => {
     const storedUser = localStorage.getItem('mysqlConnection');
@@ -35,6 +38,12 @@ const Dashboard = () => {
         const parsedUser = JSON.parse(storedUser);
         setUserInfo(parsedUser);
         console.log("User info updated:", parsedUser);
+        
+        // Show splash screen only once per session for exchange requests
+        if (parsedUser && !splashShown) {
+          setShowExchangeSplash(true);
+          setSplashShown(true);
+        }
       } catch (error) {
         console.error("Error parsing user info:", error);
         navigate('/login');
@@ -97,6 +106,14 @@ const Dashboard = () => {
     };
   }, [navigate, toast]);
 
+  const handleDismissSplash = () => {
+    setShowExchangeSplash(false);
+    // Navigate to exchanges page if user wants to see requests
+    if (window.location.pathname === '/dashboard/') {
+      navigate('/dashboard/exchanges');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -131,6 +148,13 @@ const Dashboard = () => {
       </div>
 
       <AnnouncementBanner />
+
+      {showExchangeSplash && userInfo && (
+        <ExchangeSplashScreen 
+          userEmail={userInfo.email} 
+          onDismiss={handleDismissSplash}
+        />
+      )}
 
       <div className="flex-1">
         <div className="w-full max-w-[1440px] mx-auto px-4">
