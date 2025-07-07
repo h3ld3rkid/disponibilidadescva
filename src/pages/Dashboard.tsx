@@ -43,9 +43,17 @@ const Dashboard = () => {
         const splashKey = `exchange-splash-shown-${parsedUser.email}`;
         const hasShownSplash = sessionStorage.getItem(splashKey);
         
+        console.log('=== DASHBOARD SPLASH CHECK ===');
+        console.log('User email:', parsedUser.email);
+        console.log('Splash key:', splashKey);
+        console.log('Has shown splash before:', hasShownSplash);
+        
         if (parsedUser && !hasShownSplash) {
+          console.log('Setting splash screen to show');
           setShowExchangeSplash(true);
           sessionStorage.setItem(splashKey, 'true');
+        } else {
+          console.log('Not showing splash - already shown or no user');
         }
       } catch (error) {
         console.error("Error parsing user info:", error);

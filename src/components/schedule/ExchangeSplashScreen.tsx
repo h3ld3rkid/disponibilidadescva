@@ -20,8 +20,11 @@ const ExchangeSplashScreen: React.FC<ExchangeSplashScreenProps> = ({
 
   useEffect(() => {
     const loadPendingRequests = async () => {
+      console.log('=== EXCHANGE SPLASH SCREEN ===');
+      console.log('Loading pending requests for user:', userEmail);
       try {
         const requests = await shiftExchangeService.getPendingRequestsForUser(userEmail);
+        console.log('Found pending requests:', requests.length);
         setPendingCount(requests.length);
       } catch (error) {
         console.error('Error loading pending requests:', error);
@@ -31,7 +34,12 @@ const ExchangeSplashScreen: React.FC<ExchangeSplashScreenProps> = ({
       }
     };
 
-    loadPendingRequests();
+    if (userEmail) {
+      loadPendingRequests();
+    } else {
+      console.log('No userEmail provided to ExchangeSplashScreen');
+      setLoading(false);
+    }
   }, [userEmail]);
 
   if (loading || pendingCount === 0) {
