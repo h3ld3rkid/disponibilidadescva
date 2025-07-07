@@ -29,7 +29,6 @@ const Dashboard = () => {
   const [forceUpdate, setForceUpdate] = useState(0);
   const [currentPath, setCurrentPath] = useState<string>(window.location.pathname);
   const [showExchangeSplash, setShowExchangeSplash] = useState(false);
-  const [splashShown, setSplashShown] = useState(false);
 
   const updateUserInfo = () => {
     const storedUser = localStorage.getItem('mysqlConnection');
@@ -39,21 +38,13 @@ const Dashboard = () => {
         setUserInfo(parsedUser);
         console.log("User info updated:", parsedUser);
         
-        // Show splash screen only once per session for exchange requests
-        const splashKey = `exchange-splash-shown-${parsedUser.email}`;
+        // Check if splash should be shown (once per session)
+        const splashKey = `exchange-splash-${parsedUser.email}`;
         const hasShownSplash = sessionStorage.getItem(splashKey);
         
-        console.log('=== DASHBOARD SPLASH CHECK ===');
-        console.log('User email:', parsedUser.email);
-        console.log('Splash key:', splashKey);
-        console.log('Has shown splash before:', hasShownSplash);
-        
-        if (parsedUser && !hasShownSplash) {
-          console.log('Setting splash screen to show');
+        if (!hasShownSplash) {
           setShowExchangeSplash(true);
           sessionStorage.setItem(splashKey, 'true');
-        } else {
-          console.log('Not showing splash - already shown or no user');
         }
       } catch (error) {
         console.error("Error parsing user info:", error);
@@ -117,16 +108,6 @@ const Dashboard = () => {
     };
   }, [navigate, toast]);
 
-  const handleDismissSplash = () => {
-    console.log('Dismissing splash screen');
-    setShowExchangeSplash(false);
-  };
-
-  const handleViewExchanges = () => {
-    console.log('Navigating to exchanges page');
-    setShowExchangeSplash(false);
-    navigate('/dashboard/exchanges');
-  };
 
   if (loading) {
     return (
@@ -166,8 +147,7 @@ const Dashboard = () => {
       {showExchangeSplash && userInfo && (
         <ExchangeSplashScreen 
           userEmail={userInfo.email} 
-          onDismiss={handleDismissSplash}
-          onViewExchanges={handleViewExchanges}
+          onClose={() => setShowExchangeSplash(false)}
         />
       )}
 
