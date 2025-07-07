@@ -57,54 +57,61 @@ const ExchangeSplashScreen: React.FC<ExchangeSplashScreenProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
-      <div className="bg-white rounded-2xl p-10 max-w-lg w-full mx-4 text-center relative shadow-2xl animate-scale-in border-2 border-red-100">
+    <div className="fixed inset-0 bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-md flex items-center justify-center z-50 animate-fade-in">
+      <div className="relative w-full max-w-md mx-4">
+        {/* Close button */}
         <Button
           variant="ghost"
           size="sm"
           onClick={handleClose}
-          className="absolute top-4 right-4 hover:bg-red-50"
+          className="absolute -top-12 right-0 text-white/80 hover:text-white hover:bg-white/10 z-10"
         >
-          <X className="h-5 w-5" />
+          <X className="h-6 w-6" />
         </Button>
         
-        <div className="mb-8">
-          <div className="w-24 h-24 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg animate-pulse">
-            <ArrowLeftRight className="h-12 w-12 text-white" />
+        {/* Main splash screen content */}
+        <div className="bg-white rounded-3xl p-12 text-center shadow-2xl animate-scale-in border border-gray-100">
+          {/* Icon */}
+          <div className="w-28 h-28 bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg animate-pulse">
+            <ArrowLeftRight className="h-14 w-14 text-white" />
           </div>
           
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            🔄 Novos Pedidos de Troca!
-          </h2>
+          {/* Title */}
+          <h1 className="text-4xl font-bold text-gray-900 mb-6 leading-tight">
+            Pedidos de Troca
+            <br />
+            <span className="text-red-600">Pendentes!</span>
+          </h1>
           
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-            <p className="text-lg text-red-800 font-semibold">
-              Tem {pendingCount} pedido{pendingCount > 1 ? 's' : ''} de troca de turno pendente{pendingCount > 1 ? 's' : ''} à sua espera.
-            </p>
+          {/* Count badge */}
+          <div className="inline-flex items-center bg-red-100 border-2 border-red-200 rounded-full px-6 py-3 mb-6">
+            <span className="text-2xl font-bold text-red-800">
+              {pendingCount} {pendingCount === 1 ? 'pedido' : 'pedidos'}
+            </span>
           </div>
           
-          <p className="text-gray-600">
-            ⏰ Responda o mais breve possível para confirmar ou rejeitar as trocas.
+          {/* Description */}
+          <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+            Tem novos pedidos de troca de turno aguardando a sua resposta.
           </p>
-        </div>
-        
-        <div className="space-y-4">
-          <Button 
-            onClick={handleViewExchanges}
-            className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-4 text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-            size="lg"
-          >
-            👀 Ver Pedidos de Troca
-          </Button>
           
-          <Button 
-            variant="outline" 
-            onClick={handleClose}
-            className="w-full border-2 border-gray-300 hover:bg-gray-50 py-3"
-            size="lg"
-          >
-            Fechar
-          </Button>
+          {/* Action buttons */}
+          <div className="space-y-4">
+            <Button 
+              onClick={handleViewExchanges}
+              className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold py-6 text-xl rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+            >
+              ✨ Ver Pedidos Agora
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              onClick={handleClose}
+              className="w-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 py-4 text-lg rounded-xl transition-all duration-200"
+            >
+              Mais tarde
+            </Button>
+          </div>
         </div>
       </div>
     </div>
