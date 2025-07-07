@@ -14,8 +14,6 @@ import Announcements from '@/components/announcements/Announcements';
 import AnnouncementBanner from '@/components/announcements/AnnouncementBanner';
 import ShiftExchange from '@/components/schedule/ShiftExchange';
 import ExchangeSplashScreen from '@/components/schedule/ExchangeSplashScreen';
-import SecurityDashboard from '@/components/admin/SecurityDashboard';
-import { securityService } from '@/services/securityService';
 
 interface UserInfo {
   email: string;
@@ -78,9 +76,6 @@ const Dashboard = () => {
   useEffect(() => {
     updateUserInfo();
     setLoading(false);
-    
-    // Configure secure session
-    securityService.configureSecureSession();
     
     const handleRoleChange = () => {
       console.log("Role change event detected");
@@ -182,7 +177,6 @@ const Dashboard = () => {
             <Route path="/schedule-upload" element={checkAdminRoute(<ScheduleUpload />)} />
             <Route path="/announcements" element={checkAdminRoute(<Announcements key={`announcements-${forceUpdate}`} />)} />
             <Route path="/config/database" element={checkAdminRoute(<DatabaseConfigForm />)} />
-            <Route path="/security" element={checkAdminRoute(<SecurityDashboard />)} />
             
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

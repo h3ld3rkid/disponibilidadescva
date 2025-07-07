@@ -78,34 +78,9 @@ export const authService = {
     }
   },
   
-  // Validate password strength
-  async validatePassword(password: string): Promise<{ isValid: boolean; message?: string }> {
-    const { data, error } = await supabase.rpc('validate_password', { password });
-    
-    if (error) {
-      console.error('Error validating password:', error);
-      return { isValid: false, message: 'Erro ao validar senha' };
-    }
-    
-    if (!data) {
-      return { 
-        isValid: false, 
-        message: 'A senha deve ter pelo menos 8 caracteres, incluindo maiúscula, minúscula, número e símbolo especial' 
-      };
-    }
-    
-    return { isValid: true };
-  },
-
   // Change password for user
-  async changePassword(email: string, newPassword: string): Promise<{ success: boolean; message?: string }> {
+  async changePassword(email: string, newPassword: string): Promise<{ success: boolean }> {
     console.log('Supabase: Changing password for', email);
-    
-    // Validate password strength first
-    const validation = await this.validatePassword(newPassword);
-    if (!validation.isValid) {
-      return { success: false, message: validation.message };
-    }
     
     const { error } = await supabase
       .from('users')
@@ -118,38 +93,12 @@ export const authService = {
     
     if (error) {
       console.error('Error changing password:', error);
-      
-      // Log security event
-      await this.logSecurityEvent(email, 'password_change_failed', false, { error: error.message });
       throw error;
     }
-    
-    // Log successful password change
-    await this.logSecurityEvent(email, 'password_changed', true);
     
     return { success: true };
   },
   
-  // Log security event
-  async logSecurityEvent(
-    userEmail: string, 
-    eventType: string, 
-    success: boolean = true, 
-    details: any = null
-  ): Promise<void> {
-    try {
-      await supabase.rpc('log_security_event', {
-        p_user_email: userEmail,
-        p_event_type: eventType,
-        p_success: success,
-        p_details: details ? JSON.stringify(details) : null
-      });
-    } catch (error) {
-      console.error('Error logging security event:', error);
-      // Don't throw here to avoid breaking the main flow
-    }
-  },
-
   // Check login credentials - Fixed to properly handle CVAmares default password
   async checkLogin(email: string, password: string): Promise<{ success: boolean; user?: { email: string; role: string; needsPasswordChange: boolean; name: string } }> {
     console.log('Supabase: Checking login for', email);
@@ -162,15 +111,11 @@ export const authService = {
     
     if (error || !data) {
       console.error('Error or user not found:', error);
-      // Log failed login attempt
-      await this.logSecurityEvent(email, 'failed_login', false, { reason: 'user_not_found' });
       return { success: false };
     }
     
     if (!data.active) {
       console.log('User account is inactive');
-      // Log failed login attempt
-      await this.logSecurityEvent(email, 'failed_login', false, { reason: 'account_inactive' });
       return { success: false };
     }
     
@@ -179,15 +124,10 @@ export const authService = {
     
     if (!passwordMatches) {
       console.log('Password does not match');
-      // Log failed login attempt
-      await this.logSecurityEvent(email, 'failed_login', false, { reason: 'invalid_password' });
       return { success: false };
     }
     
     console.log('Login successful for user:', email);
-    // Log successful login
-    await this.logSecurityEvent(email, 'successful_login', true);
-    
     return { 
       success: true,
       user: {
