@@ -16,7 +16,9 @@ import {
   User,
   ArrowLeftRight,
   CalendarCheck,
-  ChevronDown
+  ChevronDown,
+  Shield,
+  Database
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -100,7 +102,8 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
     { path: '/dashboard/user-schedules', icon: UserCheck, label: 'Escalas Recebidas' },
     { path: '/dashboard/schedule-upload', icon: Upload, label: 'Upload Escala Atual' },
     { path: '/dashboard/announcements', icon: Megaphone, label: 'Avisos' },
-    { path: '/dashboard/config/database', icon: Settings, label: 'Configurações' },
+    { path: '/dashboard/security', icon: Shield, label: 'Segurança' },
+    { path: '/dashboard/config/database', icon: Database, label: 'Configurações' },
   ];
 
   return (

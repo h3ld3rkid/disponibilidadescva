@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save, Lock } from "lucide-react";
 import { supabaseService } from "@/services/supabaseService";
+import { securityService } from '@/services/securityService';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
 
@@ -21,9 +22,14 @@ const profileSchema = z.object({
 });
 
 const passwordSchema = z.object({
-  currentPassword: z.string().min(6, { message: "Password atual deve ter pelo menos 6 caracteres" }),
-  newPassword: z.string().min(6, { message: "Nova password deve ter pelo menos 6 caracteres" }),
-  confirmPassword: z.string().min(6, { message: "Confirme a nova password" }),
+  currentPassword: z.string().min(1, { message: "Password atual é obrigatória" }),
+  newPassword: z.string()
+    .min(8, { message: "Nova password deve ter pelo menos 8 caracteres" })
+    .regex(/[A-Z]/, { message: "Nova password deve conter pelo menos uma letra maiúscula" })
+    .regex(/[a-z]/, { message: "Nova password deve conter pelo menos uma letra minúscula" })
+    .regex(/[0-9]/, { message: "Nova password deve conter pelo menos um número" })
+    .regex(/[^A-Za-z0-9]/, { message: "Nova password deve conter pelo menos um símbolo especial" }),
+  confirmPassword: z.string().min(1, { message: "Confirme a nova password" }),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "As passwords não coincidem",
   path: ["confirmPassword"],
@@ -47,6 +53,7 @@ const ProfileEdit = () => {
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
   const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
   const [defaultTab, setDefaultTab] = useState('profile');
+  const [passwordStrength, setPasswordStrength] = useState({ isValid: false, score: 0, feedback: [] as string[] });
 
   // Profile form
   const profileForm = useForm<ProfileFormValues>({
@@ -167,6 +174,17 @@ const ProfileEdit = () => {
       
       const userInfo = JSON.parse(userConnection);
       
+      // Validate password strength
+      const validation = securityService.validatePasswordStrength(data.newPassword);
+      if (!validation.isValid) {
+        toast({
+          title: "Password não é suficientemente forte",
+          description: validation.feedback.join(', '),
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Call the supabaseService to change the password
       const result = await supabaseService.changePassword(userInfo.email, data.newPassword);
       
@@ -188,7 +206,7 @@ const ProfileEdit = () => {
           description: "A sua password foi atualizada com sucesso",
         });
       } else {
-        throw new Error("Failed to update password");
+        throw new Error(result.message || "Failed to update password");
       }
     } catch (error) {
       console.error("Error updating password:", error);
@@ -311,19 +329,62 @@ const ProfileEdit = () => {
                     )}
                   />
                   
-                  <FormField
-                    control={passwordForm.control}
-                    name="newPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nova password</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Introduza a nova password" type="password" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                   <FormField
+                     control={passwordForm.control}
+                     name="newPassword"
+                     render={({ field }) => (
+                       <FormItem>
+                         <FormLabel>Nova password</FormLabel>
+                         <FormControl>
+                           <Input 
+                             placeholder="Introduza a nova password" 
+                             type="password" 
+                             {...field}
+                             onChange={(e) => {
+                               field.onChange(e);
+                               const strength = securityService.validatePasswordStrength(e.target.value);
+                               setPasswordStrength(strength);
+                             }}
+                           />
+                         </FormControl>
+                         {field.value && (
+                           <div className="mt-2 space-y-2">
+                             <div className="flex space-x-1">
+                               {[1, 2, 3, 4, 5, 6].map((level) => (
+                                 <div
+                                   key={level}
+                                   className={`h-2 w-full rounded-full ${
+                                     level <= passwordStrength.score
+                                       ? level <= 2
+                                         ? 'bg-red-500'
+                                         : level <= 4
+                                         ? 'bg-yellow-500'
+                                         : 'bg-green-500'
+                                       : 'bg-gray-200'
+                                   }`}
+                                 />
+                               ))}
+                             </div>
+                             <div className="text-sm space-y-1">
+                               {passwordStrength.feedback.map((feedback, index) => (
+                                 <p
+                                   key={index}
+                                   className={
+                                     passwordStrength.isValid && feedback === 'Senha forte!'
+                                       ? 'text-green-600'
+                                       : 'text-red-600'
+                                   }
+                                 >
+                                   {feedback}
+                                 </p>
+                               ))}
+                             </div>
+                           </div>
+                         )}
+                         <FormMessage />
+                       </FormItem>
+                     )}
+                   />
                   
                   <FormField
                     control={passwordForm.control}
