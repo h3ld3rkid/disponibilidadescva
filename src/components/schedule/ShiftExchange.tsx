@@ -76,6 +76,7 @@ const ShiftExchange = () => {
         { value: 'morning', label: 'Turno Manhã' },
         { value: 'afternoon', label: 'Turno Tarde' },
         { value: 'night', label: 'Turno Noite' },
+        { value: 'overnight', label: 'Pernoite' },
       ];
     }
   };
