@@ -12,4 +12,4 @@ jobs:
     steps:
       - name: Ping Supabase endpoint
         run: |
-          curl -I https://<SUA-URL>.supabase.co/rest/v1/<NOME-TABELA>
+          curl -I https://lddfufxcrnqixfiyhrvc.supabase.co/rest/v1/announcements
