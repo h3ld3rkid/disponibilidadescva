@@ -12,4 +12,6 @@ jobs:
     steps:
       - name: Ping Supabase endpoint
         run: |
-          curl -I https://lddfufxcrnqixfiyhrvc.supabase.co/rest/v1/announcements
+          curl -I https://lddfufxcrnqixfiyhrvc.supabase.co/rest/v1/announcements \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
