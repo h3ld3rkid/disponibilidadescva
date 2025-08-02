@@ -98,9 +98,36 @@ const ProfileEdit = () => {
               name: currentUser.name,
               email: currentUser.email,
             });
+          } else {
+            // If user not found in database, set basic data from localStorage
+            setUserData({
+              name: userInfo.name || userInfo.email,
+              email: userInfo.email,
+              role: userInfo.role || 'user',
+              mechanographic_number: userInfo.mechanographic_number || 'N/A',
+              needs_password_change: false
+            });
+
+            profileForm.reset({
+              name: userInfo.name || userInfo.email,
+              email: userInfo.email,
+            });
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
+          // Fallback to localStorage data
+          const fallbackData = {
+            name: userInfo.name || userInfo.email,
+            email: userInfo.email,
+            role: userInfo.role || 'user',
+            mechanographic_number: userInfo.mechanographic_number || 'N/A',
+            needs_password_change: false
+          };
+          setUserData(fallbackData);
+          profileForm.reset({
+            name: fallbackData.name,
+            email: fallbackData.email,
+          });
         }
       };
       

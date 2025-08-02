@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import ExchangeNotifications from '@/components/schedule/ExchangeNotifications';
+import ScheduleNotifications from '@/components/schedule/ScheduleNotifications';
 import { userService } from "@/services/supabase/userService";
 
 interface NavbarProps {
@@ -178,6 +179,9 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
 
           {/* User Info and Actions */}
           <div className="flex items-center space-x-3 flex-shrink-0 min-w-0">
+            {/* Admin Schedule Notifications */}
+            <ScheduleNotifications isAdmin={isAdmin} />
+            
             {/* Exchange Notifications */}
             {userInfo?.email && (
               <ExchangeNotifications userEmail={userInfo.email} />

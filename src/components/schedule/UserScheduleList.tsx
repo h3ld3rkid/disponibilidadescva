@@ -118,6 +118,12 @@ const UserScheduleList: React.FC<UserScheduleListProps> = ({
                         <Mail className="h-3 w-3" />
                         {email}
                       </div>
+                      {userSchedule?.month && (
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          Mês: {userSchedule.month}
+                        </div>
+                      )}
                       {userSchedule?.editCount !== undefined && (
                         <div className="flex items-center gap-1">
                           <Hash className="h-3 w-3" />

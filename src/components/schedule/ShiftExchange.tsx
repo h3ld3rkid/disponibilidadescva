@@ -11,6 +11,7 @@ import { shiftExchangeService, ShiftExchangeRequest } from "@/services/supabase/
 import { userService } from "@/services/supabase/userService";
 import { ArrowLeftRight, Send, Check, X, Search, Info } from 'lucide-react';
 import { isWeekendOrHoliday, getDayType } from '@/utils/dateUtils';
+import ExchangeSuccessSplash from './ExchangeSuccessSplash';
 
 interface User {
   id: string;
@@ -31,6 +32,7 @@ const ShiftExchange = () => {
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [exchangeRequests, setExchangeRequests] = useState<ShiftExchangeRequest[]>([]);
+  const [showSuccessSplash, setShowSuccessSplash] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -129,10 +131,8 @@ const ShiftExchange = () => {
       });
 
       if (result.success) {
-        toast({
-          title: "Pedido enviado",
-          description: `Pedido de troca enviado para ${selectedUser.name}.`,
-        });
+        // Show success splash instead of toast
+        setShowSuccessSplash(true);
         
         // Reset form
         setSelectedUser(null);
@@ -218,7 +218,12 @@ const ShiftExchange = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <>
+      {showSuccessSplash && (
+        <ExchangeSuccessSplash onClose={() => setShowSuccessSplash(false)} />
+      )}
+      
+      <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Trocas de Turnos</h1>
         <p className="text-gray-600">Proponha trocas de turnos com outros utilizadores</p>
@@ -473,6 +478,7 @@ const ShiftExchange = () => {
         </Card>
       </div>
     </div>
+    </>
   );
 };
 
