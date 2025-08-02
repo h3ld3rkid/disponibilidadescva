@@ -235,7 +235,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_and_reset_monthly_counters: {
+        Args: { current_month: string }
+        Returns: boolean
+      }
+      reset_edit_counters: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
