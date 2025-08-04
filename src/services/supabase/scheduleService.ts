@@ -1,6 +1,25 @@
 import { supabase } from "./client";
 import { systemSettingsService } from "./systemSettingsService";
 
+// Auto-check and reset monthly counters
+const checkMonthlyReset = async () => {
+  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+  
+  try {
+    const { data, error } = await supabase.rpc('check_and_reset_monthly_counters', {
+      current_month: currentMonth
+    });
+    
+    if (error) {
+      console.error('Error checking monthly reset:', error);
+    } else if (data) {
+      console.log('Monthly edit counters reset successfully');
+    }
+  } catch (error) {
+    console.error('Error in monthly reset check:', error);
+  }
+};
+
 export const scheduleService = {
   // Check if user can submit schedule after 15th
   async canUserSubmitAfter15th(userEmail: string): Promise<boolean> {
@@ -44,6 +63,9 @@ export const scheduleService = {
     console.log('Schedule Data:', scheduleData);
     
     try {
+      // Check for monthly reset before validating submission
+      await checkMonthlyReset();
+      
       // Validate submission
       const validation = await this.validateSubmission(userEmail);
       if (!validation.allowed) {
