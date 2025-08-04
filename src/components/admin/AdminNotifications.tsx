@@ -25,17 +25,21 @@ export const AdminNotifications: React.FC = () => {
 
   const loadNotifications = async () => {
     try {
-      // Use raw SQL query since table might not be in types yet
+      // Use raw SQL query since table is not in types yet
       const { data, error } = await supabase
-        .rpc('get_admin_notifications');
+        .from('admin_notifications' as any)
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (error) {
         console.error('Error loading notifications:', error);
         return;
       }
 
-      setNotifications(data || []);
-      setUnreadCount((data || []).filter((n: AdminNotification) => !n.is_read).length);
+      const notifications = (data || []) as unknown as AdminNotification[];
+      setNotifications(notifications);
+      setUnreadCount(notifications.filter((n: AdminNotification) => !n.is_read).length);
     } catch (error) {
       console.error('Error in loadNotifications:', error);
     }
@@ -44,7 +48,9 @@ export const AdminNotifications: React.FC = () => {
   const markAsRead = async (notificationId: string) => {
     try {
       const { error } = await supabase
-        .rpc('mark_notification_read', { notification_id: notificationId });
+        .from('admin_notifications' as any)
+        .update({ is_read: true })
+        .eq('id', notificationId);
 
       if (error) {
         console.error('Error marking notification as read:', error);
@@ -64,7 +70,9 @@ export const AdminNotifications: React.FC = () => {
   const markAllAsRead = async () => {
     try {
       const { error } = await supabase
-        .rpc('mark_all_notifications_read');
+        .from('admin_notifications' as any)
+        .update({ is_read: true })
+        .eq('is_read', false);
 
       if (error) {
         console.error('Error marking all notifications as read:', error);

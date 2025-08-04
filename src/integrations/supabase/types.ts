@@ -239,6 +239,24 @@ export type Database = {
         Args: { current_month: string }
         Returns: boolean
       }
+      get_admin_notifications: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          message: string
+          user_email: string
+          created_at: string
+          is_read: boolean
+        }[]
+      }
+      mark_all_notifications_read: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      mark_notification_read: {
+        Args: { notification_id: string }
+        Returns: undefined
+      }
       reset_edit_counters: {
         Args: Record<PropertyKey, never>
         Returns: undefined
