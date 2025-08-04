@@ -28,6 +28,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import ExchangeNotifications from '@/components/schedule/ExchangeNotifications';
 import ScheduleNotifications from '@/components/schedule/ScheduleNotifications';
+import { AdminNotifications } from '@/components/admin/AdminNotifications';
 import { userService } from "@/services/supabase/userService";
 
 interface NavbarProps {
@@ -153,7 +154,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-56 bg-white">
                       {adminNavItems.map((item, index) => (
-                        <React.Fragment key={item.path}>
+                        <div key={item.path}>
                           <DropdownMenuItem asChild>
                             <Link
                               to={item.path}
@@ -168,7 +169,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
                             </Link>
                           </DropdownMenuItem>
                           {index < adminNavItems.length - 1 && <DropdownMenuSeparator />}
-                        </React.Fragment>
+                        </div>
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -179,6 +180,9 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
 
           {/* User Info and Actions */}
           <div className="flex items-center space-x-3 flex-shrink-0 min-w-0">
+            {/* Admin Notifications */}
+            {isAdmin && <AdminNotifications />}
+            
             {/* Admin Schedule Notifications */}
             <ScheduleNotifications isAdmin={isAdmin} />
             

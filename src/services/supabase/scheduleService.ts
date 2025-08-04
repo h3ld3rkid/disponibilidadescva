@@ -127,6 +127,22 @@ export const scheduleService = {
       }
       
       console.log('Schedule saved successfully for user:', userEmail, result.data);
+      
+      // Notify admins about the new/updated schedule submission
+      try {
+        await supabase
+          .from('admin_notifications' as any)
+          .insert({
+            message: `${userName} submeteu uma nova escala para ${month}`,
+            user_email: userEmail,
+            is_read: false
+          });
+        console.log('Admin notification sent successfully');
+      } catch (notificationError) {
+        console.error('Error sending admin notification:', notificationError);
+        // Don't fail the schedule save if notification fails
+      }
+      
       return { success: true };
       
     } catch (error) {

@@ -354,6 +354,7 @@ export class PDFGenerator {
       const fileName = `Escala_${pdfData.userName.replace(/\s+/g, '_')}_${new Date().toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }).replace(/\s+/g, '_')}.pdf`;
       console.log('Saving PDF as:', fileName);
       this.doc.save(fileName);
+      console.log('PDF generated successfully');
     } catch (error) {
       console.error('Error generating PDF:', error);
       throw error;
