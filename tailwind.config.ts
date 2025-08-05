@@ -64,9 +64,9 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				brand: {
-					blue: '#3498db',
-					indigo: '#4F46E5',
-					darkblue: '#2563EB'
+					blue: '195 100% 55%', // HSL for #3498db
+					indigo: '231 58% 58%', // HSL for #4F46E5
+					darkblue: '217 91% 60%' // HSL for #2563EB
 				}
 			},
 			borderRadius: {

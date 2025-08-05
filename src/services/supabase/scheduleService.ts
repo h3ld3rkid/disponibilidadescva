@@ -1,4 +1,4 @@
-import { supabase } from "./client";
+import { supabase } from "@/integrations/supabase/client";
 import { systemSettingsService } from "./systemSettingsService";
 
 // Auto-check and reset monthly counters
