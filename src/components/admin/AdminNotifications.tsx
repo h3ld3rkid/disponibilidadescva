@@ -25,9 +25,8 @@ export const AdminNotifications: React.FC = () => {
 
   const loadNotifications = async () => {
     try {
-      // Use raw SQL query since table is not in types yet
       const { data, error } = await supabase
-        .from('admin_notifications' as any)
+        .from('admin_notifications')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
@@ -37,9 +36,10 @@ export const AdminNotifications: React.FC = () => {
         return;
       }
 
-      const notifications = (data || []) as unknown as AdminNotification[];
-      setNotifications(notifications);
-      setUnreadCount(notifications.filter((n: AdminNotification) => !n.is_read).length);
+      if (data) {
+        setNotifications(data);
+        setUnreadCount(data.filter(n => !n.is_read).length);
+      }
     } catch (error) {
       console.error('Error in loadNotifications:', error);
     }
@@ -48,7 +48,7 @@ export const AdminNotifications: React.FC = () => {
   const markAsRead = async (notificationId: string) => {
     try {
       const { error } = await supabase
-        .from('admin_notifications' as any)
+        .from('admin_notifications')
         .update({ is_read: true })
         .eq('id', notificationId);
 
@@ -57,7 +57,6 @@ export const AdminNotifications: React.FC = () => {
         return;
       }
 
-      // Update local state
       setNotifications(prev => 
         prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
       );
@@ -70,7 +69,7 @@ export const AdminNotifications: React.FC = () => {
   const markAllAsRead = async () => {
     try {
       const { error } = await supabase
-        .from('admin_notifications' as any)
+        .from('admin_notifications')
         .update({ is_read: true })
         .eq('is_read', false);
 
@@ -79,7 +78,6 @@ export const AdminNotifications: React.FC = () => {
         return;
       }
 
-      // Update local state
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
     } catch (error) {

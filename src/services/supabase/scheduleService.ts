@@ -128,19 +128,23 @@ export const scheduleService = {
       
       console.log('Schedule saved successfully for user:', userEmail, result.data);
       
-      // Notify admins about the new/updated schedule submission
+      // Send admin notification about the new/updated schedule
       try {
-        await supabase
-          .from('admin_notifications' as any)
+        const { error: notificationError } = await supabase
+          .from('admin_notifications')
           .insert({
             message: `${userName} submeteu uma nova escala para ${month}`,
             user_email: userEmail,
             is_read: false
           });
-        console.log('Admin notification sent successfully');
+        
+        if (notificationError) {
+          console.error('Error sending admin notification:', notificationError);
+        } else {
+          console.log('Admin notification sent successfully');
+        }
       } catch (notificationError) {
-        console.error('Error sending admin notification:', notificationError);
-        // Don't fail the schedule save if notification fails
+        console.error('Failed to send admin notification:', notificationError);
       }
       
       return { success: true };
