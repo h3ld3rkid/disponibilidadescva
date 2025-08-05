@@ -130,8 +130,9 @@ export const scheduleService = {
       
       // Send admin notification about the new/updated schedule
       try {
+        // Use raw SQL insert since the table doesn't appear in types yet
         const { error: notificationError } = await supabase
-          .from('admin_notifications')
+          .from('admin_notifications' as any)
           .insert({
             message: `${userName} submeteu uma nova escala para ${month}`,
             user_email: userEmail,

@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { supabase } from '@/services/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AdminNotification {
   id: string;
@@ -26,10 +26,7 @@ export const AdminNotifications: React.FC = () => {
   const loadNotifications = async () => {
     try {
       const { data, error } = await supabase
-        .from('admin_notifications')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
+        .rpc('get_admin_notifications');
 
       if (error) {
         console.error('Error loading notifications:', error);
@@ -48,9 +45,7 @@ export const AdminNotifications: React.FC = () => {
   const markAsRead = async (notificationId: string) => {
     try {
       const { error } = await supabase
-        .from('admin_notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId);
+        .rpc('mark_notification_read', { notification_id: notificationId });
 
       if (error) {
         console.error('Error marking notification as read:', error);
@@ -69,9 +64,7 @@ export const AdminNotifications: React.FC = () => {
   const markAllAsRead = async () => {
     try {
       const { error } = await supabase
-        .from('admin_notifications')
-        .update({ is_read: true })
-        .eq('is_read', false);
+        .rpc('mark_all_notifications_read');
 
       if (error) {
         console.error('Error marking all notifications as read:', error);
