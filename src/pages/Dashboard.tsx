@@ -10,6 +10,7 @@ import Home from '@/components/Home';
 import CurrentSchedule from '@/components/schedule/CurrentSchedule';
 import ScheduleUpload from '@/components/admin/ScheduleUpload';
 import DatabaseConfigForm from '@/components/config/DatabaseConfig';
+import DatabaseConfigInternal from '@/components/config/DatabaseConfigInternal';
 import Announcements from '@/components/announcements/Announcements';
 import AnnouncementBanner from '@/components/announcements/AnnouncementBanner';
 import ShiftExchange from '@/components/schedule/ShiftExchange';
@@ -166,7 +167,7 @@ const Dashboard = () => {
             <Route path="/user-schedules" element={checkAdminRoute(<UserSchedules key={`user-schedules-${forceUpdate}`} />)} />
             <Route path="/schedule-upload" element={checkAdminRoute(<ScheduleUpload />)} />
             <Route path="/announcements" element={checkAdminRoute(<Announcements key={`announcements-${forceUpdate}`} />)} />
-            <Route path="/config/database" element={checkAdminRoute(<DatabaseConfigForm />)} />
+            <Route path="/config/database" element={checkAdminRoute(<DatabaseConfigInternal />)} />
             
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
