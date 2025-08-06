@@ -15,6 +15,8 @@ import AnnouncementBanner from '@/components/announcements/AnnouncementBanner';
 import ShiftExchange from '@/components/schedule/ShiftExchange';
 import ExchangeSplashScreen from '@/components/schedule/ExchangeSplashScreen';
 import Footer from '@/components/ui/footer';
+import SessionTimer from '@/components/auth/SessionTimer';
+import { sessionManager } from '@/services/sessionManager';
 
 interface UserInfo {
   email: string;
@@ -32,29 +34,27 @@ const Dashboard = () => {
   const [showExchangeSplash, setShowExchangeSplash] = useState(false);
 
   const updateUserInfo = () => {
-    const storedUser = localStorage.getItem('mysqlConnection');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUserInfo(parsedUser);
-        console.log("User info updated:", parsedUser);
-        
-        // Check if splash should be shown (once per session)
-        const splashKey = `exchange-splash-${parsedUser.email}`;
-        const hasShownSplash = sessionStorage.getItem(splashKey);
-        
-        if (!hasShownSplash) {
-          setShowExchangeSplash(true);
-          sessionStorage.setItem(splashKey, 'true');
-        }
-      } catch (error) {
-        console.error("Error parsing user info:", error);
-        navigate('/login');
+    const session = sessionManager.getCurrentSession();
+    if (session) {
+      setUserInfo({
+        email: session.email,
+        role: session.role,
+        isConnected: session.isConnected
+      });
+      console.log("User info updated:", session);
+      
+      // Check if splash should be shown (once per session)
+      const splashKey = `exchange-splash-${session.email}`;
+      const hasShownSplash = sessionStorage.getItem(splashKey);
+      
+      if (!hasShownSplash) {
+        setShowExchangeSplash(true);
+        sessionStorage.setItem(splashKey, 'true');
       }
     } else {
       toast({
-        title: "Sessão não iniciada",
-        description: "Por favor, inicie sessão primeiro",
+        title: "Sessão expirada",
+        description: "Por favor, inicie sessão novamente",
         variant: "destructive",
       });
       navigate('/login');
@@ -144,6 +144,7 @@ const Dashboard = () => {
       </div>
 
       <AnnouncementBanner />
+      <SessionTimer />
 
       {showExchangeSplash && userInfo && (
         <ExchangeSplashScreen 

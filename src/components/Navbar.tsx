@@ -30,6 +30,7 @@ import ExchangeNotifications from '@/components/schedule/ExchangeNotifications';
 import ScheduleNotifications from '@/components/schedule/ScheduleNotifications';
 import { AdminNotifications } from '@/components/admin/AdminNotifications';
 import { userService } from "@/services/supabase/userService";
+import { sessionManager } from '@/services/sessionManager';
 
 interface NavbarProps {
   email: string;
@@ -77,7 +78,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
   }, [email]);
 
   const handleLogout = () => {
-    localStorage.removeItem('mysqlConnection');
+    sessionManager.clearSession();
     toast({
       title: "Sessão terminada",
       description: "A sua sessão foi terminada com sucesso",

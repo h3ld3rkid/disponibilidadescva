@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabaseService } from '@/services/supabase';
+import { sessionManager } from '@/services/sessionManager';
 import Footer from '@/components/ui/footer';
 const Login = () => {
   const navigate = useNavigate();
@@ -16,10 +17,10 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   useEffect(() => {
-    // Check if user is already logged in
-    const storedUser = localStorage.getItem('mysqlConnection');
-    if (storedUser) {
-      // Redirect to dashboard if already logged in
+    // Check if user has a valid session
+    const session = sessionManager.getCurrentSession();
+    if (session) {
+      // Redirect to dashboard if session is still valid
       navigate('/dashboard');
     }
   }, [navigate]);
@@ -29,12 +30,13 @@ const Login = () => {
     try {
       const response = await supabaseService.checkLogin(email, password);
       if (response.success && response.user) {
-        // Save user info to localStorage
-        localStorage.setItem('mysqlConnection', JSON.stringify({
+        // Create session with expiration
+        sessionManager.createSession({
           email: response.user.email,
           role: response.user.role,
-          isConnected: true
-        }));
+          isConnected: true,
+          name: response.user.name
+        });
 
         // Show success toast
         toast({
