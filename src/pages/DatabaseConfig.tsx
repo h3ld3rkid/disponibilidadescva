@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import DatabaseConfigForm from '@/components/config/DatabaseConfig';
+import FooterTextConfig from '@/components/config/FooterTextConfig';
+import Footer from '@/components/ui/footer';
 
 const DatabaseConfig = () => {
   return (
@@ -29,10 +31,17 @@ const DatabaseConfig = () => {
           </Button>
         </div>
         
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          <DatabaseConfigForm />
+        <div className="space-y-6">
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <DatabaseConfigForm />
+          </div>
+          
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <FooterTextConfig />
+          </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

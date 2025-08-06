@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabaseService } from '@/services/supabase';
+import Footer from '@/components/ui/footer';
 const Login = () => {
   const navigate = useNavigate();
   const {
@@ -107,6 +108,7 @@ const Login = () => {
       <div className="mt-6 text-center text-sm text-gray-500">
         <p>Sistema desenvolvido para a Cruz Vermelha - Delegação de Amares</p>
       </div>
+      <Footer />
     </div>;
 };
 export default Login;

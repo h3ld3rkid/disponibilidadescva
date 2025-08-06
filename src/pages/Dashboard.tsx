@@ -14,6 +14,7 @@ import Announcements from '@/components/announcements/Announcements';
 import AnnouncementBanner from '@/components/announcements/AnnouncementBanner';
 import ShiftExchange from '@/components/schedule/ShiftExchange';
 import ExchangeSplashScreen from '@/components/schedule/ExchangeSplashScreen';
+import Footer from '@/components/ui/footer';
 
 interface UserInfo {
   email: string;
@@ -170,6 +171,7 @@ const Dashboard = () => {
           </Routes>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };
