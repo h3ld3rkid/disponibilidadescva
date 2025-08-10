@@ -46,7 +46,7 @@ const ProfileEdit = () => {
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
   const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
-  const [defaultTab, setDefaultTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
 
   // Profile form
   const profileForm = useForm<ProfileFormValues>({
@@ -90,7 +90,7 @@ const ProfileEdit = () => {
             // Set needs password change state
             if (currentUser.needs_password_change) {
               setNeedsPasswordChange(true);
-              setDefaultTab('password');
+              setActiveTab('password');
             }
 
             // Set form default values
@@ -251,7 +251,7 @@ const ProfileEdit = () => {
             </Alert>
           )}
           
-          <Tabs defaultValue={defaultTab} className="w-full">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'profile' | 'password')} className="w-full">
             <TabsList className="grid w-full max-w-md grid-cols-2">
               <TabsTrigger value="profile">Perfil</TabsTrigger>
               <TabsTrigger value="password">Password</TabsTrigger>
