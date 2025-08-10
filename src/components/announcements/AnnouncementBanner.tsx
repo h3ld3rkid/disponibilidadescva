@@ -6,6 +6,7 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
+  CarouselApi,
 } from "@/components/ui/carousel";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { format } from "date-fns";
@@ -16,6 +17,7 @@ import { announcementService, Announcement } from "@/services/supabase/announcem
 const AnnouncementBanner = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [api, setApi] = useState<CarouselApi | null>(null);
 
   useEffect(() => {
     const loadAnnouncements = async () => {
@@ -46,6 +48,19 @@ const AnnouncementBanner = () => {
       unsubscribe();
     };
   }, []);
+  // Auto-rotate announcements every 45s
+  useEffect(() => {
+    if (!api || announcements.length <= 1) return;
+    const id = setInterval(() => {
+      if (!api) return;
+      if (api.canScrollNext()) {
+        api.scrollNext();
+      } else {
+        api.scrollTo(0);
+      }
+    }, 45000);
+    return () => clearInterval(id);
+  }, [api, announcements.length]);
 
   if (isLoading || announcements.length === 0) {
     return null;
@@ -72,7 +87,7 @@ const AnnouncementBanner = () => {
     <div className="w-full bg-white border-b">
       <div className="container mx-auto px-4 py-2">
         {announcements.length > 1 ? (
-          <Carousel>
+          <Carousel setApi={setApi}>
             <CarouselContent>
               {announcements.map((announcement) => (
                 <CarouselItem key={announcement.id}>
