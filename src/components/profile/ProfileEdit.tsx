@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -205,9 +204,10 @@ const ProfileEdit = () => {
           confirmPassword: "",
         });
         
-        // Update needs password change flag
+        // Update needs password change flag and switch to profile
         if (needsPasswordChange) {
           setNeedsPasswordChange(false);
+          setActiveTab('profile');
         }
         
         toast({
@@ -250,9 +250,78 @@ const ProfileEdit = () => {
               </AlertDescription>
             </Alert>
           )}
-          
-          {needsPasswordChange ? (
-            <div className="mt-6">
+
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'profile' | 'password')} className="w-full">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="profile">Perfil</TabsTrigger>
+              <TabsTrigger value="password">Password</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="profile" className="mt-6">
+              <Form {...profileForm}>
+                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
+                  <FormField
+                    control={profileForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Seu nome" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={profileForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="seu-email@exemplo.com" type="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="space-y-2">
+                    <FormLabel>Número Mecanográfico</FormLabel>
+                    <Input 
+                      value={userData.mechanographic_number}
+                      disabled
+                      className="bg-gray-50"
+                    />
+                  </div>
+
+                  <div className="mt-2">
+                    <div className="text-sm text-gray-500 mb-4">
+                      <span className="font-medium text-gray-700">Função: </span>
+                      {userData.role === 'admin' ? 'Administrador' : 'Utilizador'}
+                    </div>
+                  </div>
+
+                  <Button type="submit" disabled={isProfileLoading}>
+                    {isProfileLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        A guardar...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Guardar alterações
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </TabsContent>
+
+            <TabsContent value="password" className="mt-6">
               <Form {...passwordForm}>
                 <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
                   <FormField
@@ -297,7 +366,7 @@ const ProfileEdit = () => {
                     )}
                   />
 
-                  <Button type="submit" className="bg-brand-indigo hover:bg-brand-darkblue" disabled={isPasswordLoading}>
+                  <Button type="submit" disabled={isPasswordLoading}>
                     {isPasswordLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -312,141 +381,8 @@ const ProfileEdit = () => {
                   </Button>
                 </form>
               </Form>
-            </div>
-          ) : (
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'profile' | 'password')} className="w-full">
-              <TabsList className="grid w-full max-w-md grid-cols-2">
-                <TabsTrigger value="profile">Perfil</TabsTrigger>
-                <TabsTrigger value="password">Password</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="profile" className="mt-6">
-                <Form {...profileForm}>
-                  <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
-                    <FormField
-                      control={profileForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nome</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Seu nome" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={profileForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input placeholder="seu-email@exemplo.com" type="email" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="space-y-2">
-                      <FormLabel>Número Mecanográfico</FormLabel>
-                      <Input 
-                        value={userData.mechanographic_number}
-                        disabled
-                        className="bg-gray-50"
-                      />
-                    </div>
-
-                    <div className="mt-2">
-                      <div className="text-sm text-gray-500 mb-4">
-                        <span className="font-medium text-gray-700">Função: </span>
-                        {userData.role === 'admin' ? 'Administrador' : 'Utilizador'}
-                      </div>
-                    </div>
-
-                    <Button type="submit" className="bg-brand-indigo hover:bg-brand-darkblue" disabled={isProfileLoading}>
-                      {isProfileLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          A guardar...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          Guardar alterações
-                        </>
-                      )}
-                    </Button>
-                  </form>
-                </Form>
-              </TabsContent>
-
-              <TabsContent value="password" className="mt-6">
-                <Form {...passwordForm}>
-                  <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
-                    <FormField
-                      control={passwordForm.control}
-                      name="currentPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password atual</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Introduza a sua password atual" type="password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={passwordForm.control}
-                      name="newPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nova password</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Introduza a nova password" type="password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={passwordForm.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Confirmar nova password</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Confirme a nova password" type="password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button type="submit" className="bg-brand-indigo hover:bg-brand-darkblue" disabled={isPasswordLoading}>
-                      {isPasswordLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          A atualizar...
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="mr-2 h-4 w-4" />
-                          Atualizar password
-                        </>
-                      )}
-                    </Button>
-                  </form>
-                </Form>
-              </TabsContent>
-            </Tabs>
-          )}
+            </TabsContent>
+          </Tabs>
 
         </CardContent>
       </Card>
