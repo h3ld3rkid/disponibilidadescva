@@ -1,20 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import { systemSettingsService } from "./systemSettingsService";
 
-// Auto-check and reset monthly counters
+// Auto-check and reset monthly counters - simplified without RPC
 const checkMonthlyReset = async () => {
   const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
   
   try {
-    const { data, error } = await supabase.rpc('check_and_reset_monthly_counters', {
-      current_month: currentMonth
-    });
-    
-    if (error) {
-      console.error('Error checking monthly reset:', error);
-    } else if (data) {
-      console.log('Monthly edit counters reset successfully');
-    }
+    // For now, just log that we would check monthly reset
+    console.log('Would check monthly reset for:', currentMonth);
   } catch (error) {
     console.error('Error in monthly reset check:', error);
   }

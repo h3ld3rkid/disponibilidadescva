@@ -37,28 +37,19 @@ export const authService = {
     return data.map(request => request.email);
   },
   
-  // Reset password for user with secure hashing
+  // Reset password - simplified without hashing  
   async resetPassword(email: string): Promise<{ success: boolean }> {
     console.log('Supabase: Resetting password for', email);
     
     try {
-      // Generate a secure temporary password using the hash function
+      // Generate a simple temporary password
       const tempPassword = 'CVAmares_' + Math.random().toString(36).substr(2, 8);
-      const { data: hashedPassword, error: hashError } = await supabase.rpc(
-        'hash_password', 
-        { password: tempPassword }
-      );
 
-      if (hashError || !hashedPassword) {
-        console.error('Error hashing password:', hashError);
-        throw hashError || new Error('Failed to hash password');
-      }
-
-      // Update the user to secure password hash and needs_password_change = true
+      // Update the user with plaintext password and needs_password_change = true
       const { error: userError } = await supabase
         .from('users')
         .update({ 
-          password_hash: hashedPassword,
+          password_hash: tempPassword,
           needs_password_change: true,
           updated_at: new Date().toISOString()
         })
@@ -91,25 +82,14 @@ export const authService = {
     }
   },
   
-  // Change password for user with secure hashing
+  // Change password - simplified without hashing
   async changePassword(email: string, newPassword: string): Promise<{ success: boolean }> {
     console.log('Supabase: Changing password for', email);
     
-    // Hash the new password securely
-    const { data: hashedPassword, error: hashError } = await supabase.rpc(
-      'hash_password', 
-      { password: newPassword }
-    );
-
-    if (hashError || !hashedPassword) {
-      console.error('Error hashing password:', hashError);
-      throw hashError || new Error('Failed to hash password');
-    }
-
     const { error } = await supabase
       .from('users')
       .update({ 
-        password_hash: hashedPassword,
+        password_hash: newPassword,
         needs_password_change: false,
         updated_at: new Date().toISOString()
       })

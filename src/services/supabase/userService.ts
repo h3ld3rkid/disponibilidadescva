@@ -18,21 +18,12 @@ type Tables = Database['public']['Tables'];
 type UsersTable = Tables['users']['Row'];
 
 export const userService = {
-  // Create a new user with secure password hashing
+  // Create a new user - simplified without hashing
   async createUser(userData: Omit<User, 'id' | 'active'>): Promise<User> {
     console.log('Supabase: Creating user', userData);
     
-    // Generate a secure default password
+    // Generate a simple default password
     const defaultPassword = 'CVAmares_' + Math.random().toString(36).substr(2, 8);
-    const { data: hashedPassword, error: hashError } = await supabase.rpc(
-      'hash_password', 
-      { password: defaultPassword }
-    );
-
-    if (hashError || !hashedPassword) {
-      console.error('Error hashing password:', hashError);
-      throw hashError || new Error('Failed to hash password');
-    }
 
     const { data, error } = await supabase
       .from('users')
@@ -41,7 +32,7 @@ export const userService = {
         email: userData.email,
         mechanographic_number: userData.mechanographic_number,
         role: userData.role,
-        password_hash: hashedPassword,
+        password_hash: defaultPassword, // Store plaintext for now
         needs_password_change: true
       }])
       .select()

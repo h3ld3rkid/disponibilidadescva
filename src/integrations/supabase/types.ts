@@ -286,10 +286,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      hash_password: {
-        Args: { password: string }
-        Returns: string
-      }
       is_current_user_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
