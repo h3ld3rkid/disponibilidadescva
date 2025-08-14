@@ -282,14 +282,6 @@ export type Database = {
           user_email: string
         }[]
       }
-      get_current_user_email: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      is_current_user_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
       mark_all_notifications_read: {
         Args: Record<PropertyKey, never>
         Returns: undefined
