@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -266,11 +266,11 @@ export type Database = {
       get_admin_notifications: {
         Args: Record<PropertyKey, never>
         Returns: {
+          created_at: string
           id: string
+          is_read: boolean
           message: string
           user_email: string
-          created_at: string
-          is_read: boolean
         }[]
       }
       mark_all_notifications_read: {
