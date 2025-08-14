@@ -221,6 +221,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          is_admin: boolean | null
           mechanographic_number: string
           name: string
           needs_password_change: boolean
@@ -233,6 +234,7 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          is_admin?: boolean | null
           mechanographic_number: string
           name: string
           needs_password_change?: boolean
@@ -245,6 +247,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          is_admin?: boolean | null
           mechanographic_number?: string
           name?: string
           needs_password_change?: boolean
@@ -273,6 +276,18 @@ export type Database = {
           user_email: string
         }[]
       }
+      get_current_user_email: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      hash_password: {
+        Args: { password: string }
+        Returns: string
+      }
+      is_current_user_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       mark_all_notifications_read: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -284,6 +299,10 @@ export type Database = {
       reset_edit_counters: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      verify_password: {
+        Args: { hash: string; password: string }
+        Returns: boolean
       }
     }
     Enums: {
