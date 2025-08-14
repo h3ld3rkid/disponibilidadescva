@@ -37,16 +37,28 @@ export const authService = {
     return data.map(request => request.email);
   },
   
-  // Reset password for user - Fixed to properly reset to CVAmares
+  // Reset password for user with secure hashing
   async resetPassword(email: string): Promise<{ success: boolean }> {
     console.log('Supabase: Resetting password for', email);
     
     try {
-      // Update the user to default password hash for "CVAmares" and needs_password_change = true
+      // Generate a secure temporary password using the hash function
+      const tempPassword = 'CVAmares_' + Math.random().toString(36).substr(2, 8);
+      const { data: hashedPassword, error: hashError } = await supabase.rpc(
+        'hash_password', 
+        { password: tempPassword }
+      );
+
+      if (hashError || !hashedPassword) {
+        console.error('Error hashing password:', hashError);
+        throw hashError || new Error('Failed to hash password');
+      }
+
+      // Update the user to secure password hash and needs_password_change = true
       const { error: userError } = await supabase
         .from('users')
         .update({ 
-          password_hash: 'CVAmares', // Store as plain text for simplified matching
+          password_hash: hashedPassword,
           needs_password_change: true,
           updated_at: new Date().toISOString()
         })
@@ -70,7 +82,8 @@ export const authService = {
         console.log('Warning: Could not mark reset request as fulfilled, but password was reset');
       }
       
-      console.log('Password successfully reset to CVAmares for user:', email);
+      console.log('Password successfully reset with secure hash for user:', email);
+      console.log('Temporary password:', tempPassword);
       return { success: true };
     } catch (error) {
       console.error('Error in resetPassword:', error);
@@ -78,14 +91,25 @@ export const authService = {
     }
   },
   
-  // Change password for user
+  // Change password for user with secure hashing
   async changePassword(email: string, newPassword: string): Promise<{ success: boolean }> {
     console.log('Supabase: Changing password for', email);
     
+    // Hash the new password securely
+    const { data: hashedPassword, error: hashError } = await supabase.rpc(
+      'hash_password', 
+      { password: newPassword }
+    );
+
+    if (hashError || !hashedPassword) {
+      console.error('Error hashing password:', hashError);
+      throw hashError || new Error('Failed to hash password');
+    }
+
     const { error } = await supabase
       .from('users')
       .update({ 
-        password_hash: newPassword,
+        password_hash: hashedPassword,
         needs_password_change: false,
         updated_at: new Date().toISOString()
       })
@@ -99,7 +123,7 @@ export const authService = {
     return { success: true };
   },
   
-  // Check login credentials - Fixed to properly handle CVAmares default password
+  // Check login credentials with secure password verification
   async checkLogin(email: string, password: string): Promise<{ success: boolean; user?: { email: string; role: string; needsPasswordChange: boolean; name: string } }> {
     console.log('Supabase: Checking login for', email);
     
@@ -119,10 +143,18 @@ export const authService = {
       return { success: false };
     }
     
-    // Check if password matches
-    const passwordMatches = password === data.password_hash || password === 'CVAmares';
-    
-    if (!passwordMatches) {
+    // Verify password using the secure verification function
+    const { data: isPasswordValid, error: verifyError } = await supabase.rpc(
+      'verify_password', 
+      { password: password, hash: data.password_hash }
+    );
+
+    if (verifyError) {
+      console.error('Error verifying password:', verifyError);
+      return { success: false };
+    }
+
+    if (!isPasswordValid) {
       console.log('Password does not match');
       return { success: false };
     }
