@@ -272,10 +272,6 @@ export type Database = {
           user_role: string
         }[]
       }
-      check_and_reset_monthly_counters: {
-        Args: { current_month: string }
-        Returns: boolean
-      }
       get_admin_notifications: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -290,10 +286,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-      hash_password: {
-        Args: { password: string }
-        Returns: string
-      }
       is_current_user_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -305,18 +297,6 @@ export type Database = {
       mark_notification_read: {
         Args: { notification_id: string }
         Returns: undefined
-      }
-      reset_edit_counters: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      simple_verify_password: {
-        Args: { input_password: string; stored_password: string }
-        Returns: boolean
-      }
-      verify_password: {
-        Args: { hash: string; password: string }
-        Returns: boolean
       }
     }
     Enums: {
