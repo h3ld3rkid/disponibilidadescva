@@ -262,6 +262,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      authenticate_user: {
+        Args: { p_email: string; p_password: string }
+        Returns: {
+          needs_password_change: boolean
+          success: boolean
+          user_email: string
+          user_name: string
+          user_role: string
+        }[]
+      }
       check_and_reset_monthly_counters: {
         Args: { current_month: string }
         Returns: boolean

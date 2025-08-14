@@ -123,51 +123,47 @@ export const authService = {
     return { success: true };
   },
   
-  // Check login credentials with secure password verification
+  // Check login credentials using secure authentication function
   async checkLogin(email: string, password: string): Promise<{ success: boolean; user?: { email: string; role: string; needsPasswordChange: boolean; name: string } }> {
     console.log('Supabase: Checking login for', email);
     
-    const { data, error } = await supabase
-      .from('users')
-      .select('email, role, needs_password_change, password_hash, active, name')
-      .eq('email', email)
-      .single();
-    
-    if (error || !data) {
-      console.error('Error or user not found:', error);
-      return { success: false };
-    }
-    
-    if (!data.active) {
-      console.log('User account is inactive');
-      return { success: false };
-    }
-    
-    // Verify password using the secure verification function
-    const { data: isPasswordValid, error: verifyError } = await supabase.rpc(
-      'verify_password', 
-      { password: password, hash: data.password_hash }
-    );
+    try {
+      // Use the secure authentication function that bypasses RLS
+      const { data, error } = await supabase.rpc('authenticate_user', {
+        p_email: email,
+        p_password: password
+      });
 
-    if (verifyError) {
-      console.error('Error verifying password:', verifyError);
-      return { success: false };
-    }
-
-    if (!isPasswordValid) {
-      console.log('Password does not match');
-      return { success: false };
-    }
-    
-    console.log('Login successful for user:', email);
-    return { 
-      success: true,
-      user: {
-        email: data.email,
-        role: data.role,
-        name: data.name,
-        needsPasswordChange: data.needs_password_change
+      if (error) {
+        console.error('Error during authentication:', error);
+        return { success: false };
       }
-    };
+
+      if (!data || data.length === 0) {
+        console.log('No authentication result returned');
+        return { success: false };
+      }
+
+      const authResult = data[0];
+      
+      if (!authResult.success) {
+        console.log('Authentication failed for user:', email);
+        return { success: false };
+      }
+
+      console.log('Login successful for user:', email);
+      return { 
+        success: true,
+        user: {
+          email: authResult.user_email,
+          role: authResult.user_role,
+          name: authResult.user_name,
+          needsPasswordChange: authResult.needs_password_change
+        }
+      };
+    } catch (error) {
+      console.error('Error in checkLogin:', error);
+      return { success: false };
+    }
   }
 };
