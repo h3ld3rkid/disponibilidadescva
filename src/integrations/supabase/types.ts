@@ -310,6 +310,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      simple_verify_password: {
+        Args: { input_password: string; stored_password: string }
+        Returns: boolean
+      }
       verify_password: {
         Args: { hash: string; password: string }
         Returns: boolean
