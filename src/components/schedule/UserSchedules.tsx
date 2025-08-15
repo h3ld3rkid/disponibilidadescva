@@ -178,8 +178,8 @@ const UserSchedules = () => {
     return email;
   };
 
-  const handleExportPDF = () => {
-    exportSchedulesToPDF(selectedUsers, schedules, toast);
+  const handleExportPDF = async () => {
+    await exportSchedulesToPDF(selectedUsers, schedules, toast);
   };
 
   const handleViewSchedule = (email: string, name: string) => {
