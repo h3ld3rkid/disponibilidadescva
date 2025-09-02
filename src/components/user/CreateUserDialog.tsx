@@ -28,6 +28,7 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
   const [role, setRole] = useState<'admin' | 'user'>('user');
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [temporaryPassword, setTemporaryPassword] = useState<string>('');
   const { toast } = useToast();
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -45,16 +46,19 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
     setIsLoading(true);
 
     try {
-      await userService.createUser({
+      const result = await userService.createUser({
         name,
         email,
         mechanographic_number: mechanographicNumber,
         role,
       });
 
+      setTemporaryPassword(result.temporaryPassword);
+
       toast({
         title: "Utilizador criado",
-        description: "Utilizador criado com sucesso.",
+        description: `Utilizador criado com sucesso. Password temporária: ${result.temporaryPassword}`,
+        duration: 10000,
       });
 
       setName('');

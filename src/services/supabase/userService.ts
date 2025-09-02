@@ -19,7 +19,7 @@ type UsersTable = Tables['users']['Row'];
 
 export const userService = {
   // Create a new user - simplified without hashing
-  async createUser(userData: Omit<User, 'id' | 'active'>): Promise<User> {
+  async createUser(userData: Omit<User, 'id' | 'active'>): Promise<User & { temporaryPassword: string }> {
     console.log('Supabase: Creating user', userData);
     
     // Generate a simple default password
@@ -57,7 +57,8 @@ export const userService = {
       role: data.role as 'admin' | 'user',
       active: data.active,
       needs_password_change: data.needs_password_change,
-      allow_late_submission: false // Default value since it's not in the database yet
+      allow_late_submission: false, // Default value since it's not in the database yet
+      temporaryPassword: defaultPassword
     };
   },
 
