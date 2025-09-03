@@ -116,7 +116,7 @@ const UserList: React.FC<UserListProps> = ({
         onUserUpdated();
         toast({
           title: "Password reposta",
-          description: `A password do utilizador foi reposta para "CVAmares".`,
+          description: `A password do utilizador foi reposta para "${result.temporaryPassword}".`,
         });
       } else {
         throw new Error("Failed to reset password");

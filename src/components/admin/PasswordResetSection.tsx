@@ -39,7 +39,7 @@ const PasswordResetSection = () => {
       if (result.success) {
         toast({
           title: "Password reposta",
-          description: `A password do utilizador ${email} foi reposta para "CVAmares".`,
+          description: `A password do utilizador ${email} foi reposta para "${result.temporaryPassword}".`,
         });
         
         // Remove from reset requests list
@@ -126,7 +126,7 @@ const PasswordResetSection = () => {
                   ) : (
                     <>
                       <Check className="h-4 w-4" />
-                      Repor para CVAmares
+                      Repor Password
                     </>
                   )}
                 </Button>
@@ -137,8 +137,8 @@ const PasswordResetSection = () => {
 
         <div className="mt-4 p-3 bg-blue-50 rounded-lg">
           <p className="text-sm text-blue-800">
-            <strong>Nota:</strong> Ao repor a password, o utilizador terá de usar "CVAmares" 
-            para fazer login e será obrigatório alterar a password no primeiro acesso.
+            <strong>Nota:</strong> Ao repor a password, será gerada uma password temporária 
+            e o utilizador será obrigatório alterar a password no primeiro acesso.
           </p>
         </div>
       </CardContent>

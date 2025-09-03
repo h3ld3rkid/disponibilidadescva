@@ -38,7 +38,7 @@ export const authService = {
   },
   
   // Reset password - simplified without hashing  
-  async resetPassword(email: string): Promise<{ success: boolean }> {
+  async resetPassword(email: string): Promise<{ success: boolean; temporaryPassword?: string }> {
     console.log('Supabase: Resetting password for', email);
     
     try {
@@ -75,7 +75,7 @@ export const authService = {
       
       console.log('Password successfully reset with secure hash for user:', email);
       console.log('Temporary password:', tempPassword);
-      return { success: true };
+      return { success: true, temporaryPassword: tempPassword };
     } catch (error) {
       console.error('Error in resetPassword:', error);
       throw error;

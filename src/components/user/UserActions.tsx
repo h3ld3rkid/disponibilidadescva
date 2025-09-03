@@ -80,7 +80,7 @@ const UserActions: React.FC<UserActionsProps> = ({
           <Button
             variant="outline"
             size="sm"
-            title="Repor password para CVAmares"
+            title="Repor password"
           >
             <RotateCcw className="h-4 w-4 text-blue-600" />
           </Button>
@@ -89,8 +89,8 @@ const UserActions: React.FC<UserActionsProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Repor password</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem a certeza que deseja repor a password do utilizador "{user.name}" para "CVAmares"? 
-              O utilizador terá de alterar a password no próximo login.
+              Tem a certeza que deseja repor a password do utilizador "{user.name}"? 
+              Será gerada uma password temporária e o utilizador terá de alterar a password no próximo login.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
