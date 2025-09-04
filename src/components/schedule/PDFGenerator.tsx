@@ -75,10 +75,14 @@ export class PDFGenerator {
     }
   }
 
-  private addTitle() {
+  private getScheduleMonth(): string {
     const now = new Date();
     const targetMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const monthName = targetMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+    return targetMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+  }
+
+  private addTitle() {
+    const monthName = this.getScheduleMonth();
     
     this.doc.setTextColor(0, 0, 0);
     this.doc.setFontSize(16);
@@ -351,7 +355,7 @@ export class PDFGenerator {
       this.addNotes(pdfData.scheduleData, yPosition);
       this.addFooter();
       
-      const fileName = `Escala_${pdfData.userName.replace(/\s+/g, '_')}_${new Date().toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' }).replace(/\s+/g, '_')}.pdf`;
+      const fileName = `Escala_${pdfData.userName.replace(/\s+/g, '_')}_${this.getScheduleMonth().replace(/\s+/g, '_')}.pdf`;
       console.log('Saving PDF as:', fileName);
       this.doc.save(fileName);
       console.log('PDF generated successfully');
