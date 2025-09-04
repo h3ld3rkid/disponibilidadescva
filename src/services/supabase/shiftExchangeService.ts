@@ -81,6 +81,40 @@ export const shiftExchangeService = {
         // Don't fail the request if email fails
       }
       
+      // Send Telegram notification
+      try {
+        // Get target user's telegram_chat_id
+        const { data: targetUser, error: userError } = await supabase
+          .from('users')
+          .select('telegram_chat_id')
+          .eq('email', data.target_email)
+          .single();
+
+        if (userError) {
+          console.error('Error getting target user:', userError);
+        } else if (targetUser?.telegram_chat_id) {
+          const telegramMessage = `🔄 <b>Nova Solicitação de Troca</b>\n\n` +
+            `<b>De:</b> ${data.requester_name}\n` +
+            `<b>Quer trocar:</b> ${data.offered_shift} (${data.offered_date})\n` +
+            `<b>Por:</b> ${data.requested_shift} (${data.requested_date})\n` +
+            (data.message ? `\n<b>Mensagem:</b> ${data.message}\n` : '') +
+            `\nResponda através da aplicação web.`;
+
+          await supabase.functions.invoke('send-telegram-notification', {
+            body: {
+              chatId: targetUser.telegram_chat_id,
+              message: telegramMessage
+            }
+          });
+          console.log('Telegram notification sent successfully');
+        } else {
+          console.log('Target user does not have telegram_chat_id configured');
+        }
+      } catch (telegramError) {
+        console.error('Error sending Telegram notification:', telegramError);
+        // Don't fail the request if Telegram notification fails
+      }
+      
       return { success: true, data: result as ShiftExchangeRequest };
     } catch (error) {
       console.error('Error in createExchangeRequest:', error);

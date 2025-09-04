@@ -12,6 +12,7 @@ import { Loader2, Save, Lock } from "lucide-react";
 import { supabaseService } from "@/services/supabaseService";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
+import { TelegramSetup } from "@/components/telegram/TelegramSetup";
 
 // Form validation schemas
 const profileSchema = z.object({
@@ -37,6 +38,7 @@ interface UserData {
   role: string;
   mechanographic_number: string;
   needs_password_change?: boolean;
+  telegram_chat_id?: string;
 }
 
 const ProfileEdit = () => {
@@ -45,7 +47,7 @@ const ProfileEdit = () => {
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
   const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'telegram'>('profile');
 
   // Profile form
   const profileForm = useForm<ProfileFormValues>({
@@ -83,7 +85,8 @@ const ProfileEdit = () => {
               email: currentUser.email,
               role: currentUser.role,
               mechanographic_number: currentUser.mechanographic_number,
-              needs_password_change: currentUser.needs_password_change
+              needs_password_change: currentUser.needs_password_change,
+              telegram_chat_id: (currentUser as any).telegram_chat_id
             });
 
             // Set needs password change state
@@ -251,10 +254,11 @@ const ProfileEdit = () => {
             </Alert>
           )}
 
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'profile' | 'password')} className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'profile' | 'password' | 'telegram')} className="w-full">
+            <TabsList className="grid w-full max-w-md grid-cols-3">
               <TabsTrigger value="profile">Perfil</TabsTrigger>
               <TabsTrigger value="password">Password</TabsTrigger>
+              <TabsTrigger value="telegram">Telegram</TabsTrigger>
             </TabsList>
 
             <TabsContent value="profile" className="mt-6">
@@ -381,6 +385,29 @@ const ProfileEdit = () => {
                   </Button>
                 </form>
               </Form>
+            </TabsContent>
+
+            <TabsContent value="telegram" className="mt-6">
+              <TelegramSetup 
+                userEmail={userData.email}
+                currentChatId={userData.telegram_chat_id}
+                onUpdate={() => {
+                  // Refetch user data to update telegram status
+                  const userConnection = localStorage.getItem('mysqlConnection');
+                  if (userConnection) {
+                    const userInfo = JSON.parse(userConnection);
+                    supabaseService.getAllUsers().then(users => {
+                      const currentUser = users.find(user => user.email === userInfo.email);
+                      if (currentUser) {
+                        setUserData(prev => prev ? {
+                          ...prev,
+                          telegram_chat_id: (currentUser as any).telegram_chat_id
+                        } : null);
+                      }
+                    });
+                  }
+                }}
+              />
             </TabsContent>
           </Tabs>
 
