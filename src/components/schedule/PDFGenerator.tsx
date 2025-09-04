@@ -77,7 +77,7 @@ export class PDFGenerator {
 
   private addTitle() {
     const now = new Date();
-    const targetMonth = new Date(now.getFullYear(), now.getMonth() + 1);
+    const targetMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     const monthName = targetMonth.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
     
     this.doc.setTextColor(0, 0, 0);

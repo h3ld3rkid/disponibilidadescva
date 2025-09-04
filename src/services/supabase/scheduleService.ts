@@ -121,26 +121,6 @@ export const scheduleService = {
       
       console.log('Schedule saved successfully for user:', userEmail, result.data);
       
-      // Send admin notification about the new/updated schedule
-      try {
-        // Use raw SQL insert since the table doesn't appear in types yet
-        const { error: notificationError } = await supabase
-          .from('admin_notifications' as any)
-          .insert({
-            message: `${userName} submeteu uma nova escala para ${month}`,
-            user_email: userEmail,
-            is_read: false
-          });
-        
-        if (notificationError) {
-          console.error('Error sending admin notification:', notificationError);
-        } else {
-          console.log('Admin notification sent successfully');
-        }
-      } catch (notificationError) {
-        console.error('Failed to send admin notification:', notificationError);
-      }
-      
       return { success: true };
       
     } catch (error) {
