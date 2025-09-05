@@ -285,6 +285,18 @@ export type Database = {
           user_email: string
         }[]
       }
+      get_user_for_auth: {
+        Args: { p_email: string }
+        Returns: {
+          active: boolean
+          email: string
+          id: string
+          name: string
+          needs_password_change: boolean
+          password_hash: string
+          role: string
+        }[]
+      }
       mark_all_notifications_read: {
         Args: Record<PropertyKey, never>
         Returns: undefined
