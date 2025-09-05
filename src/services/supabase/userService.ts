@@ -11,6 +11,7 @@ interface User {
   active: boolean;
   needs_password_change?: boolean;
   allow_late_submission?: boolean;
+  telegram_chat_id?: string;
 }
 
 // Define types for Supabase tables to help TypeScript understand our database schema
@@ -33,7 +34,8 @@ export const userService = {
         mechanographic_number: userData.mechanographic_number,
         role: userData.role,
         password_hash: defaultPassword, // Store plaintext for now
-        needs_password_change: true
+        needs_password_change: true,
+        telegram_chat_id: null
       }])
       .select()
       .single();
@@ -58,6 +60,7 @@ export const userService = {
       active: data.active,
       needs_password_change: data.needs_password_change,
       allow_late_submission: false, // Default value since it's not in the database yet
+      telegram_chat_id: data.telegram_chat_id,
       temporaryPassword: defaultPassword
     };
   },
@@ -115,6 +118,7 @@ export const userService = {
       ...(userData.role && { role: userData.role }),
       ...(userData.active !== undefined && { active: userData.active }),
       ...(userData.needs_password_change !== undefined && { needs_password_change: userData.needs_password_change }),
+      ...(userData.telegram_chat_id !== undefined && { telegram_chat_id: userData.telegram_chat_id }),
       updated_at: new Date().toISOString()
     };
     
@@ -153,7 +157,8 @@ export const userService = {
       role: data.role as 'admin' | 'user',
       active: data.active,
       needs_password_change: data.needs_password_change,
-      allow_late_submission: userData.allow_late_submission
+      allow_late_submission: userData.allow_late_submission,
+      telegram_chat_id: data.telegram_chat_id
     };
   },
   
@@ -227,7 +232,8 @@ export const userService = {
             role: user.role as 'admin' | 'user',
             active: user.active,
             needs_password_change: user.needs_password_change,
-            allow_late_submission: setting === 'true'
+            allow_late_submission: setting === 'true',
+            telegram_chat_id: user.telegram_chat_id
           };
         } catch (error) {
           return {
@@ -238,7 +244,8 @@ export const userService = {
             role: user.role as 'admin' | 'user',
             active: user.active,
             needs_password_change: user.needs_password_change,
-            allow_late_submission: false
+            allow_late_submission: false,
+            telegram_chat_id: user.telegram_chat_id
           };
         }
       })
