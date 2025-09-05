@@ -67,11 +67,26 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
       setRole('user');
       setIsOpen(false);
       onUserCreated();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating user:", error);
+      
+      let errorMessage = "Ocorreu um erro ao criar o utilizador.";
+      
+      if (error?.code === '23505') {
+        if (error.message.includes('users_email_key')) {
+          errorMessage = "Este email já está em uso. Por favor, use um email diferente.";
+        } else if (error.message.includes('users_mechanographic_number_key')) {
+          errorMessage = "Este número mecanográfico já está em uso.";
+        } else {
+          errorMessage = "Já existe um utilizador com estes dados.";
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Erro ao criar utilizador",
-        description: "Ocorreu um erro ao criar o utilizador.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
