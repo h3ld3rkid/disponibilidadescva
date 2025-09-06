@@ -21,6 +21,7 @@ export const TelegramSetup: React.FC<TelegramSetupProps> = ({
   const [chatId, setChatId] = useState(currentChatId || '');
   const [isLoading, setIsLoading] = useState(false);
   const [isTestLoading, setIsTestLoading] = useState(false);
+  const [isWebhookLoading, setIsWebhookLoading] = useState(false);
   const { toast } = useToast();
 
   const BOT_USERNAME = '@cvamares_bot';
@@ -146,6 +147,35 @@ export const TelegramSetup: React.FC<TelegramSetupProps> = ({
     }
   };
 
+  const handleSetupWebhook = async () => {
+    setIsWebhookLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('setup-telegram-webhook');
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.success) {
+        toast({
+          title: "Webhook configurado",
+          description: "O webhook do Telegram foi configurado com sucesso!",
+        });
+      } else {
+        throw new Error(data.error || 'Erro desconhecido');
+      }
+    } catch (error) {
+      console.error('Error setting up webhook:', error);
+      toast({
+        title: "Erro no webhook",
+        description: "Erro ao configurar o webhook do Telegram",
+        variant: "destructive",
+      });
+    } finally {
+      setIsWebhookLoading(false);
+    }
+  };
+
   useEffect(() => {
     setChatId(currentChatId || '');
   }, [currentChatId]);
@@ -217,6 +247,17 @@ export const TelegramSetup: React.FC<TelegramSetupProps> = ({
               <code className="bg-white px-2 py-1 rounded text-xs block mt-1">
                 /setwebhook
               </code>
+              <div className="mt-3">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleSetupWebhook}
+                  disabled={isWebhookLoading}
+                  className="bg-white text-yellow-800 border-yellow-300 hover:bg-yellow-50"
+                >
+                  {isWebhookLoading ? 'A configurar...' : 'Configurar Webhook Automaticamente'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
