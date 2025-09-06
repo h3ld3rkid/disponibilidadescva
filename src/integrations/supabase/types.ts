@@ -285,6 +285,14 @@ export type Database = {
           user_email: string
         }[]
       }
+      get_current_user_email: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_for_auth: {
         Args: { p_email: string }
         Returns: {
@@ -296,6 +304,10 @@ export type Database = {
           password_hash: string
           role: string
         }[]
+      }
+      is_admin_user: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       mark_all_notifications_read: {
         Args: Record<PropertyKey, never>
