@@ -391,6 +391,7 @@ const ProfileEdit = () => {
               <TelegramSetup 
                 userEmail={userData.email}
                 currentChatId={userData.telegram_chat_id}
+                userRole={userData.role}
                 onUpdate={() => {
                   // Refetch user data to update telegram status
                   const userConnection = localStorage.getItem('mysqlConnection');

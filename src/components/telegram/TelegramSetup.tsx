@@ -10,12 +10,14 @@ import { supabase } from '@/integrations/supabase/client';
 interface TelegramSetupProps {
   userEmail: string;
   currentChatId?: string;
+  userRole?: string;
   onUpdate?: () => void;
 }
 
 export const TelegramSetup: React.FC<TelegramSetupProps> = ({ 
   userEmail, 
   currentChatId, 
+  userRole,
   onUpdate 
 }) => {
   const [chatId, setChatId] = useState(currentChatId || '');
@@ -234,32 +236,34 @@ export const TelegramSetup: React.FC<TelegramSetupProps> = ({
             <li>Cole o Chat ID no campo abaixo e guarde</li>
           </ol>
           
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <h5 className="font-semibold text-yellow-800 text-sm mb-2">
-              ⚙️ Configuração do Bot (Para Administradores)
-            </h5>
-            <div className="text-xs text-yellow-700 space-y-1">
-              <p><strong>Webhook URL:</strong></p>
-              <code className="bg-white px-2 py-1 rounded text-xs block mt-1">
-                https://lddfufxcrnqixfiyhrvc.supabase.co/functions/v1/telegram-bot-webhook
-              </code>
-              <p className="mt-2">Configure este URL como webhook no @BotFather usando:</p>
-              <code className="bg-white px-2 py-1 rounded text-xs block mt-1">
-                /setwebhook
-              </code>
-              <div className="mt-3">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleSetupWebhook}
-                  disabled={isWebhookLoading}
-                  className="bg-white text-yellow-800 border-yellow-300 hover:bg-yellow-50"
-                >
-                  {isWebhookLoading ? 'A configurar...' : 'Configurar Webhook Automaticamente'}
-                </Button>
+          {userRole === 'admin' && (
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <h5 className="font-semibold text-yellow-800 text-sm mb-2">
+                ⚙️ Configuração do Bot (Para Administradores)
+              </h5>
+              <div className="text-xs text-yellow-700 space-y-1">
+                <p><strong>Webhook URL:</strong></p>
+                <code className="bg-white px-2 py-1 rounded text-xs block mt-1">
+                  https://lddfufxcrnqixfiyhrvc.supabase.co/functions/v1/telegram-bot-webhook
+                </code>
+                <p className="mt-2">Configure este URL como webhook no @BotFather usando:</p>
+                <code className="bg-white px-2 py-1 rounded text-xs block mt-1">
+                  /setwebhook
+                </code>
+                <div className="mt-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleSetupWebhook}
+                    disabled={isWebhookLoading}
+                    className="bg-white text-yellow-800 border-yellow-300 hover:bg-yellow-50"
+                  >
+                    {isWebhookLoading ? 'A configurar...' : 'Configurar Webhook Automaticamente'}
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Chat ID Input */}
