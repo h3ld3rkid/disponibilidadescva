@@ -93,12 +93,33 @@ export const shiftExchangeService = {
         if (userError) {
           console.error('Error getting target user:', userError);
         } else if (targetUser?.telegram_chat_id) {
-          const telegramMessage = `🔄 <b>Nova Solicitação de Troca</b>\n\n` +
-            `<b>De:</b> ${data.requester_name}\n` +
-            `<b>Quer trocar:</b> ${data.offered_shift} (${data.offered_date})\n` +
-            `<b>Por:</b> ${data.requested_shift} (${data.requested_date})\n` +
-            (data.message ? `\n<b>Mensagem:</b> ${data.message}\n` : '') +
-            `\nResponda através da aplicação web.`;
+          const getShiftLabel = (shift: string) => {
+            switch (shift) {
+              case 'day': return 'Turno Diurno';
+              case 'overnight': return 'Pernoite';
+              case 'morning': return 'Turno Manhã';
+              case 'afternoon': return 'Turno Tarde';
+              case 'night': return 'Turno Noite';
+              default: return shift;
+            }
+          };
+
+          const formatDate = (dateStr: string) => {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('pt-PT', { 
+              day: '2-digit', 
+              month: '2-digit', 
+              year: 'numeric' 
+            });
+          };
+
+          const telegramMessage = `🔄 <b>Novo Pedido de Troca de Turno</b>\n\n` +
+            `<b>👤 Solicitante:</b> ${data.requester_name}\n\n` +
+            `<b>📋 Detalhes da Troca:</b>\n` +
+            `• <b>Oferece:</b> ${getShiftLabel(data.offered_shift)} (${formatDate(data.offered_date)})\n` +
+            `• <b>Pretende:</b> ${getShiftLabel(data.requested_shift)} (${formatDate(data.requested_date)})\n` +
+            (data.message ? `\n💬 <b>Mensagem:</b> ${data.message}\n` : '') +
+            `\n📱 Responda através da aplicação web.`;
 
           await supabase.functions.invoke('send-telegram-notification', {
             body: {
