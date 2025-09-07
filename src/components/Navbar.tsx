@@ -24,6 +24,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import ExchangeNotifications from '@/components/schedule/ExchangeNotifications';
@@ -101,9 +104,13 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
   const adminNavItems = [
     { path: '/dashboard/users', icon: Users, label: 'Utilizadores' },
     { path: '/dashboard/user-schedules', icon: UserCheck, label: 'Escalas Recebidas' },
-    { path: '/dashboard/schedule-upload', icon: Upload, label: 'Upload Escala Atual' },
     { path: '/dashboard/announcements', icon: Megaphone, label: 'Avisos' },
     { path: '/dashboard/config/database', icon: Settings, label: 'Configurações' },
+  ];
+
+  const scheduleFileSubmenu = [
+    { path: '/dashboard/schedule-upload', icon: Upload, label: 'Upload Escala Atual' },
+    { path: '/dashboard/config/pdf-additional', icon: Settings, label: 'Configuração do Link PDF Adicional' },
   ];
 
   return (
@@ -153,7 +160,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
                         <ChevronDown className="h-4 w-4 flex-shrink-0" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56 bg-white">
+                    <DropdownMenuContent align="end" className="w-56 bg-white z-50">
                       {adminNavItems.map((item, index) => (
                         <div key={item.path}>
                           <DropdownMenuItem asChild>
@@ -172,6 +179,35 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
                           {index < adminNavItems.length - 1 && <DropdownMenuSeparator />}
                         </div>
                       ))}
+                      
+                      <DropdownMenuSeparator />
+                      
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger className="flex items-center space-x-2 px-2 py-2 text-sm text-gray-600 hover:text-gray-900">
+                          <CalendarCheck className="h-4 w-4" />
+                          <span>Ficheiros Escala</span>
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent className="w-56 bg-white z-50">
+                          {scheduleFileSubmenu.map((item, index) => (
+                            <div key={item.path}>
+                              <DropdownMenuItem asChild>
+                                <Link
+                                  to={item.path}
+                                  className={`flex items-center space-x-2 w-full px-2 py-2 text-sm ${
+                                    isActivePath(item.path)
+                                      ? 'bg-red-100 text-red-700'
+                                      : 'text-gray-600 hover:text-gray-900'
+                                  }`}
+                                >
+                                  <item.icon className="h-4 w-4" />
+                                  <span>{item.label}</span>
+                                </Link>
+                              </DropdownMenuItem>
+                              {index < scheduleFileSubmenu.length - 1 && <DropdownMenuSeparator />}
+                            </div>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </>
@@ -275,6 +311,25 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
                     Administração
                   </div>
                   {adminNavItems.map((item) => (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setIsOpen(false)}
+                      className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                        isActivePath(item.path)
+                          ? 'bg-red-100 text-red-700'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      }`}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  ))}
+                  
+                  <div className="text-xs font-medium text-gray-500 px-3 py-1 mt-2 border-t border-gray-200 pt-3">
+                    Ficheiros Escala
+                  </div>
+                  {scheduleFileSubmenu.map((item) => (
                     <Link
                       key={item.path}
                       to={item.path}

@@ -1,7 +1,6 @@
 import React from 'react';
 import DatabaseConfigForm from '@/components/config/DatabaseConfig';
 import FooterTextConfig from '@/components/config/FooterTextConfig';
-import PDFLinkConfig from '@/components/config/PDFLinkConfig';
 
 const DatabaseConfigInternal = () => {
   return (
@@ -20,10 +19,6 @@ const DatabaseConfigInternal = () => {
         
         <div className="bg-white shadow-sm rounded-lg p-6">
           <FooterTextConfig />
-        </div>
-        
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          <PDFLinkConfig />
         </div>
       </div>
     </div>

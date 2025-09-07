@@ -17,6 +17,7 @@ import ShiftExchange from '@/components/schedule/ShiftExchange';
 import ExchangeSplashScreen from '@/components/schedule/ExchangeSplashScreen';
 import Footer from '@/components/ui/footer';
 import SessionTimer from '@/components/auth/SessionTimer';
+import PDFAdditionalConfig from '@/pages/PDFAdditionalConfig';
 import { sessionManager } from '@/services/sessionManager';
 
 interface UserInfo {
@@ -168,6 +169,7 @@ const Dashboard = () => {
             <Route path="/schedule-upload" element={checkAdminRoute(<ScheduleUpload />)} />
             <Route path="/announcements" element={checkAdminRoute(<Announcements key={`announcements-${forceUpdate}`} />)} />
             <Route path="/config/database" element={checkAdminRoute(<DatabaseConfigInternal />)} />
+            <Route path="/config/pdf-additional" element={checkAdminRoute(<PDFAdditionalConfig />)} />
             
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
