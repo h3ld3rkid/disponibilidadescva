@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import ExchangeNotifications from '@/components/schedule/ExchangeNotifications';
 import ScheduleNotifications from '@/components/schedule/ScheduleNotifications';
 import { AdminNotifications } from '@/components/admin/AdminNotifications';
+import { PushNotificationManager } from '@/components/push/PushNotificationManager';
 import { userService } from "@/services/supabase/userService";
 import { sessionManager } from '@/services/sessionManager';
 
@@ -344,13 +345,20 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
                       <span>{item.label}</span>
                     </Link>
                   ))}
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </nav>
+
+                   <div className="text-xs font-medium text-gray-500 px-3 py-1 mt-2 border-t border-gray-200 pt-3">
+                     Notificações
+                   </div>
+                   <div className="px-3 py-2">
+                     <PushNotificationManager userEmail={email} className="shadow-none" />
+                   </div>
+                 </>
+               )}
+             </div>
+           </div>
+         )}
+       </div>
+     </nav>
   );
 };
 

@@ -11,6 +11,25 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 
+// Função utilitária para enviar notificação push
+const sendPushNotification = async (payload: {
+  title: string;
+  body: string;
+  url?: string;
+  tag?: string;
+}, target: { isAdmin?: boolean; userEmails?: string[]; isAll?: boolean } = { isAdmin: true }) => {
+  try {
+    await supabase.functions.invoke('send-push-notification', {
+      body: {
+        ...target,
+        payload
+      }
+    });
+  } catch (error) {
+    console.error('Error sending push notification:', error);
+  }
+};
+
 interface AdminNotification {
   id: string;
   message: string;
