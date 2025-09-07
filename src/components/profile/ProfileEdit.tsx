@@ -16,22 +16,29 @@ import { TelegramSetup } from "@/components/telegram/TelegramSetup";
 
 // Form validation schemas
 const profileSchema = z.object({
-  name: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres" }),
-  email: z.string().email({ message: "Introduza um email válido" }),
+  name: z.string().min(2, {
+    message: "O nome deve ter pelo menos 2 caracteres"
+  }),
+  email: z.string().email({
+    message: "Introduza um email válido"
+  })
 });
-
 const passwordSchema = z.object({
-  currentPassword: z.string().min(6, { message: "Password atual deve ter pelo menos 6 caracteres" }),
-  newPassword: z.string().min(6, { message: "Nova password deve ter pelo menos 6 caracteres" }),
-  confirmPassword: z.string().min(6, { message: "Confirme a nova password" }),
-}).refine((data) => data.newPassword === data.confirmPassword, {
+  currentPassword: z.string().min(6, {
+    message: "Password atual deve ter pelo menos 6 caracteres"
+  }),
+  newPassword: z.string().min(6, {
+    message: "Nova password deve ter pelo menos 6 caracteres"
+  }),
+  confirmPassword: z.string().min(6, {
+    message: "Confirme a nova password"
+  })
+}).refine(data => data.newPassword === data.confirmPassword, {
   message: "As passwords não coincidem",
-  path: ["confirmPassword"],
+  path: ["confirmPassword"]
 });
-
 type ProfileFormValues = z.infer<typeof profileSchema>;
 type PasswordFormValues = z.infer<typeof passwordSchema>;
-
 interface UserData {
   name: string;
   email: string;
@@ -40,9 +47,10 @@ interface UserData {
   needs_password_change?: boolean;
   telegram_chat_id?: string;
 }
-
 const ProfileEdit = () => {
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
@@ -54,8 +62,8 @@ const ProfileEdit = () => {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: "",
-      email: "",
-    },
+      email: ""
+    }
   });
 
   // Password form
@@ -64,16 +72,15 @@ const ProfileEdit = () => {
     defaultValues: {
       currentPassword: "",
       newPassword: "",
-      confirmPassword: "",
-    },
+      confirmPassword: ""
+    }
   });
-
   useEffect(() => {
     // Fetch user data from localStorage
     const userConnection = localStorage.getItem('mysqlConnection');
     if (userConnection) {
       const userInfo = JSON.parse(userConnection);
-      
+
       // Get the full user data from Supabase
       const fetchUserData = async () => {
         try {
@@ -98,7 +105,7 @@ const ProfileEdit = () => {
             // Set form default values
             profileForm.reset({
               name: currentUser.name,
-              email: currentUser.email,
+              email: currentUser.email
             });
           } else {
             // If user not found in database, set basic data from localStorage
@@ -109,10 +116,9 @@ const ProfileEdit = () => {
               mechanographic_number: userInfo.mechanographic_number || 'N/A',
               needs_password_change: false
             });
-
             profileForm.reset({
               name: userInfo.name || userInfo.email,
-              email: userInfo.email,
+              email: userInfo.email
             });
           }
         } catch (error) {
@@ -128,94 +134,84 @@ const ProfileEdit = () => {
           setUserData(fallbackData);
           profileForm.reset({
             name: fallbackData.name,
-            email: fallbackData.email,
+            email: fallbackData.email
           });
         }
       };
-      
       fetchUserData();
     }
   }, [profileForm]);
-
   const onProfileSubmit = async (data: ProfileFormValues) => {
     setIsProfileLoading(true);
-    
     try {
       // In a real app, you would send this data to your backend API
       console.log("Profile update data:", data);
-      
+
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Update the local state/localStorage
       if (userData) {
         const updatedUserData = {
           ...userData,
           name: data.name,
-          email: data.email,
+          email: data.email
         };
-        
         setUserData(updatedUserData);
-        
+
         // Update localStorage
         const userConnection = localStorage.getItem('mysqlConnection');
         if (userConnection) {
           const userInfo = JSON.parse(userConnection);
           localStorage.setItem('mysqlConnection', JSON.stringify({
             ...userInfo,
-            email: data.email,
+            email: data.email
           }));
         }
       }
-      
       toast({
         title: "Perfil atualizado",
-        description: "As suas informações de perfil foram atualizadas com sucesso",
+        description: "As suas informações de perfil foram atualizadas com sucesso"
       });
     } catch (error) {
       console.error("Error updating profile:", error);
       toast({
         title: "Erro ao atualizar perfil",
         description: "Ocorreu um erro ao atualizar o seu perfil",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsProfileLoading(false);
     }
   };
-
   const onPasswordSubmit = async (data: PasswordFormValues) => {
     setIsPasswordLoading(true);
-    
     try {
       // Get user info from localStorage
       const userConnection = localStorage.getItem('mysqlConnection');
       if (!userConnection) {
         throw new Error("User session not found");
       }
-      
       const userInfo = JSON.parse(userConnection);
-      
+
       // Call the supabaseService to change the password
       const result = await supabaseService.changePassword(userInfo.email, data.newPassword);
-      
       if (result.success) {
         // Clear password fields
         passwordForm.reset({
           currentPassword: "",
           newPassword: "",
-          confirmPassword: "",
+          confirmPassword: ""
         });
-        
+
         // Update needs password change flag and switch to profile
         if (needsPasswordChange) {
           setNeedsPasswordChange(false);
           setActiveTab('profile');
         }
-        
         toast({
           title: "Password atualizada",
-          description: "A sua password foi atualizada com sucesso",
+          description: "A sua password foi atualizada com sucesso"
         });
       } else {
         throw new Error("Failed to update password");
@@ -225,36 +221,31 @@ const ProfileEdit = () => {
       toast({
         title: "Erro ao atualizar password",
         description: "Ocorreu um erro ao atualizar a sua password",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsPasswordLoading(false);
     }
   };
-
   if (!userData) {
     return <div className="py-8 text-center">A carregar informações do utilizador...</div>;
   }
-
-  return (
-    <div className="container mx-auto px-4 py-8">
+  return <div className="container mx-auto px-4 py-8">
       <Card>
         <CardHeader>
           <CardTitle>O Meu Perfil</CardTitle>
-          <CardDescription>Visualize e atualize as suas informações pessoais</CardDescription>
+          <CardDescription>Podes editar as tuas informações pessoais, almumas não podem ser mudadas.</CardDescription>
         </CardHeader>
         <CardContent>
-          {needsPasswordChange && (
-            <Alert className="mb-6 bg-amber-50 border-amber-200">
+          {needsPasswordChange && <Alert className="mb-6 bg-amber-50 border-amber-200">
               <InfoIcon className="h-4 w-4 text-amber-600" />
               <AlertTitle className="text-amber-800">Necessário alterar password</AlertTitle>
               <AlertDescription className="text-amber-700">
                 Por motivos de segurança, deve alterar a sua password padrão antes de continuar a utilizar o sistema.
               </AlertDescription>
-            </Alert>
-          )}
+            </Alert>}
 
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'profile' | 'password' | 'telegram')} className="w-full">
+          <Tabs value={activeTab} onValueChange={v => setActiveTab(v as 'profile' | 'password' | 'telegram')} className="w-full">
             <TabsList className="grid w-full max-w-md grid-cols-3">
               <TabsTrigger value="profile">Perfil</TabsTrigger>
               <TabsTrigger value="password">Password</TabsTrigger>
@@ -264,41 +255,29 @@ const ProfileEdit = () => {
             <TabsContent value="profile" className="mt-6">
               <Form {...profileForm}>
                 <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
-                  <FormField
-                    control={profileForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={profileForm.control} name="name" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Nome</FormLabel>
                         <FormControl>
                           <Input placeholder="Seu nome" {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
 
-                  <FormField
-                    control={profileForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={profileForm.control} name="email" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
                           <Input placeholder="seu-email@exemplo.com" type="email" {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
 
                   <div className="space-y-2">
                     <FormLabel>Número Mecanográfico</FormLabel>
-                    <Input 
-                      value={userData.mechanographic_number}
-                      disabled
-                      className="bg-gray-50"
-                    />
+                    <Input value={userData.mechanographic_number} disabled className="bg-gray-50" />
                   </div>
 
                   <div className="mt-2">
@@ -309,17 +288,13 @@ const ProfileEdit = () => {
                   </div>
 
                   <Button type="submit" disabled={isProfileLoading}>
-                    {isProfileLoading ? (
-                      <>
+                    {isProfileLoading ? <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         A guardar...
-                      </>
-                    ) : (
-                      <>
+                      </> : <>
                         <Save className="mr-2 h-4 w-4" />
                         Guardar alterações
-                      </>
-                    )}
+                      </>}
                   </Button>
                 </form>
               </Form>
@@ -328,94 +303,71 @@ const ProfileEdit = () => {
             <TabsContent value="password" className="mt-6">
               <Form {...passwordForm}>
                 <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
-                  <FormField
-                    control={passwordForm.control}
-                    name="currentPassword"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={passwordForm.control} name="currentPassword" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Password atual</FormLabel>
                         <FormControl>
                           <Input placeholder="Introduza a sua password atual" type="password" {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
 
-                  <FormField
-                    control={passwordForm.control}
-                    name="newPassword"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={passwordForm.control} name="newPassword" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Nova password</FormLabel>
                         <FormControl>
                           <Input placeholder="Introduza a nova password" type="password" {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
 
-                  <FormField
-                    control={passwordForm.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={passwordForm.control} name="confirmPassword" render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Confirmar nova password</FormLabel>
                         <FormControl>
                           <Input placeholder="Confirme a nova password" type="password" {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
 
                   <Button type="submit" disabled={isPasswordLoading}>
-                    {isPasswordLoading ? (
-                      <>
+                    {isPasswordLoading ? <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         A atualizar...
-                      </>
-                    ) : (
-                      <>
+                      </> : <>
                         <Lock className="mr-2 h-4 w-4" />
                         Atualizar password
-                      </>
-                    )}
+                      </>}
                   </Button>
                 </form>
               </Form>
             </TabsContent>
 
             <TabsContent value="telegram" className="mt-6">
-              <TelegramSetup 
-                userEmail={userData.email}
-                currentChatId={userData.telegram_chat_id}
-                userRole={userData.role}
-                onUpdate={() => {
-                  // Refetch user data to update telegram status
-                  const userConnection = localStorage.getItem('mysqlConnection');
-                  if (userConnection) {
-                    const userInfo = JSON.parse(userConnection);
-                    supabaseService.getAllUsers().then(users => {
-                      const currentUser = users.find(user => user.email === userInfo.email);
-                      if (currentUser) {
-                        setUserData(prev => prev ? {
-                          ...prev,
-                          telegram_chat_id: (currentUser as any).telegram_chat_id
-                        } : null);
-                      }
-                    });
+              <TelegramSetup userEmail={userData.email} currentChatId={userData.telegram_chat_id} userRole={userData.role} onUpdate={() => {
+              // Refetch user data to update telegram status
+              const userConnection = localStorage.getItem('mysqlConnection');
+              if (userConnection) {
+                const userInfo = JSON.parse(userConnection);
+                supabaseService.getAllUsers().then(users => {
+                  const currentUser = users.find(user => user.email === userInfo.email);
+                  if (currentUser) {
+                    setUserData(prev => prev ? {
+                      ...prev,
+                      telegram_chat_id: (currentUser as any).telegram_chat_id
+                    } : null);
                   }
-                }}
-              />
+                });
+              }
+            }} />
             </TabsContent>
           </Tabs>
 
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 export default ProfileEdit;
