@@ -92,8 +92,8 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
 
   const userNavItems = [
     { path: '/dashboard', icon: Home, label: 'Início' },
-    { path: '/dashboard/schedule', icon: Calendar, label: 'A Minha Escala' },
-    { path: '/dashboard/current-schedule', icon: CalendarCheck, label: 'Escala Anterior' },
+    { path: '/dashboard/schedule', icon: Calendar, label: 'Disponibilidade' },
+    { path: '/dashboard/current-schedule', icon: CalendarCheck, label: 'Escala' },
     { path: '/dashboard/exchanges', icon: ArrowLeftRight, label: 'Trocas' },
     { path: '/dashboard/profile', icon: User, label: 'Perfil' },
   ];

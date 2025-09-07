@@ -15,6 +15,7 @@ interface CurrentScheduleProps {
 const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLinkUrl, setPdfLinkUrl] = useState<string>('');
+  const [additionalPdfLink, setAdditionalPdfLink] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -32,7 +33,20 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
       }
     };
     
+    // Load additional PDF link
+    const loadAdditionalPdfLink = async () => {
+      try {
+        const link = await systemSettingsService.getSystemSetting('additional_pdf_link');
+        if (link) {
+          setAdditionalPdfLink(link);
+        }
+      } catch (err) {
+        console.error('Error loading additional PDF link:', err);
+      }
+    };
+    
     loadCurrentSchedulePdf();
+    loadAdditionalPdfLink();
     
     // Set up real-time subscription for system settings changes
     const channel = supabase
@@ -49,6 +63,10 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
           if (newData && newData.key === 'current_schedule_pdf') {
             console.log('Current schedule PDF URL updated:', newData.value);
             setPdfUrl(newData.value);
+          }
+          if (newData && newData.key === 'additional_pdf_link') {
+            console.log('Additional PDF link updated:', newData.value);
+            setAdditionalPdfLink(newData.value);
           }
         })
       .subscribe();
@@ -219,6 +237,30 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
                 {isAdmin 
                   ? "Nenhuma escala disponível. Por favor, adicione um link para a escala." 
                   : "Nenhuma escala disponível para visualização de momento."}
+              </div>
+            </div>
+          )}
+          
+          {additionalPdfLink && (
+            <div className="mt-6 pt-6 border-t">
+              <div className="text-center">
+                <Button 
+                  asChild
+                  variant="outline"
+                  className="flex items-center gap-2 mx-auto"
+                >
+                  <a 
+                    href={additionalPdfLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="no-underline"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Aceder ao ficheiro PDF
+                  </a>
+                </Button>
               </div>
             </div>
           )}
