@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { userService } from "@/services/supabase/userService";
 import { authService } from "@/services/supabase/authService";
-import { Users } from 'lucide-react';
+import { Users, ArrowUpAZ, ArrowDownAZ } from 'lucide-react';
 import UserEditDialog from './UserEditDialog';
 import UserItem from './UserItem';
 import EmptyUserList from './EmptyUserList';
@@ -34,7 +35,43 @@ const UserList: React.FC<UserListProps> = ({
   onUserStatusToggled 
 }) => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [sortOrder, setSortOrder] = useState<'none' | 'asc' | 'desc'>('none');
   const { toast } = useToast();
+
+  const sortedUsers = useMemo(() => {
+    if (sortOrder === 'none') return users;
+    
+    return [...users].sort((a, b) => {
+      const nameA = a.name.toLowerCase();
+      const nameB = b.name.toLowerCase();
+      
+      if (sortOrder === 'asc') {
+        return nameA.localeCompare(nameB, 'pt-PT');
+      } else {
+        return nameB.localeCompare(nameA, 'pt-PT');
+      }
+    });
+  }, [users, sortOrder]);
+
+  const handleSortToggle = () => {
+    setSortOrder(current => {
+      if (current === 'none') return 'asc';
+      if (current === 'asc') return 'desc';
+      return 'none';
+    });
+  };
+
+  const getSortIcon = () => {
+    if (sortOrder === 'asc') return <ArrowUpAZ className="h-4 w-4" />;
+    if (sortOrder === 'desc') return <ArrowDownAZ className="h-4 w-4" />;
+    return <ArrowUpAZ className="h-4 w-4 opacity-50" />;
+  };
+
+  const getSortLabel = () => {
+    if (sortOrder === 'asc') return 'A-Z';
+    if (sortOrder === 'desc') return 'Z-A';
+    return 'Ordenar';
+  };
 
   const handleDeleteUser = async (userId: string) => {
     try {
@@ -144,20 +181,33 @@ const UserList: React.FC<UserListProps> = ({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-6 w-6" />
-            Lista de Utilizadores
-          </CardTitle>
-          <CardDescription>
-            Gerir utilizadores existentes do sistema
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-6 w-6" />
+                Lista de Utilizadores
+              </CardTitle>
+              <CardDescription>
+                Gerir utilizadores existentes do sistema
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSortToggle}
+              className="flex items-center gap-2"
+            >
+              {getSortIcon()}
+              {getSortLabel()}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {users.length === 0 ? (
+            {sortedUsers.length === 0 ? (
               <EmptyUserList />
             ) : (
-              users.map((user) => (
+              sortedUsers.map((user) => (
                 <UserItem
                   key={user.id}
                   user={user}
