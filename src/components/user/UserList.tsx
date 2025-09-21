@@ -35,7 +35,7 @@ const UserList: React.FC<UserListProps> = ({
   onUserStatusToggled 
 }) => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [sortOrder, setSortOrder] = useState<'none' | 'asc' | 'desc'>('none');
+  const [sortOrder, setSortOrder] = useState<'none' | 'asc' | 'desc'>('asc');
   const { toast } = useToast();
 
   const sortedUsers = useMemo(() => {
