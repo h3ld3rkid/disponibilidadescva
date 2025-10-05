@@ -182,6 +182,31 @@ const UserSchedules = () => {
     await exportSchedulesToPDF(selectedUsers, schedules, toast);
   };
 
+  const handleDeleteSelected = async () => {
+    try {
+      for (const email of selectedUsers) {
+        await scheduleService.deleteUserSchedule(email);
+      }
+      
+      // Update UI state
+      setSchedules(prev => prev.filter(schedule => !selectedUsers.includes(schedule.email)));
+      setUserEmails(prev => prev.filter(e => !selectedUsers.includes(e)));
+      setSelectedUsers([]);
+      
+      toast({
+        title: "Escalas eliminadas",
+        description: `${selectedUsers.length} escala(s) foi(ram) eliminada(s) com sucesso.`,
+      });
+    } catch (error) {
+      console.error("Error deleting selected schedules:", error);
+      toast({
+        title: "Erro ao eliminar",
+        description: "Ocorreu um erro ao eliminar as escalas selecionadas.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleViewSchedule = (email: string, name: string) => {
     setViewingUserSchedule(email);
     setViewingUserName(name);
@@ -205,6 +230,7 @@ const UserSchedules = () => {
           onExportPDF={handleExportPDF}
           onMigrateData={() => {}} // Removed migration functionality
           onRefresh={loadAllSchedules}
+          onDeleteSelected={handleDeleteSelected}
         />
       )}
       
