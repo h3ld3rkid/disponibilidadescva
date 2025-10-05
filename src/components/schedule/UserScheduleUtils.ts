@@ -19,8 +19,11 @@ export const exportSchedulesToPDF = async (
   }
 
   const filteredSchedules = schedules.filter(schedule => 
-    selectedUsers.includes(schedule.email)
+    selectedUsers.includes(schedule.user_email || schedule.email)
   );
+  
+  console.log('Filtered schedules for PDF:', filteredSchedules);
+  console.log('Selected users:', selectedUsers);
 
   try {
     // Create PDF document with one user per page
@@ -113,8 +116,8 @@ export const exportSchedulesToPDF = async (
       doc.setTextColor(60, 60, 60);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Nome: ${schedule.user}`, 20, 70);
-      doc.text(`Email: ${schedule.email}`, 20, 75);
+      doc.text(`Nome: ${schedule.user_name || schedule.user}`, 20, 70);
+      doc.text(`Email: ${schedule.user_email || schedule.email}`, 20, 75);
       
       // Date and export info
       doc.setFontSize(8);
