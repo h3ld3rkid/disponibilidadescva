@@ -147,6 +147,35 @@ export class PDFGenerator {
     }
   }
 
+  private sortByWeekday(items: string[]): string[] {
+    const weekdayOrder = [
+      'Segunda-feira',
+      'Terça-feira',
+      'Quarta-feira',
+      'Quinta-feira',
+      'Sexta-feira',
+      'Sábado',
+      'Domingo'
+    ];
+    
+    return items.sort((a, b) => {
+      const indexA = weekdayOrder.indexOf(a);
+      const indexB = weekdayOrder.indexOf(b);
+      
+      // If both are weekdays, sort by weekday order
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      
+      // If only one is a weekday, prioritize it
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      
+      // Otherwise, keep original order
+      return 0;
+    });
+  }
+
   private addShifts(scheduleData: any): number {
     let yPosition = 110;
     
@@ -160,6 +189,8 @@ export class PDFGenerator {
 
     const shifts = scheduleData.shifts || [];
     const overnights = scheduleData.overnights || [];
+    const shiftNotes = scheduleData.shiftNotes || scheduleData.shift_notes || '';
+    const overnightNotes = scheduleData.overnightNotes || scheduleData.overnight_notes || '';
     
     console.log('Shifts found:', shifts);
     console.log('Overnights found:', overnights);
@@ -168,6 +199,10 @@ export class PDFGenerator {
       this.addNoShiftsMessage(yPosition);
       return yPosition + 25;
     }
+
+    // Sort shifts and overnights by weekday order
+    const sortedShifts = this.sortByWeekday([...shifts]);
+    const sortedOvernights = this.sortByWeekday([...overnights]);
 
     // Modern shifts section header
     this.doc.setFillColor(220, 53, 69);
@@ -186,7 +221,7 @@ export class PDFGenerator {
     let itemIndex = 0;
     
     // Add day shifts
-    if (shifts.length > 0) {
+    if (sortedShifts.length > 0) {
       this.doc.setFontSize(10);
       this.doc.setFont('helvetica', 'bold');
       this.doc.setTextColor(220, 53, 69);
@@ -196,7 +231,7 @@ export class PDFGenerator {
       this.doc.setFontSize(9);
       this.doc.setTextColor(60, 60, 60);
       
-      shifts.forEach((shift) => {
+      sortedShifts.forEach((shift) => {
         // Add alternating background for better readability
         if (itemIndex % 2 === 0) {
           this.doc.setFillColor(248, 249, 250);
@@ -210,10 +245,25 @@ export class PDFGenerator {
       });
       
       yPosition += 5;
+      
+      // Add shift notes immediately after shifts
+      if (shiftNotes) {
+        this.doc.setFontSize(9);
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.setTextColor(220, 53, 69);
+        this.doc.text('Observações dos Turnos:', 25, yPosition);
+        yPosition += 5;
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setFontSize(8);
+        this.doc.setTextColor(60, 60, 60);
+        const shiftNotesText = this.doc.splitTextToSize(shiftNotes, 160);
+        this.doc.text(shiftNotesText, 30, yPosition);
+        yPosition += shiftNotesText.length * 4 + 8;
+      }
     }
     
     // Add overnight shifts
-    if (overnights.length > 0) {
+    if (sortedOvernights.length > 0) {
       this.doc.setFontSize(10);
       this.doc.setFont('helvetica', 'bold');
       this.doc.setTextColor(220, 53, 69);
@@ -223,7 +273,7 @@ export class PDFGenerator {
       this.doc.setFontSize(9);
       this.doc.setTextColor(60, 60, 60);
       
-      overnights.forEach((overnight) => {
+      sortedOvernights.forEach((overnight) => {
         // Add alternating background
         if (itemIndex % 2 === 0) {
           this.doc.setFillColor(248, 249, 250);
@@ -235,10 +285,27 @@ export class PDFGenerator {
         yPosition += 8;
         itemIndex++;
       });
+      
+      yPosition += 5;
+      
+      // Add overnight notes immediately after overnights
+      if (overnightNotes) {
+        this.doc.setFontSize(9);
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.setTextColor(220, 53, 69);
+        this.doc.text('Observações das Pernoites:', 25, yPosition);
+        yPosition += 5;
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setFontSize(8);
+        this.doc.setTextColor(60, 60, 60);
+        const overnightNotesText = this.doc.splitTextToSize(overnightNotes, 160);
+        this.doc.text(overnightNotesText, 30, yPosition);
+        yPosition += overnightNotesText.length * 4 + 8;
+      }
     }
     
     // Modern summary box
-    yPosition += 10;
+    yPosition += 5;
     this.doc.setFillColor(245, 247, 250);
     this.doc.roundedRect(20, yPosition, 170, 20, 3, 3, 'F');
     this.doc.setDrawColor(220, 220, 220);
@@ -253,8 +320,8 @@ export class PDFGenerator {
     this.doc.setTextColor(60, 60, 60);
     this.doc.setFontSize(9);
     this.doc.setFont('helvetica', 'normal');
-    this.doc.text(`Turnos Diurnos: ${shifts.length}`, 25, yPosition + 15);
-    this.doc.text(`Pernoites: ${overnights.length}`, 100, yPosition + 15);
+    this.doc.text(`Turnos Diurnos: ${sortedShifts.length}`, 25, yPosition + 15);
+    this.doc.text(`Pernoites: ${sortedOvernights.length}`, 100, yPosition + 15);
     
     return yPosition + 25;
   }
@@ -271,11 +338,11 @@ export class PDFGenerator {
   private addNotes(scheduleData: any, yPosition: number): number {
     if (!scheduleData) return yPosition;
     
-    const shiftNotes = scheduleData.shiftNotes || scheduleData.shift_notes || '';
-    const overnightNotes = scheduleData.overnightNotes || scheduleData.overnight_notes || '';
     const generalNotes = scheduleData.notes || '';
     
-    if (!shiftNotes && !overnightNotes && !generalNotes) return yPosition;
+    // Only add general notes section if there are general notes
+    // Shift and overnight notes are now added inline with their respective sections
+    if (!generalNotes) return yPosition;
     
     // Modern notes header
     this.doc.setFillColor(220, 53, 69);
@@ -284,48 +351,16 @@ export class PDFGenerator {
     this.doc.setTextColor(255, 255, 255);
     this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'bold');
-    this.doc.text('OBSERVAÇÕES', 25, yPosition + 8);
+    this.doc.text('OBSERVAÇÕES GERAIS', 25, yPosition + 8);
     yPosition += 18;
     
     this.doc.setTextColor(60, 60, 60);
     this.doc.setFontSize(8);
     this.doc.setFont('helvetica', 'normal');
     
-    if (generalNotes) {
-      this.doc.setFont('helvetica', 'bold');
-      this.doc.setTextColor(220, 53, 69);
-      this.doc.text('Notas Gerais:', 25, yPosition);
-      yPosition += 5;
-      this.doc.setFont('helvetica', 'normal');
-      this.doc.setTextColor(60, 60, 60);
-      const generalNotesText = this.doc.splitTextToSize(generalNotes, 160);
-      this.doc.text(generalNotesText, 30, yPosition);
-      yPosition += generalNotesText.length * 4 + 5;
-    }
-    
-    if (shiftNotes) {
-      this.doc.setFont('helvetica', 'bold');
-      this.doc.setTextColor(220, 53, 69);
-      this.doc.text('Notas dos Turnos:', 25, yPosition);
-      yPosition += 5;
-      this.doc.setFont('helvetica', 'normal');
-      this.doc.setTextColor(60, 60, 60);
-      const shiftNotesText = this.doc.splitTextToSize(shiftNotes, 160);
-      this.doc.text(shiftNotesText, 30, yPosition);
-      yPosition += shiftNotesText.length * 4 + 5;
-    }
-    
-    if (overnightNotes) {
-      this.doc.setFont('helvetica', 'bold');
-      this.doc.setTextColor(220, 53, 69);
-      this.doc.text('Notas das Pernoites:', 25, yPosition);
-      yPosition += 5;
-      this.doc.setFont('helvetica', 'normal');
-      this.doc.setTextColor(60, 60, 60);
-      const overnightNotesText = this.doc.splitTextToSize(overnightNotes, 160);
-      this.doc.text(overnightNotesText, 30, yPosition);
-      yPosition += overnightNotesText.length * 4 + 5;
-    }
+    const generalNotesText = this.doc.splitTextToSize(generalNotes, 160);
+    this.doc.text(generalNotesText, 30, yPosition);
+    yPosition += generalNotesText.length * 4 + 5;
     
     return yPosition;
   }
