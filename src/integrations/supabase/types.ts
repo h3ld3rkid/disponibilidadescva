@@ -298,7 +298,48 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      users_safe: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          is_admin: boolean | null
+          mechanographic_number: string | null
+          name: string | null
+          needs_password_change: boolean | null
+          role: string | null
+          telegram_chat_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          is_admin?: boolean | null
+          mechanographic_number?: string | null
+          name?: string | null
+          needs_password_change?: boolean | null
+          role?: string | null
+          telegram_chat_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          is_admin?: boolean | null
+          mechanographic_number?: string | null
+          name?: string | null
+          needs_password_change?: boolean | null
+          role?: string | null
+          telegram_chat_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       authenticate_user: {
