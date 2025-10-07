@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { scrypt, randomBytes } from "node:crypto"
 import { promisify } from "node:util"
+import { Buffer } from "node:buffer"
 
 const scryptAsync = promisify(scrypt)
 
