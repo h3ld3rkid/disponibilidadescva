@@ -1,9 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import * as bcrypt from "https://deno.land/x/bcrypt@v0.2.4/mod.ts"
+import { scrypt, randomBytes } from "node:crypto"
+import { promisify } from "node:util"
+
+const scryptAsync = promisify(scrypt)
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16).toString('hex')
+  const derivedKey = await scryptAsync(password, salt, 64) as Buffer
+  return `${salt}:${derivedKey.toString('hex')}`
 }
 
 serve(async (req) => {
@@ -35,8 +44,8 @@ serve(async (req) => {
       )
     }
 
-    // Hash com bcrypt (salt rounds: 12)
-    const hash = await bcrypt.hash(password)
+    // Hash com scrypt
+    const hash = await hashPassword(password)
 
     console.log('Password hashed successfully')
 
