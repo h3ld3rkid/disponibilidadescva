@@ -139,6 +139,38 @@ export const scheduleService = {
       } catch (notificationError) {
         console.error('Failed to send admin notification:', notificationError);
       }
+
+      // Send Telegram notification to admins
+      try {
+        const { data: admins, error: adminsError } = await supabase
+          .from('users')
+          .select('telegram_chat_id, name')
+          .eq('role', 'admin')
+          .not('telegram_chat_id', 'is', null);
+
+        if (adminsError) {
+          console.error('Error fetching admins for Telegram notification:', adminsError);
+        } else if (admins && admins.length > 0) {
+          console.log(`Sending Telegram notifications to ${admins.length} admins`);
+          
+          // Send notification to each admin with Telegram configured
+          for (const admin of admins) {
+            try {
+              await supabase.functions.invoke('send-telegram-notification', {
+                body: {
+                  chatId: admin.telegram_chat_id,
+                  message: `📋 <b>Nova Escala Submetida</b>\n\n👤 <b>Utilizador:</b> ${userName}\n📅 <b>Mês:</b> ${month}\n\nAceda ao dashboard para visualizar os detalhes.`
+                }
+              });
+              console.log(`Telegram notification sent to admin ${admin.name}`);
+            } catch (telegramError) {
+              console.error(`Error sending Telegram to ${admin.name}:`, telegramError);
+            }
+          }
+        }
+      } catch (telegramError) {
+        console.error('Failed to send Telegram notifications:', telegramError);
+      }
       
       return { success: true };
       
