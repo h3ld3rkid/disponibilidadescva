@@ -114,13 +114,26 @@ export const shiftExchangeService = {
             });
           };
 
-          const telegramMessage = `🔄 <b>Novo Pedido de Troca de Turno</b>\n\n` +
-            `<b>👤 Solicitante:</b> ${data.requester_name}\n\n` +
-            `<b>📋 Detalhes da Troca:</b>\n` +
-            `• <b>Oferece:</b> ${getShiftLabel(data.offered_shift)} (${formatDate(data.offered_date)})\n` +
-            `• <b>Pretende:</b> ${getShiftLabel(data.requested_shift)} (${formatDate(data.requested_date)})\n` +
-            (data.message ? `\n💬 <b>Mensagem:</b> ${data.message}\n` : '') +
-            `\n📱 Responda através da aplicação web.`;
+          // Check if it's a broadcast request (no offered date)
+          const isBroadcast = !data.offered_date || data.offered_date === '';
+          
+          let telegramMessage;
+          if (isBroadcast) {
+            telegramMessage = `🔄 <b>Novo Pedido de Troca de Turno</b>\n\n` +
+              `<b>👤 Solicitante:</b> ${data.requester_name}\n\n` +
+              `<b>📋 Detalhes da Troca:</b>\n` +
+              `• <b>Necessita de troca dia:</b> ${getShiftLabel(data.requested_shift)} (${formatDate(data.requested_date)})\n` +
+              (data.message ? `\n💬 <b>Mensagem:</b> ${data.message}\n` : '') +
+              `\n📱 Responda através da aplicação web.`;
+          } else {
+            telegramMessage = `🔄 <b>Novo Pedido de Troca de Turno</b>\n\n` +
+              `<b>👤 Solicitante:</b> ${data.requester_name}\n\n` +
+              `<b>📋 Detalhes da Troca:</b>\n` +
+              `• <b>Oferece:</b> ${getShiftLabel(data.offered_shift)} (${formatDate(data.offered_date)})\n` +
+              `• <b>Pretende:</b> ${getShiftLabel(data.requested_shift)} (${formatDate(data.requested_date)})\n` +
+              (data.message ? `\n💬 <b>Mensagem:</b> ${data.message}\n` : '') +
+              `\n📱 Responda através da aplicação web.`;
+          }
 
           await supabase.functions.invoke('send-telegram-notification', {
             body: {

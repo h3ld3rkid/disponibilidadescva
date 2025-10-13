@@ -498,71 +498,142 @@ const ShiftExchange = () => {
               </p>
             ) : (
               <div className="space-y-4 max-h-96 overflow-y-auto">
-                {exchangeRequests.map((request) => (
-                  <div key={request.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="text-sm">
-                        {request.requester_email === userInfo.email ? (
-                          <span className="font-medium">Enviado para: {request.target_name}</span>
-                        ) : (
-                          <span className="font-medium">Recebido de: {request.requester_name}</span>
-                        )}
-                      </div>
-                      <span className={`text-xs font-medium ${getStatusColor(request.status)}`}>
-                        {getStatusLabel(request.status)}
-                      </span>
-                    </div>
-                    
-                    <div className="text-sm text-gray-600 space-y-1">
-                      <div>
-                        <strong>Pretende:</strong> {getShiftTypeLabel(request.requested_shift)} em{' '}
-                        {new Date(request.requested_date).toLocaleDateString('pt-PT')}
-                        <span className="text-xs text-gray-400 ml-1">
-                          ({getDayTypeLabel(request.requested_date)})
-                        </span>
-                      </div>
-                      <div>
-                        <strong>Oferece:</strong> {getShiftTypeLabel(request.offered_shift)} em{' '}
-                        {new Date(request.offered_date).toLocaleDateString('pt-PT')}
-                        <span className="text-xs text-gray-400 ml-1">
-                          ({getDayTypeLabel(request.offered_date)})
-                        </span>
-                      </div>
-                      {request.message && (
-                        <div className="mt-2">
-                          <strong>Mensagem:</strong> {request.message}
-                        </div>
-                      )}
-                    </div>
-                    
-                    {request.target_email === userInfo.email && request.status === 'pending' && (
-                      <div className="flex gap-2 mt-3">
-                        <Button
-                          size="sm"
-                          onClick={() => handleRespondToRequest(request.id, 'accepted')}
-                          className="flex items-center gap-1"
-                        >
-                          <Check className="h-3 w-3" />
-                          Aceitar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleRespondToRequest(request.id, 'rejected')}
-                          className="flex items-center gap-1"
-                        >
-                          <X className="h-3 w-3" />
-                          Recusar
-                        </Button>
-                      </div>
-                    )}
-                    
-                    <div className="text-xs text-gray-400 mt-2">
-                      {new Date(request.created_at).toLocaleDateString('pt-PT')} às{' '}
-                      {new Date(request.created_at).toLocaleTimeString('pt-PT')}
-                    </div>
-                  </div>
-                ))}
+                {(() => {
+                  // Group broadcast requests by requester, requested_date and requested_shift
+                  const groupedRequests: { [key: string]: ShiftExchangeRequest[] } = {};
+                  const regularRequests: ShiftExchangeRequest[] = [];
+
+                  exchangeRequests.forEach(request => {
+                    const isBroadcast = request.message?.includes('[PROPOSTA GERAL]');
+                    if (isBroadcast && request.requester_email === userInfo.email) {
+                      const key = `${request.requester_email}_${request.requested_date}_${request.requested_shift}`;
+                      if (!groupedRequests[key]) {
+                        groupedRequests[key] = [];
+                      }
+                      groupedRequests[key].push(request);
+                    } else {
+                      regularRequests.push(request);
+                    }
+                  });
+
+                  return (
+                    <>
+                      {/* Show grouped broadcast requests */}
+                      {Object.entries(groupedRequests).map(([key, requests]) => {
+                        const firstRequest = requests[0];
+                        const pendingCount = requests.filter(r => r.status === 'pending').length;
+                        const acceptedCount = requests.filter(r => r.status === 'accepted').length;
+                        const rejectedCount = requests.filter(r => r.status === 'rejected').length;
+
+                        return (
+                          <div key={key} className="border rounded-lg p-4 bg-blue-50">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="text-sm">
+                                <span className="font-medium">Proposta Geral Enviada</span>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {requests.length} utilizador(es) • {pendingCount} pendente(s) • {acceptedCount} aceite(s) • {rejectedCount} recusado(s)
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="text-sm text-gray-600 space-y-1">
+                              <div>
+                                <strong>Necessita de troca dia:</strong> {getShiftTypeLabel(firstRequest.requested_shift)} em{' '}
+                                {new Date(firstRequest.requested_date).toLocaleDateString('pt-PT')}
+                                <span className="text-xs text-gray-400 ml-1">
+                                  ({getDayTypeLabel(firstRequest.requested_date)})
+                                </span>
+                              </div>
+                              {firstRequest.message && (
+                                <div className="mt-2">
+                                  <strong>Mensagem:</strong> {firstRequest.message.replace('[PROPOSTA GERAL] ', '')}
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="text-xs text-gray-400 mt-2">
+                              {new Date(firstRequest.created_at).toLocaleDateString('pt-PT')} às{' '}
+                              {new Date(firstRequest.created_at).toLocaleTimeString('pt-PT')}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Show regular requests */}
+                      {regularRequests.map((request) => {
+                        const isBroadcast = !request.offered_date || request.offered_date === '';
+                        
+                        return (
+                          <div key={request.id} className="border rounded-lg p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="text-sm">
+                                {request.requester_email === userInfo.email ? (
+                                  <span className="font-medium">Enviado para: {request.target_name}</span>
+                                ) : (
+                                  <span className="font-medium">Recebido de: {request.requester_name}</span>
+                                )}
+                              </div>
+                              <span className={`text-xs font-medium ${getStatusColor(request.status)}`}>
+                                {getStatusLabel(request.status)}
+                              </span>
+                            </div>
+                            
+                            <div className="text-sm text-gray-600 space-y-1">
+                              <div>
+                                <strong>{isBroadcast ? 'Necessita de troca dia:' : 'Pretende:'}</strong> {getShiftTypeLabel(request.requested_shift)} em{' '}
+                                {new Date(request.requested_date).toLocaleDateString('pt-PT')}
+                                <span className="text-xs text-gray-400 ml-1">
+                                  ({getDayTypeLabel(request.requested_date)})
+                                </span>
+                              </div>
+                              {!isBroadcast && (
+                                <div>
+                                  <strong>Oferece:</strong> {getShiftTypeLabel(request.offered_shift)} em{' '}
+                                  {new Date(request.offered_date).toLocaleDateString('pt-PT')}
+                                  <span className="text-xs text-gray-400 ml-1">
+                                    ({getDayTypeLabel(request.offered_date)})
+                                  </span>
+                                </div>
+                              )}
+                              {request.message && (
+                                <div className="mt-2">
+                                  <strong>Mensagem:</strong> {request.message.replace('[PROPOSTA GERAL] ', '')}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {request.target_email === userInfo.email && request.status === 'pending' && (
+                              <div className="flex gap-2 mt-3">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleRespondToRequest(request.id, 'accepted')}
+                                  className="flex items-center gap-1"
+                                >
+                                  <Check className="h-3 w-3" />
+                                  Aceitar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleRespondToRequest(request.id, 'rejected')}
+                                  className="flex items-center gap-1"
+                                >
+                                  <X className="h-3 w-3" />
+                                  Recusar
+                                </Button>
+                              </div>
+                            )}
+                            
+                            <div className="text-xs text-gray-400 mt-2">
+                              {new Date(request.created_at).toLocaleDateString('pt-PT')} às{' '}
+                              {new Date(request.created_at).toLocaleTimeString('pt-PT')}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  );
+                })()}
               </div>
             )}
           </CardContent>
