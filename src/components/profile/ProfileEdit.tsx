@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Lock } from "lucide-react";
+import { Loader2, Save, Lock, Eye, EyeOff } from "lucide-react";
 import { supabaseService } from "@/services/supabaseService";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
@@ -56,6 +56,9 @@ const ProfileEdit = () => {
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
   const [needsPasswordChange, setNeedsPasswordChange] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'telegram'>('profile');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Profile form
   const profileForm = useForm<ProfileFormValues>({
@@ -308,7 +311,16 @@ const ProfileEdit = () => {
                 }) => <FormItem>
                         <FormLabel>Password atual</FormLabel>
                         <FormControl>
-                          <Input placeholder="Introduza a sua password atual" type="password" {...field} />
+                          <div className="relative">
+                            <Input placeholder="Introduza a sua password atual" type={showCurrentPassword ? "text" : "password"} {...field} />
+                            <button
+                              type="button"
+                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                            >
+                              {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>} />
@@ -318,7 +330,16 @@ const ProfileEdit = () => {
                 }) => <FormItem>
                         <FormLabel>Nova password</FormLabel>
                         <FormControl>
-                          <Input placeholder="Introduza a nova password" type="password" {...field} />
+                          <div className="relative">
+                            <Input placeholder="Introduza a nova password" type={showNewPassword ? "text" : "password"} {...field} />
+                            <button
+                              type="button"
+                              onClick={() => setShowNewPassword(!showNewPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                            >
+                              {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>} />
@@ -328,7 +349,16 @@ const ProfileEdit = () => {
                 }) => <FormItem>
                         <FormLabel>Confirmar nova password</FormLabel>
                         <FormControl>
-                          <Input placeholder="Confirme a nova password" type="password" {...field} />
+                          <div className="relative">
+                            <Input placeholder="Confirme a nova password" type={showConfirmPassword ? "text" : "password"} {...field} />
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                            >
+                              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>} />

@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { shiftExchangeService, ShiftExchangeRequest } from "@/services/supabase/shiftExchangeService";
 import { userService } from "@/services/supabase/userService";
-import { ArrowLeftRight, Send, Check, X, Search, Info } from 'lucide-react';
+import { ArrowLeftRight, Send, Check, X, Search, Info, Users } from 'lucide-react';
 import { isWeekendOrHoliday, getDayType } from '@/utils/dateUtils';
 import ExchangeSuccessSplash from './ExchangeSuccessSplash';
+import BroadcastExchangeDialog from './BroadcastExchangeDialog';
 
 interface User {
   id: string;
@@ -33,6 +34,7 @@ const ShiftExchange = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [exchangeRequests, setExchangeRequests] = useState<ShiftExchangeRequest[]>([]);
   const [showSuccessSplash, setShowSuccessSplash] = useState(false);
+  const [showBroadcastDialog, setShowBroadcastDialog] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -184,6 +186,75 @@ const ShiftExchange = () => {
     }
   };
 
+  const handleBroadcastRequest = async (offeredDate: string, offeredShift: string, message: string) => {
+    setIsSubmitting(true);
+
+    try {
+      // Get all active users except current user
+      const activeUsers = users.filter(user => user.email !== userInfo.email);
+      
+      if (activeUsers.length === 0) {
+        toast({
+          title: "Sem utilizadores",
+          description: "Não há outros utilizadores ativos para enviar a proposta.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create exchange request for each user
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const user of activeUsers) {
+        try {
+          await shiftExchangeService.createExchangeRequest({
+            requester_email: userInfo.email,
+            requester_name: userInfo.name || userInfo.email,
+            target_email: user.email,
+            target_name: user.name,
+            requested_date: offeredDate, // The broadcast is offering this
+            requested_shift: offeredShift,
+            offered_date: '', // They will provide their own
+            offered_shift: '',
+            message: `[PROPOSTA GERAL] ${message || 'Disponível para troca de turno'}`
+          });
+          successCount++;
+        } catch (error) {
+          console.error(`Error sending to ${user.name}:`, error);
+          errorCount++;
+        }
+      }
+
+      setShowBroadcastDialog(false);
+      
+      if (successCount > 0) {
+        toast({
+          title: "Proposta enviada",
+          description: `Proposta enviada com sucesso para ${successCount} utilizador(es).${errorCount > 0 ? ` ${errorCount} falharam.` : ''}`,
+        });
+        
+        // Reload requests
+        loadExchangeRequests(userInfo.email);
+      } else {
+        toast({
+          title: "Erro ao enviar",
+          description: "Não foi possível enviar a proposta a nenhum utilizador.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error broadcasting exchange request:', error);
+      toast({
+        title: "Erro ao enviar",
+        description: "Ocorreu um erro ao enviar a proposta.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const getShiftTypeLabel = (shift: string) => {
     switch (shift) {
       case 'day': return 'Turno Diurno';
@@ -223,6 +294,13 @@ const ShiftExchange = () => {
         <ExchangeSuccessSplash onClose={() => setShowSuccessSplash(false)} />
       )}
       
+      <BroadcastExchangeDialog
+        open={showBroadcastDialog}
+        onOpenChange={setShowBroadcastDialog}
+        onSubmit={handleBroadcastRequest}
+        isSubmitting={isSubmitting}
+      />
+      
       <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Trocas de Turnos</h1>
@@ -233,13 +311,26 @@ const ShiftExchange = () => {
         {/* Create new exchange request */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ArrowLeftRight className="h-5 w-5" />
-              Nova Proposta de Troca
-            </CardTitle>
-            <CardDescription>
-              Propor uma troca de turno com outro utilizador
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <ArrowLeftRight className="h-5 w-5" />
+                  Nova Proposta de Troca
+                </CardTitle>
+                <CardDescription>
+                  Propor uma troca de turno com outro utilizador
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowBroadcastDialog(true)}
+                className="flex items-center gap-2"
+              >
+                <Users className="h-4 w-4" />
+                Enviar para Todos
+              </Button>
+            </div>
           </CardHeader>
           
           <CardContent className="space-y-4">
