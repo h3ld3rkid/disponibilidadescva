@@ -212,9 +212,9 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
               <iframe 
                 src={pdfUrl} 
                 className="w-full h-[600px] border-0" 
-                title="Escala Atual"
+                title="Escala Atual - Cruz Vermelha Amares"
                 allow="fullscreen"
-                referrerPolicy="no-referrer"
+                referrerPolicy="no-referrer-when-downgrade"
                 sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-downloads"
               />
               <div className="mt-2 text-center text-sm text-gray-500">
@@ -224,7 +224,7 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
                 <a 
                   href={pdfUrl} 
                   target="_blank" 
-                  rel="noopener noreferrer" 
+                  rel="noopener noreferrer nofollow" 
                   className="text-brand-indigo hover:text-brand-darkblue underline text-sm"
                 >
                   Abrir em nova janela
@@ -252,7 +252,7 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
                   <a 
                     href={additionalPdfLink} 
                     target="_blank" 
-                    rel="noopener noreferrer"
+                    rel="noopener noreferrer nofollow"
                     className="no-underline"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

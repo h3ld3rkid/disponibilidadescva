@@ -123,8 +123,9 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
             <Link to="/dashboard" className="flex items-center space-x-3">
               <img 
                 src="https://amares.cruzvermelha.pt/images/site/Amares.webp" 
-                alt="Cruz Vermelha Amares" 
-                className="h-8 w-auto flex-shrink-0" 
+                alt="Cruz Vermelha Portuguesa - Delegação de Amares" 
+                className="h-8 w-auto flex-shrink-0"
+                referrerPolicy="no-referrer-when-downgrade"
               />
               <span className="font-semibold text-lg text-gray-900 hidden sm:block whitespace-nowrap">
                 Escalas CVA
