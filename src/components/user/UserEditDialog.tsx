@@ -43,8 +43,8 @@ const userEditSchema = z.object({
   mechanographicNumber: z.string().min(1, {
     message: "Número mecanográfico é obrigatório.",
   }),
-  role: z.enum(["admin", "user"], {
-    required_error: "Por favor, selecione um nível de acesso.",
+  role: z.union([z.literal("admin"), z.literal("user")]).refine((val) => val === "admin" || val === "user", {
+    message: "Por favor, selecione um nível de acesso.",
   }),
 });
 
