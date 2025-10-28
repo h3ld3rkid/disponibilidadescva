@@ -1,266 +1,172 @@
 freguesia_id,nome
 //amares//
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua 20 de Janeiro
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa 20 de Janeiro
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa 29 de Junho
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua 29 de Junho
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa 8 de Dezembro
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua 8 de Dezembro
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Açorda
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Albano Castro e Sousa
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Aldeamento do Parque
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Praceta do Autarca
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Bairro Municipal
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Bairro Novo
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Barca
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Barquinho
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Bela Vista
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Bernardino Gonçalves
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa das Cales
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua das Cales
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Cancela da Cruz
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua das Carvalhas
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Casais
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Casas Novas
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Castelo de Ega
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Castelo de Idanha
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Castelo de Monsanto
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Castelo de Penamacor
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Castelo de Pombal
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua dos Cavaleiros
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Cavaleiros
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de Cavaleiros
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Chãos
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de Chãos
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Cintura
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Conde Ferreira
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Calçada da Cruz
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Cruz Vermelha
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Calçada do Cruzeiro
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa Devesa do Monte
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Devesa do Monte
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Divino Salvador
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Largo Dom Gualdim Pais
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Dom Manuel I
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Doutor Adolfo Vilela
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Doutor Aristídes Marques Vilela
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Doutor Dias Paredes
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Doutor José Fernandes
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Dr. Adolfo Vilela
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Entroncamento
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Escola
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua das Escolas
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Estreita
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Extremo
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Extremo (Amares e Figueiredo)
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Extremo (Ferreiros - Prozelo - Besteiros)
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Fontaínha
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Forno Velho
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Forno Velho
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Geira (Ferreiros - Prozelo - Besteiros)
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Granja
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Granja Velha
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Grova
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Guiames
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Igreja (Amares e Figueiredo)
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa da Igreja (Amares e Figueiredo)
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua J. Alves Leite
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua João Paulo II
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Joaquim António da Silva
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua José Albino de Macedo
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua José Alves Leite
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua das Laranjeiras
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de Levegadas
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Levegadas
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Avenida Lopes de Almeida
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Lucília Paredes
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Lugar Novo
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Lugar Novo
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,M1257 (referência rodoviária)
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,M1258 (referência rodoviária)
 a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Mata da Adega
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Meditação
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua dos Moinhos (Caires)
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Monte de Rabadas
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Monte de Rabadas
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Monte dos Passos
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Largo do Municipio
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,N308,Goães (referência/estrada)
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Doutor Adolfo Vilela
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Aldeamento do Parque
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Avenida Lopes de Almeida
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa das Alminhas
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua José Alves Leite
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Pinheiro Manso
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Largo do Município
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Largo Dom Gualdim Pais
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Joaquim António da Silva
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Bela Vista
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Padre Custódio Pinto
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Doutor Aristides Marques Vilela
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Extremo
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Extremo
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Castelo de Penamacor
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Castelo de Monsanto
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Castelo de Pombal
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Castelo da Idanha
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Castelo de Ega
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Bairro Municipal
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Bernardino Gonçalves
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Monte de Passos
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Calçada da Cruz
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Calçada do Cruzeiro
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Prado
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Cancela da Cruz
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua das Casas Novas
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Cavaleiros
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Granja
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Senhora da Conceição
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Conde Ferreira
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Dom Manuel i
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa Dom Manuel I
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Cruz Vermelha
 a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Nossa Senhora da Paz
 a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Nossa Senhora de Fátima
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Nova da Devesa do Monte
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa Nova do Entroncamento
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Nova do Entroncamento
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Paço
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Padre Custódio Pinto
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de Passos
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Doutor Dias Paredes
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Divino Salvador
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Doutor José Fernandes
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua das Escolas
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Estreita
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Sucesso
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Sucesso
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Fontaínha
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Geira
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Guiames
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua João Paulo Ii
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Lagarto
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua das Laranjeiras
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Lucília Paredes
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Meditação
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua das Oliveiras
 a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Passos
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Pinheiro Manso
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de Passos
 a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Poça do Sobreiro
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Prado
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Real
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Real
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Ribeira
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de Santo Aleixo
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Vinha
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Sol
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua dos Tanquinhos
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua 20 de Janeiro
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa 20 de Janeiro
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua 29 de Junho
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa 29 de Junho
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa 8 de Dezembro
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua 8 de Dezembro
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Igreja
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa da Igreja
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Bairro Novo
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Lugar Novo
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Lugar Novo
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Bairro Novo
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Mata da Adega
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Doutor Adolfo Vilela
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa da Quinta do Sol
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Aldeamento do Parque
 a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Santo Aleixo
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de Santo Aleixo
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Penedo da Lapa
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa Penedo da Lapa
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa Lopes de Almeida
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Avenida Lopes de Almeida
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Senhor do Emigrante
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Largo Dom Gualdim Pais
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Forno Velho
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Forno Velho
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Bela Vista
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Padre Custódio Pinto
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Doutor Aristídes Marque Vilela
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa Doutor Aristídes Marque Vilela
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Extremo
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Extremo
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Castelo de Pombal
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Castelo da Idanha
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Castelo da Idanha
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Real
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de Real
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Barca
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Barquinho
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Barquinho
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Monte Rabadas
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Devesa do Monte
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa da Devesa do Monte
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Nova da Devesa do Monte
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Monte dos Passos
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa Monte dos Passos
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Cales
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de Cales
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Loteamento de Cales
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Calçada da Cruz
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Prado
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Cancela da Cruz
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua das Carvalhas
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Cavaleiros
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Granja
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de Chãos
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Chãos
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Escola
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa da Escola
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Nossa Senhora da Conceição
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Conde de Ferreira
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa Conde de Ferreira
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Dom Manuel i
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Cruz Vermelha
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Cruz
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa da Cruz
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Nossa Senhora de Fátima
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Senhora dos Passos
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa da Senhora dos Passos
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Nossa Senhora da Paz
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa Senhora dos Emigrantes
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Doutor Dias Paredes
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa Doutor Dias Paredes
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Divino Salvador
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Divino Salvador
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Entroncamento
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Entroncamento
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Nova do Entroncamento
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa Nova do Entroncamento
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua das Escolas
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa das Escolas
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Estreita
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Quinta do Sol
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Geira
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Grova
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua João Paulo Ii
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Lagarto
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Levegadas
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de Levegadas
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Paço
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Passos
 a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de São Pedro
 a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de São Pedro
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de São Sebastião
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de São Sebastião
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Poça do Sobreiro
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Reponte
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Ribeira
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Rio
 a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de São Veríssimo
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de São Veríssimo
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa Senhor dos Passos
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Senhora da Conceição
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Senhora do Emigrante
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa Senhora do Emigrante
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Senhora dos Passos
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Sol
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa Solar de São Veríssimo
 a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Solar de São Veríssimo
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa do Sucesso
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Sucesso
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua dos Tanquinhos
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Transfontão
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de Transfontão
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua Travessa da Bela Vista
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Veiga
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa da Veiga
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de Veiga de Pena
-a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Vilar
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Sorda
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua de São Sebastião
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Veiga
 a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua da Vinha
-//barreiros//
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Avenida da Igreja
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Avenida de Além
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Avenida de Passos
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Avenida de Queirões
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Avenida do Carvalhal
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Avenida do Rio Cávado
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua de Agrolongo
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua de Além
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua da Geira
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua do Barral
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua do Monte Maninho
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua do Salgueiral
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua Nova da Triavada
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua de Fervença
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua do Carvalhal
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua dos Paúlos
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Travessa do Repiqueiro
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Largo da Serradoura
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua do Eirado
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua da Lameira
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Travessa da Fonte Lameira
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua Fonte da Lameira
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Travessa da Lameira
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua de Passos
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua das Cavádas
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua das Pedreiras
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Travessa das Pedreiras
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Avenida de Passos
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Largo de Passos
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua do Pombal
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Travessa da Portela
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua de Queirões
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua Nova de Queirões
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Travessa de Queirões
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua de São José
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Travessa da Telheira
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Avenida Nova de Queirões
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua do Atoleiro
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua do Sameiro
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua da Escola
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Avenida do Sameiro
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Travessa do Sameiro
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua Nova do Sameiro
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Travessa das Cavádas
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Avenida de Queirões
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua de Minhotos
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Travessa de Minhotos
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua do Soajo
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Travessa da Pena
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua de Vilar
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Travessa de Vilar
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua da Poça de Quintão
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Travessa do Cruzeiro
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua Nova da Lameira
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua da Barroca
-7e0da95f-57fc-448d-938a-6b44ca6fb6c0,Rua Nossa Senhora de Fátima
-//bico//
-e3f03044-023a-47bd-b59f-2c488045b530,Rua do Rio Homem
-e3f03044-023a-47bd-b59f-2c488045b530,Rua do Fundão
-e3f03044-023a-47bd-b59f-2c488045b530,Rua da Fonte
-e3f03044-023a-47bd-b59f-2c488045b530,Rua da Bouça
-e3f03044-023a-47bd-b59f-2c488045b530,Travessa da Pedreira
-e3f03044-023a-47bd-b59f-2c488045b530,Avenida Francisco Gomes Cerqueira
-e3f03044-023a-47bd-b59f-2c488045b530,Beco das Flores
-e3f03044-023a-47bd-b59f-2c488045b530,Rua do Lameiro
-e3f03044-023a-47bd-b59f-2c488045b530,Travessa do Lameiro
-e3f03044-023a-47bd-b59f-2c488045b530,Rua da Sede
-e3f03044-023a-47bd-b59f-2c488045b530,Travessa do Fundão
-e3f03044-023a-47bd-b59f-2c488045b530,Rua da Castanheira
-e3f03044-023a-47bd-b59f-2c488045b530,Rua de Cobernas
-e3f03044-023a-47bd-b59f-2c488045b530,Travessa de Cobernas
-e3f03044-023a-47bd-b59f-2c488045b530,Beco do Côto
-e3f03044-023a-47bd-b59f-2c488045b530,Rua do Côto
-e3f03044-023a-47bd-b59f-2c488045b530,Travessa do Côto
-e3f03044-023a-47bd-b59f-2c488045b530,Avenida da Igreja
-e3f03044-023a-47bd-b59f-2c488045b530,Rua do Descampado
-e3f03044-023a-47bd-b59f-2c488045b530,Travessa do Descampado
-e3f03044-023a-47bd-b59f-2c488045b530,Rua da Malheira
-e3f03044-023a-47bd-b59f-2c488045b530,Rua do Monte
-e3f03044-023a-47bd-b59f-2c488045b530,Beco do Sobreiro
-e3f03044-023a-47bd-b59f-2c488045b530,Travessa do Monte
-e3f03044-023a-47bd-b59f-2c488045b530,Rua de São Vicente
-e3f03044-023a-47bd-b59f-2c488045b530,Rua da Pedreira
-e3f03044-023a-47bd-b59f-2c488045b530,Rua dos Viveiros
-e3f03044-023a-47bd-b59f-2c488045b530,Rua de Vila Meã
-e3f03044-023a-47bd-b59f-2c488045b530,Rua do Ruivo
-e3f03044-023a-47bd-b59f-2c488045b530,Rua do Matadouro
-e3f03044-023a-47bd-b59f-2c488045b530,Rua de Carcavelos
-e3f03044-023a-47bd-b59f-2c488045b530,Beco do Vale do Homem
-e3f03044-023a-47bd-b59f-2c488045b530,Travessa de Vila Meã
-e3f03044-023a-47bd-b59f-2c488045b530,Rua dos Castanheirinhos
-e3f03044-023a-47bd-b59f-2c488045b530,Travessa de Vila Meã de Cima
-e3f03044-023a-47bd-b59f-2c488045b530,Rua de Vila Meã de Cima
-e3f03044-023a-47bd-b59f-2c488045b530,Rua Nova do Sobreiro
-e3f03044-023a-47bd-b59f-2c488045b530,Rua do Sobreiro
-e3f03044-023a-47bd-b59f-2c488045b530,Largo da Igreja
-e3f03044-023a-47bd-b59f-2c488045b530,Rua da Cerca
-e3f03044-023a-47bd-b59f-2c488045b530,Rua do Eirado
-e3f03044-023a-47bd-b59f-2c488045b530,Rua do Mosteiro
-e3f03044-023a-47bd-b59f-2c488045b530,Praceta Vila Meã de Baixo
-e3f03044-023a-47bd-b59f-2c488045b530,Rua da Baixia
-//caires//
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Travessa 1º de Janeiro
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Largo da Igreja
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua da Alegria
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua da Sede da Junta
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua do Parque Desportivo
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Beco das Alminhas
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Escadaria do Monte de Cima
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua de Monte de Cima
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua Olival do Senhor
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Largo das Pousadas
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Travessa do Paço Velho
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua do Extremo
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Caminho da Foz
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua de Veiga de Pena
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua de Nossa Senhora da Guia
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua da Cal
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua da Cruz
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua do Castro
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua de São Pedro Fins
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua de São Bento
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua da Sobreira
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua do Prado
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua da Pereira
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua das Penas
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Travessa das Penas
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Travessa do Outeiro
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Travessa do Paço
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua do Parque Desportivo
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua do Parque Industrial
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua Albano Castro Sousa
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua José Albino de Macedo
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua Albino Teixeira
-19bd65fe-3ffd-48b5-a867-a0555737ab71,Rua da Pousada
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Sol
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Transfontão
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Rua do Vilar
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de São Veríssimo
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa Solar de São Veríssimo
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de São Sebastião
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa de Tranfontão
+a0f14ee7-04c6-4c0a-b0da-0be76d742573,Travessa da Veiga
