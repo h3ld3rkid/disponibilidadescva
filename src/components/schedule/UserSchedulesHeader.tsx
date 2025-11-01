@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Printer, Trash2, RotateCcw, Database, CheckSquare } from "lucide-react";
+import { Printer, Trash2, RotateCcw, Database, CheckSquare, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,6 +15,7 @@ interface UserSchedulesHeaderProps {
   onRefresh: () => void;
   onDeleteSelected: () => void;
   onSelectAll: () => void;
+  onDeselectAll: () => void;
 }
 
 const UserSchedulesHeader: React.FC<UserSchedulesHeaderProps> = ({
@@ -26,7 +27,8 @@ const UserSchedulesHeader: React.FC<UserSchedulesHeaderProps> = ({
   onMigrateData,
   onRefresh,
   onDeleteSelected,
-  onSelectAll
+  onSelectAll,
+  onDeselectAll
 }) => {
   if (!isAdmin) return null;
   
@@ -88,6 +90,18 @@ const UserSchedulesHeader: React.FC<UserSchedulesHeaderProps> = ({
             <CheckSquare className="h-4 w-4" />
             Selecionar Tudo
           </Button>
+          <Button 
+            onClick={onDeselectAll}
+            variant="outline" 
+            className="flex-1 flex items-center justify-center gap-2"
+            size="sm"
+          >
+            <X className="h-4 w-4" />
+            Desselecionar Tudo
+          </Button>
+        </div>
+        
+        <div className="flex gap-2">
           <Button 
             onClick={onRefresh}
             variant="outline" 
@@ -152,6 +166,14 @@ const UserSchedulesHeader: React.FC<UserSchedulesHeaderProps> = ({
           >
             <CheckSquare className="h-4 w-4" />
             Selecionar Tudo
+          </Button>
+          <Button 
+            onClick={onDeselectAll}
+            variant="outline" 
+            className="flex items-center gap-2"
+          >
+            <X className="h-4 w-4" />
+            Desselecionar Tudo
           </Button>
           <Button 
             onClick={onRefresh}

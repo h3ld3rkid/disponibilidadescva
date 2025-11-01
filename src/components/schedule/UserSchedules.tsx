@@ -97,6 +97,10 @@ const UserSchedules = () => {
     setSelectedUsers(userEmails);
   };
 
+  const deselectAllUsers = () => {
+    setSelectedUsers([]);
+  };
+
   const deleteUserSchedules = async (email: string) => {
     try {
       const result = await scheduleService.deleteUserSchedule(email);
@@ -236,6 +240,7 @@ const UserSchedules = () => {
           onRefresh={loadAllSchedules}
           onDeleteSelected={handleDeleteSelected}
           onSelectAll={selectAllUsers}
+          onDeselectAll={deselectAllUsers}
         />
       )}
       
