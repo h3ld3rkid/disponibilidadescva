@@ -16,7 +16,8 @@ import {
   User,
   ArrowLeftRight,
   CalendarCheck,
-  ChevronDown
+  ChevronDown,
+  CalendarDays
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -98,6 +99,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
     { path: '/dashboard', icon: Home, label: 'Início' },
     { path: '/dashboard/schedule', icon: Calendar, label: 'Disponibilidade' },
     { path: '/dashboard/current-schedule', icon: CalendarCheck, label: 'Escala' },
+    { path: '/dashboard/my-services', icon: CalendarDays, label: 'Meus Serviços' },
     { path: '/dashboard/exchanges', icon: ArrowLeftRight, label: 'Trocas' },
     { path: '/dashboard/profile', icon: User, label: 'Perfil' },
   ];
