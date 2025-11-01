@@ -1,13 +1,48 @@
 import { supabase } from "@/integrations/supabase/client";
 import { systemSettingsService } from "./systemSettingsService";
 
-// Auto-check and reset monthly counters - simplified without RPC
+// Auto-check and reset monthly counters on the 1st of each month
 const checkMonthlyReset = async () => {
-  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+  const today = new Date();
+  const dayOfMonth = today.getDate();
+  const currentMonth = today.toISOString().slice(0, 7); // YYYY-MM format
   
   try {
-    // For now, just log that we would check monthly reset
-    console.log('Would check monthly reset for:', currentMonth);
+    // Only check on the 1st day of the month
+    if (dayOfMonth !== 1) {
+      return;
+    }
+
+    // Check if reset was already done this month
+    const lastResetKey = 'last_edit_count_reset';
+    const lastReset = await systemSettingsService.getSystemSetting(lastResetKey);
+    
+    if (lastReset === currentMonth) {
+      console.log('Monthly reset already done for:', currentMonth);
+      return;
+    }
+
+    console.log('Performing monthly edit counter reset for:', currentMonth);
+    
+    // Reset all edit_count to 0
+    const { error } = await supabase
+      .from('schedules')
+      .update({ edit_count: 0 })
+      .neq('edit_count', 0); // Only update non-zero counters for efficiency
+    
+    if (error) {
+      console.error('Error resetting edit counters:', error);
+      return;
+    }
+
+    // Mark reset as done for this month
+    await systemSettingsService.upsertSystemSetting(
+      lastResetKey,
+      currentMonth,
+      'Last month when edit counters were reset'
+    );
+    
+    console.log('Monthly edit counter reset completed successfully');
   } catch (error) {
     console.error('Error in monthly reset check:', error);
   }
