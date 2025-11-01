@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Printer, Trash2, RotateCcw, Database } from "lucide-react";
+import { Printer, Trash2, RotateCcw, Database, CheckSquare } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,6 +14,7 @@ interface UserSchedulesHeaderProps {
   onMigrateData: () => void;
   onRefresh: () => void;
   onDeleteSelected: () => void;
+  onSelectAll: () => void;
 }
 
 const UserSchedulesHeader: React.FC<UserSchedulesHeaderProps> = ({
@@ -24,7 +25,8 @@ const UserSchedulesHeader: React.FC<UserSchedulesHeaderProps> = ({
   onExportPDF,
   onMigrateData,
   onRefresh,
-  onDeleteSelected
+  onDeleteSelected,
+  onSelectAll
 }) => {
   if (!isAdmin) return null;
   
@@ -77,6 +79,15 @@ const UserSchedulesHeader: React.FC<UserSchedulesHeaderProps> = ({
         </div>
         
         <div className="flex gap-2">
+          <Button 
+            onClick={onSelectAll}
+            variant="outline" 
+            className="flex-1 flex items-center justify-center gap-2"
+            size="sm"
+          >
+            <CheckSquare className="h-4 w-4" />
+            Selecionar Tudo
+          </Button>
           <Button 
             onClick={onRefresh}
             variant="outline" 
@@ -134,6 +145,14 @@ const UserSchedulesHeader: React.FC<UserSchedulesHeaderProps> = ({
         </div>
         
         <div className="flex items-center gap-2">
+          <Button 
+            onClick={onSelectAll}
+            variant="outline" 
+            className="flex items-center gap-2"
+          >
+            <CheckSquare className="h-4 w-4" />
+            Selecionar Tudo
+          </Button>
           <Button 
             onClick={onRefresh}
             variant="outline" 

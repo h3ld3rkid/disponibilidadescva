@@ -93,6 +93,10 @@ const UserSchedules = () => {
     });
   };
 
+  const selectAllUsers = () => {
+    setSelectedUsers(userEmails);
+  };
+
   const deleteUserSchedules = async (email: string) => {
     try {
       const result = await scheduleService.deleteUserSchedule(email);
@@ -231,6 +235,7 @@ const UserSchedules = () => {
           onMigrateData={() => {}} // Removed migration functionality
           onRefresh={loadAllSchedules}
           onDeleteSelected={handleDeleteSelected}
+          onSelectAll={selectAllUsers}
         />
       )}
       
