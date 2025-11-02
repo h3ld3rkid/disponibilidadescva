@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { systemSettingsService } from "@/services/supabase/systemSettingsService";
+import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, CalendarDays } from "lucide-react";
 import * as pdfjsLib from 'pdfjs-dist';
@@ -104,12 +105,20 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         }
       }
 
-      console.log('Loading PDF from:', downloadUrl);
+      console.log('Fetching PDF via proxy from:', downloadUrl);
 
-      // Load the PDF
+      // Fetch PDF through edge function proxy to avoid CORS
+      const { data: pdfData, error: fetchError } = await supabase.functions.invoke('fetch-pdf', {
+        body: { url: downloadUrl }
+      });
+
+      if (fetchError) {
+        throw new Error(`Erro ao carregar PDF: ${fetchError.message}`);
+      }
+
+      // Load the PDF from the fetched data
       const loadingTask = pdfjsLib.getDocument({
-        url: downloadUrl,
-        withCredentials: false,
+        data: pdfData,
       });
 
       const pdf = await loadingTask.promise;

@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.verify-password]
 verify_jwt = false
+
+[functions.fetch-pdf]
+verify_jwt = false
