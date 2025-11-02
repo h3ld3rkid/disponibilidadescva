@@ -41,7 +41,6 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
     console.log('Total lines in PDF:', lines.length);
     console.log('Searching for mechanographic number:', userMechNumber);
     
-    // First pass: find lines with the mechanographic number
     let linesWithMechNumber = 0;
     let linesWithDate = 0;
     
@@ -59,26 +58,27 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         linesWithDate++;
       }
       
-      // Check if line contains a date and the user's mechanographic number
       if (dateMatch && trimmedLine.includes(userMechNumber)) {
         const date = dateMatch[1];
-        
-        // Extract the mechanographic number (should be near the date)
-        // Split by any whitespace or multiple spaces
         const parts = trimmedLine.split(/\s+/);
         const dateIndex = parts.findIndex(p => datePattern.test(p));
         
         console.log('Found matching line - Date:', date, 'Parts:', parts);
         
+        // Prefer the exact user mechanographic number if present
+        let mechNumber = userMechNumber;
         if (dateIndex !== -1 && dateIndex + 1 < parts.length) {
-          const mechNumber = parts[dateIndex + 1];
-          
-          entries.push({
-            date: date,
-            mechanographicNumber: mechNumber,
-            rawText: trimmedLine
-          });
+          const candidate = parts[dateIndex + 1].replace(/[^\d]/g, '');
+          if (candidate === userMechNumber) {
+            mechNumber = candidate;
+          }
         }
+        
+        entries.push({
+          date,
+          mechanographicNumber: mechNumber,
+          rawText: trimmedLine,
+        });
       }
     }
     
@@ -147,30 +147,93 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       console.log('PDF loaded, pages:', pdf.numPages);
 
       let allText = '';
+      const allLines: string[] = [];
+      const allTokens: { str: string; x: number; y: number; page: number }[] = [];
 
-      // Extract text from all pages
+      // Extract text from all pages preserving positions to rebuild rows
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
         const textContent = await page.getTextContent();
-        const pageText = textContent.items
-          .map((item: any) => item.str)
-          .join(' ');
-        allText += pageText + '\n';
+
+        const items = textContent.items as any[];
+        const tolerance = 2; // y-distance tolerance to group into the same line
+
+        type Line = { y: number; items: { x: number; str: string }[] };
+        const lines: Line[] = [];
+
+        const findLineIndex = (y: number) => lines.findIndex((l) => Math.abs(l.y - y) <= tolerance);
+
+        for (const it of items) {
+          const tr = (it as any).transform || [];
+          const x = (tr[4] ?? 0) as number;
+          const y = (tr[5] ?? 0) as number;
+          const s = (it as any).str as string;
+          const idx = findLineIndex(y);
+          if (idx === -1) {
+            lines.push({ y, items: [{ x, str: s }] });
+          } else {
+            lines[idx].items.push({ x, str: s });
+          }
+          allTokens.push({ str: s, x, y, page: pageNum });
+        }
+
+        // Sort lines by vertical position and items by horizontal position
+        lines.sort((a, b) => b.y - a.y);
+        for (const ln of lines) {
+          ln.items.sort((a, b) => a.x - b.x);
+          const lineText = ln.items.map((i) => i.str).join(' ').replace(/\s+/g, ' ').trim();
+          if (lineText) allLines.push(lineText);
+        }
       }
+
+      allText = allLines.join('\n');
+      console.log('Reconstructed lines:', allLines.length);
+
 
       console.log('Extracted text length:', allText.length);
       console.log('Searching for mechanographic number:', mechNumber);
 
-      // Extract entries for this user
-      const userServices = extractDataFromPdfText(allText, mechNumber);
-      
-      console.log('Found services:', userServices.length);
-      
-      if (userServices.length === 0) {
+      // Try token-based matching first (more reliable for tables)
+      const datePattern = /(\d{2}[\/\-]\d{2}[\/\-]\d{2,4})/;
+      const tokensDates = allTokens.filter(t => datePattern.test(t.str));
+      const tokensMech = allTokens.filter(t => t.str.replace(/[^\d]/g, '') === mechNumber);
+
+      const toleranceY = 3;
+      const matchedByTokens: ServiceEntry[] = [];
+
+      for (const m of tokensMech) {
+        const candidates = tokensDates
+          .filter(d => d.page === m.page && Math.abs(d.y - m.y) <= toleranceY && d.x <= m.x)
+          .sort((a, b) => {
+            const ya = Math.abs(a.y - m.y);
+            const yb = Math.abs(b.y - m.y);
+            if (ya !== yb) return ya - yb;
+            const xa = Math.abs(m.x - a.x);
+            const xb = Math.abs(m.x - b.x);
+            return xa - xb;
+          });
+        if (candidates[0]) {
+          const date = candidates[0].str;
+          const rawLine = allLines.find(l => l.includes(date) && l.includes(mechNumber)) || `${date} ${mechNumber}`;
+          matchedByTokens.push({ date, mechanographicNumber: mechNumber, rawText: rawLine });
+        }
+      }
+
+      // Deduplicate by date
+      const uniqueByDate = new Map<string, ServiceEntry>();
+      for (const e of matchedByTokens) uniqueByDate.set(e.date, e);
+      const tokenResults = Array.from(uniqueByDate.values());
+
+      // Fallback to text-based extraction if needed
+      const fallbackResults = tokenResults.length === 0 ? extractDataFromPdfText(allText, mechNumber) : tokenResults;
+
+      console.log('Found services (token-based):', tokenResults.length, ' | Fallback total:', fallbackResults.length);
+
+      if (fallbackResults.length === 0) {
         setError(`Nenhum serviço encontrado para o número mecanográfico ${mechNumber}`);
       }
-      
-      setServices(userServices);
+
+      setServices(fallbackResults);
       
     } catch (err: any) {
       console.error('Error loading/parsing PDF:', err);
