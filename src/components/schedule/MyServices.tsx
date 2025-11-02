@@ -35,22 +35,40 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
     const entries: ServiceEntry[] = [];
     const lines = text.split('\n');
     
-    // Pattern to match dates in format DD/MM/YYYY or DD-MM-YYYY
-    const datePattern = /(\d{2}[\/\-]\d{2}[\/\-]\d{4})/;
+    // Pattern to match dates in format DD/MM/YY, DD/MM/YYYY, DD-MM-YY or DD-MM-YYYY
+    const datePattern = /(\d{2}[\/\-]\d{2}[\/\-]\d{2,4})/;
+    
+    console.log('Total lines in PDF:', lines.length);
+    console.log('Searching for mechanographic number:', userMechNumber);
+    
+    // First pass: find lines with the mechanographic number
+    let linesWithMechNumber = 0;
+    let linesWithDate = 0;
     
     for (const line of lines) {
       const trimmedLine = line.trim();
       if (!trimmedLine) continue;
       
-      // Check if line contains a date and the user's mechanographic number
+      if (trimmedLine.includes(userMechNumber)) {
+        linesWithMechNumber++;
+        console.log('Line with mech number:', trimmedLine);
+      }
+      
       const dateMatch = trimmedLine.match(datePattern);
+      if (dateMatch) {
+        linesWithDate++;
+      }
+      
+      // Check if line contains a date and the user's mechanographic number
       if (dateMatch && trimmedLine.includes(userMechNumber)) {
         const date = dateMatch[1];
         
         // Extract the mechanographic number (should be near the date)
-        // Assuming format: DATE MECH_NUMBER ...
+        // Split by any whitespace or multiple spaces
         const parts = trimmedLine.split(/\s+/);
         const dateIndex = parts.findIndex(p => datePattern.test(p));
+        
+        console.log('Found matching line - Date:', date, 'Parts:', parts);
         
         if (dateIndex !== -1 && dateIndex + 1 < parts.length) {
           const mechNumber = parts[dateIndex + 1];
@@ -63,6 +81,10 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         }
       }
     }
+    
+    console.log('Lines with mech number:', linesWithMechNumber);
+    console.log('Lines with dates:', linesWithDate);
+    console.log('Matched entries:', entries.length);
     
     return entries;
   };
