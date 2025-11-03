@@ -219,36 +219,50 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       console.log('Total mech number tokens found:', tokensMech.length);
       console.log('Mech number tokens positions:', tokensMech.map(m => ({ page: m.page, x: m.x, y: m.y, str: m.str })));
 
-      const toleranceY = 5; // Increased tolerance
+      const toleranceY = 30; // Large tolerance for merged cells
       const matchedByTokens: ServiceEntry[] = [];
 
       for (const m of tokensMech) {
         console.log(`\n--- Processing mech token at page ${m.page}, x:${m.x}, y:${m.y} ---`);
         
-        // Find all dates on the same page within Y tolerance
-        const sameLine = tokensDates.filter(d => 
-          d.page === m.page && Math.abs(d.y - m.y) <= toleranceY
-        );
-        console.log('Dates on same line (±5px Y):', sameLine.map(d => ({ str: d.str, x: d.x, y: d.y, deltaY: Math.abs(d.y - m.y) })));
-        
-        // Find dates to the left (earlier in the row)
-        const candidates = sameLine
-          .filter(d => d.x <= m.x)
+        // For merged cells, the date is typically at the top of the merged area
+        // Look for dates on the same page that are:
+        // 1. To the left of the mech number (in the first column)
+        // 2. At the same Y level OR above (for merged cells)
+        const candidates = tokensDates
+          .filter(d => 
+            d.page === m.page && 
+            d.x < m.x && // Date is in a column to the left
+            d.y >= m.y - toleranceY && // Date is at same level or above (within tolerance)
+            d.y <= m.y + 5 // Allow small amount below for same-line matching
+          )
           .sort((a, b) => {
-            const ya = Math.abs(a.y - m.y);
-            const yb = Math.abs(b.y - m.y);
-            if (ya !== yb) return ya - yb;
-            const xa = Math.abs(m.x - a.x);
-            const xb = Math.abs(m.x - b.x);
-            return xa - xb;
+            // Prefer dates closer vertically
+            const yDistA = Math.abs(a.y - m.y);
+            const yDistB = Math.abs(b.y - m.y);
+            if (Math.abs(yDistA - yDistB) > 2) return yDistA - yDistB;
+            
+            // Then prefer dates that are higher (for merged cells, date is at top)
+            if (Math.abs(a.y - b.y) > 2) return b.y - a.y;
+            
+            // Finally prefer dates closer horizontally
+            const xDistA = Math.abs(m.x - a.x);
+            const xDistB = Math.abs(m.x - b.x);
+            return xDistA - xDistB;
           });
         
-        console.log('Candidate dates (to the left):', candidates.map(c => ({ str: c.str, x: c.x, deltaX: m.x - c.x })));
+        console.log('All candidate dates:', candidates.map(c => ({ 
+          str: c.str, 
+          x: c.x, 
+          y: c.y,
+          deltaY: m.y - c.y,
+          deltaX: m.x - c.x 
+        })));
         
         if (candidates[0]) {
           const date = candidates[0].str;
           const rawLine = allLines.find(l => l.includes(date) && l.includes(mechNumber)) || `${date} ${mechNumber}`;
-          console.log('✓ Matched:', { date, rawLine });
+          console.log('✓ Matched:', { date, rawLine, deltaY: m.y - candidates[0].y });
           matchedByTokens.push({ date, mechanographicNumber: mechNumber, rawText: rawLine });
         } else {
           console.log('✗ No date candidate found for this mech number');
