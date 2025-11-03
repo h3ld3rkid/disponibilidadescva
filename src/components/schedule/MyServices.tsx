@@ -130,13 +130,29 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       console.log('Fetching PDF via proxy from:', downloadUrl);
 
       // Fetch PDF through edge function proxy to avoid CORS
-      const { data: pdfData, error: fetchError } = await supabase.functions.invoke('fetch-pdf', {
-        body: { url: downloadUrl }
+      // Use direct fetch for binary data
+      const functionUrl = `https://lddfufxcrnqixfiyhrvc.supabase.co/functions/v1/fetch-pdf`;
+      
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkZGZ1Znhjcm5xaXhmaXlocnZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAzMzQ0NTIsImV4cCI6MjA1NTkxMDQ1Mn0.iFp4F3zj6JnI2siIJ_CAef4M-33BKBgbHYMLCzR2Fxc'
+        },
+        body: JSON.stringify({ url: downloadUrl })
       });
 
-      if (fetchError) {
-        throw new Error(`Erro ao carregar PDF: ${fetchError.message}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Fetch PDF error:', errorText);
+        throw new Error(`Erro ao carregar PDF: ${response.statusText}`);
       }
+
+      // Get the PDF as ArrayBuffer
+      const arrayBuffer = await response.arrayBuffer();
+      const pdfData = new Uint8Array(arrayBuffer);
+
+      console.log('PDF data received, size:', pdfData.byteLength);
 
       // Load the PDF from the fetched data
       const loadingTask = pdfjsLib.getDocument({
