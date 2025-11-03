@@ -262,8 +262,19 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         if (candidates[0]) {
           const date = candidates[0].str;
           const rawLine = allLines.find(l => l.includes(date) && l.includes(mechNumber)) || `${date} ${mechNumber}`;
-          console.log('✓ Matched:', { date, rawLine, deltaY: m.y - candidates[0].y });
-          matchedByTokens.push({ date, mechanographicNumber: mechNumber, rawText: rawLine });
+          
+          // Extract just the name (third column) from the raw line
+          const parts = rawLine.split(/\s+/);
+          const mechIndex = parts.findIndex(p => p.replace(/[^\d]/g, '') === mechNumber);
+          let name = '';
+          if (mechIndex !== -1 && mechIndex + 1 < parts.length) {
+            // Name is typically after the mech number, take next 2-3 words
+            const nameParts = parts.slice(mechIndex + 1, mechIndex + 4).filter(p => !/^\d+$/.test(p));
+            name = nameParts.join(' ');
+          }
+          
+          console.log('✓ Matched:', { date, rawLine, name, deltaY: m.y - candidates[0].y });
+          matchedByTokens.push({ date, mechanographicNumber: mechNumber, rawText: name || rawLine });
         } else {
           console.log('✗ No date candidate found for this mech number');
         }
