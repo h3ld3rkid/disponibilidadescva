@@ -214,12 +214,26 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       const tokensDates = allTokens.filter(t => datePattern.test(t.str));
       const tokensMech = allTokens.filter(t => t.str.replace(/[^\d]/g, '') === mechNumber);
 
-      const toleranceY = 3;
+      console.log('=== TOKEN ANALYSIS ===');
+      console.log('Total date tokens found:', tokensDates.length);
+      console.log('Total mech number tokens found:', tokensMech.length);
+      console.log('Mech number tokens positions:', tokensMech.map(m => ({ page: m.page, x: m.x, y: m.y, str: m.str })));
+
+      const toleranceY = 5; // Increased tolerance
       const matchedByTokens: ServiceEntry[] = [];
 
       for (const m of tokensMech) {
-        const candidates = tokensDates
-          .filter(d => d.page === m.page && Math.abs(d.y - m.y) <= toleranceY && d.x <= m.x)
+        console.log(`\n--- Processing mech token at page ${m.page}, x:${m.x}, y:${m.y} ---`);
+        
+        // Find all dates on the same page within Y tolerance
+        const sameLine = tokensDates.filter(d => 
+          d.page === m.page && Math.abs(d.y - m.y) <= toleranceY
+        );
+        console.log('Dates on same line (±5px Y):', sameLine.map(d => ({ str: d.str, x: d.x, y: d.y, deltaY: Math.abs(d.y - m.y) })));
+        
+        // Find dates to the left (earlier in the row)
+        const candidates = sameLine
+          .filter(d => d.x <= m.x)
           .sort((a, b) => {
             const ya = Math.abs(a.y - m.y);
             const yb = Math.abs(b.y - m.y);
@@ -228,17 +242,31 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
             const xb = Math.abs(m.x - b.x);
             return xa - xb;
           });
+        
+        console.log('Candidate dates (to the left):', candidates.map(c => ({ str: c.str, x: c.x, deltaX: m.x - c.x })));
+        
         if (candidates[0]) {
           const date = candidates[0].str;
           const rawLine = allLines.find(l => l.includes(date) && l.includes(mechNumber)) || `${date} ${mechNumber}`;
+          console.log('✓ Matched:', { date, rawLine });
           matchedByTokens.push({ date, mechanographicNumber: mechNumber, rawText: rawLine });
+        } else {
+          console.log('✗ No date candidate found for this mech number');
         }
       }
+
+      console.log('\n=== BEFORE DEDUPLICATION ===');
+      console.log('Total matches:', matchedByTokens.length);
+      console.log('Matches:', matchedByTokens.map(m => m.date));
 
       // Deduplicate by date
       const uniqueByDate = new Map<string, ServiceEntry>();
       for (const e of matchedByTokens) uniqueByDate.set(e.date, e);
       const tokenResults = Array.from(uniqueByDate.values());
+      
+      console.log('\n=== AFTER DEDUPLICATION ===');
+      console.log('Unique matches:', tokenResults.length);
+      console.log('Unique dates:', tokenResults.map(r => r.date));
 
       // Fallback to text-based extraction if needed
       const fallbackResults = tokenResults.length === 0 ? extractDataFromPdfText(allText, mechNumber) : tokenResults;
