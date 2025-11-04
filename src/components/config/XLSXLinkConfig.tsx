@@ -27,6 +27,12 @@ const XLSXLinkConfig = () => {
   };
 
   const convertGoogleDriveUrl = (url: string): string => {
+    // Convert Google Sheets URL to direct XLSX download URL
+    const sheetsMatch = url.match(/\/spreadsheets\/d\/([^\/]+)/);
+    if (sheetsMatch) {
+      return `https://docs.google.com/spreadsheets/d/${sheetsMatch[1]}/export?format=xlsx`;
+    }
+    
     // Convert Google Drive sharing URL to direct download URL
     const fileIdMatch = url.match(/\/file\/d\/([^\/]+)/);
     if (fileIdMatch) {
@@ -100,7 +106,7 @@ const XLSXLinkConfig = () => {
           onChange={(e) => setXlsxUrl(e.target.value)}
         />
         <p className="text-xs text-muted-foreground">
-          Pode usar links do Google Drive, Dropbox ou URL direto para o ficheiro.
+          Pode usar links do Google Sheets, Google Drive, Dropbox ou URL direto para o ficheiro XLSX.
         </p>
       </div>
 
