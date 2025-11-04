@@ -94,7 +94,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       console.log('XLSX loaded, rows:', jsonData.length);
       console.log('First 5 rows:', jsonData.slice(0, 5));
 
-      const datePattern = /(\d{2}[\/\-]\d{2}[\/\-]\d{2,4})/;
+      const datePattern = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/;
       // Heurística para detetar Mês/Ano no topo (necessário para dias sem mês)
       const monthMap: Record<string, number> = {
         'janeiro': 1, 'fevereiro': 2, 'março': 3, 'marco': 3, 'abril': 4, 'maio': 5,
@@ -137,6 +137,49 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
 
       console.log('Header month/year detected:', { headerMonth, headerYear });
 
+      // Mapear datas da Coluna A considerando células mescladas
+      const merges: any[] = (firstSheet['!merges'] || []) as any[];
+      const dateByRow: Record<number, string> = {};
+
+      const parseDateFromAny = (val: any): string => {
+        if (val === null || val === undefined) return '';
+        if (typeof val === 'number') {
+          if (val > 40000 && val < 60000) return toPtDate(excelSerialToDate(val)); // serial Excel
+          if (val >= 1 && val <= 31 && headerMonth && headerYear) {
+            const d = new Date(headerYear, headerMonth - 1, val);
+            return toPtDate(d);
+          }
+        }
+        if (typeof val === 'string') {
+          const m = val.match(datePattern);
+          if (m) return m[1];
+        }
+        return '';
+      };
+
+      // 1) Propagar datas de merges na coluna A (c=0)
+      for (const m of merges) {
+        if (m.s.c === 0 && m.e.c === 0) {
+          const topAddr = XLSX.utils.encode_cell({ r: m.s.r, c: 0 });
+          const topCell = (firstSheet as any)[topAddr];
+          const parsed = parseDateFromAny(topCell?.v ?? topCell?.w);
+          if (parsed) {
+            for (let r = m.s.r; r <= m.e.r; r++) dateByRow[r] = parsed;
+          }
+        }
+      }
+
+      // 2) Linhas não cobertas por merge: ler A{linha}
+      for (let r = 0; r < jsonData.length; r++) {
+        if (dateByRow[r]) continue;
+        const addr = XLSX.utils.encode_cell({ r, c: 0 });
+        const cell = (firstSheet as any)[addr];
+        const parsed = parseDateFromAny(cell?.v ?? cell?.w);
+        if (parsed) dateByRow[r] = parsed;
+      }
+
+      console.log('Exemplo datas Coluna A (linhas 1..15):', Array.from({length: 15}, (_,k) => ({row:k, date: dateByRow[k]})));
+
       const isDayNumber = (v: unknown) => typeof v === 'number' && v >= 1 && v <= 31;
       const isExcelSerial = (v: unknown) => typeof v === 'number' && v > 40000 && v < 60000;
       const looksLikeDateStr = (v: unknown) => typeof v === 'string' && (datePattern.test(v) || v.includes('/') || v.includes('-'));
@@ -148,7 +191,6 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       };
 
       const entries: ServiceEntry[] = [];
-      console.log('Searching for mech number:', mechNumber);
 
       for (let i = 0; i < jsonData.length; i++) {
         const row = jsonData[i] || [];
@@ -166,8 +208,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
 
         // Para cada ocorrência, detetar data e nome
         for (const mechCol of mechIdxs) {
-          let foundDate = '';
-
+          let foundDate = dateByRow[i] || '';
           // 1) Procurar data na mesma linha (string tipo 22/11/2025, serial excel, ou dia)
           // Preferir colunas à esquerda do número mecanográfico
           const sameRowCandidates: { col: number; dateStr: string }[] = [];
@@ -222,21 +263,25 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
           }
 
           if (foundDate) {
-            // Extrair nome: primeiro texto à direita do nº mecanográfico, caso contrário o mais "alfabético" da linha
+            // Extrair nome: preferir a 3ª coluna (Nome). Se vazia, procurar à direita do nº mecanográfico e por fim melhor string da linha
             let name = '';
-            const alphaScore = (s: string) => (s.match(/[A-Za-zÁ-ú]/g) || []).length;
-            // primeiro tentar à direita
-            for (let c = mechCol + 1; c < row.length; c++) {
-              const v = row[c];
-              if (typeof v === 'string' && alphaScore(v) >= 2) { name = v.trim(); break; }
-            }
-            // fallback: melhor string da linha
-            if (!name) {
-              let best = '';
-              for (const v of row) if (typeof v === 'string' && alphaScore(v) >= 2 && v.trim() !== String(mechNumber)) {
-                if (v.length > best.length) best = v.trim();
+            if (typeof row[2] === 'string' && row[2].trim()) {
+              name = row[2].trim();
+            } else {
+              const alphaScore = (s: string) => (s.match(/[A-Za-zÁ-ú]/g) || []).length;
+              // tentar à direita do nº mecanográfico
+              for (let c = mechCol + 1; c < row.length; c++) {
+                const v = row[c];
+                if (typeof v === 'string' && alphaScore(v) >= 2) { name = v.trim(); break; }
               }
-              name = best;
+              // fallback: melhor string da linha
+              if (!name) {
+                let best = '';
+                for (const v of row) if (typeof v === 'string' && alphaScore(v) >= 2 && v.trim() !== String(mechNumber)) {
+                  if (v.length > best.length) best = v.trim();
+                }
+                name = best;
+              }
             }
 
             console.log('✓ Found service (XLSX):', { foundDate, mechNumber, name });
