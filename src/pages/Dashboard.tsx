@@ -19,6 +19,7 @@ import MyServices from '@/components/schedule/MyServices';
 import Footer from '@/components/ui/footer';
 import SessionTimer from '@/components/auth/SessionTimer';
 import PDFAdditionalConfig from '@/pages/PDFAdditionalConfig';
+import XLSXConfig from '@/pages/XLSXConfig';
 import { sessionManager } from '@/services/sessionManager';
 
 interface UserInfo {
@@ -172,6 +173,7 @@ const Dashboard = () => {
             <Route path="/announcements" element={checkAdminRoute(<Announcements key={`announcements-${forceUpdate}`} />)} />
             <Route path="/config/database" element={checkAdminRoute(<DatabaseConfigInternal />)} />
             <Route path="/config/pdf-additional" element={checkAdminRoute(<PDFAdditionalConfig />)} />
+            <Route path="/config/xlsx" element={checkAdminRoute(<XLSXConfig />)} />
             
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Loader2, CalendarDays } from "lucide-react";
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import * as XLSX from 'xlsx';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
@@ -28,8 +29,159 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
   const { toast } = useToast();
 
   useEffect(() => {
-    loadAndParsePdf();
+    loadScheduleData();
   }, [userMechanographicNumber]);
+
+  const loadScheduleData = async () => {
+    // Check if XLSX is configured first (preferred)
+    const xlsxUrl = await systemSettingsService.getSystemSetting('schedule_xlsx_link');
+    
+    if (xlsxUrl) {
+      console.log('XLSX configured, using Excel parsing');
+      await loadAndParseXlsx();
+    } else {
+      console.log('No XLSX configured, falling back to PDF parsing');
+      await loadAndParsePdf();
+    }
+  };
+
+  const loadAndParseXlsx = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Get user info to find mechanographic number
+      const storedUser = localStorage.getItem('mysqlConnection');
+      if (!storedUser) {
+        throw new Error('Utilizador não encontrado');
+      }
+      
+      const userInfo = JSON.parse(storedUser);
+      const mechNumber = userMechanographicNumber || userInfo.mechanographic_number;
+      
+      if (!mechNumber) {
+        throw new Error('Número mecanográfico não encontrado');
+      }
+
+      // Get XLSX URL from system settings
+      const xlsxUrl = await systemSettingsService.getSystemSetting('schedule_xlsx_link');
+      
+      if (!xlsxUrl) {
+        setError('Nenhuma escala XLSX disponível');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Fetching XLSX from:', xlsxUrl);
+
+      // Fetch the XLSX file
+      const response = await fetch(xlsxUrl, {
+        mode: 'cors',
+        credentials: 'omit'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ao carregar ficheiro XLSX: ${response.statusText}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      
+      // Get the first sheet
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as any[][];
+      
+      console.log('XLSX loaded, rows:', jsonData.length);
+      console.log('First 5 rows:', jsonData.slice(0, 5));
+
+      const entries: ServiceEntry[] = [];
+      const datePattern = /(\d{2}[\/\-]\d{2}[\/\-]\d{2,4})/;
+
+      // Find column indices (usually: Data | Num Mec | Nome | ...)
+      const headerRow = jsonData[0] || [];
+      const dateColIndex = 0; // Usually first column
+      const mechColIndex = 1; // Usually second column  
+      const nameColIndex = 2; // Usually third column
+
+      console.log('Header row:', headerRow);
+      console.log('Searching for mech number:', mechNumber);
+
+      // Process data rows (skip header)
+      for (let i = 1; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        if (!row || row.length === 0) continue;
+
+        const mechCell = row[mechColIndex];
+        const dateCell = row[dateColIndex];
+        const nameCell = row[nameColIndex];
+
+        // Check if this row contains the user's mechanographic number
+        if (mechCell && String(mechCell).trim() === String(mechNumber).trim()) {
+          let date = '';
+          
+          // Extract date - could be in the same row or a merged cell above
+          if (dateCell) {
+            // Date is in the same row
+            const dateStr = String(dateCell);
+            const match = dateStr.match(datePattern);
+            if (match) {
+              date = match[1];
+            } else if (dateStr.includes('/') || dateStr.includes('-')) {
+              date = dateStr;
+            }
+          } else {
+            // Date might be in a merged cell above - search backwards
+            for (let j = i - 1; j >= 0; j--) {
+              const prevRow = jsonData[j];
+              if (prevRow && prevRow[dateColIndex]) {
+                const dateStr = String(prevRow[dateColIndex]);
+                const match = dateStr.match(datePattern);
+                if (match) {
+                  date = match[1];
+                  break;
+                }
+              }
+            }
+          }
+
+          if (date) {
+            console.log('✓ Found service:', { date, mechNumber, name: nameCell });
+            entries.push({
+              date,
+              mechanographicNumber: mechNumber,
+              rawText: nameCell ? String(nameCell) : ''
+            });
+          }
+        }
+      }
+
+      console.log('Total entries found:', entries.length);
+      setServices(entries);
+      
+      if (entries.length === 0) {
+        toast({
+          title: "Nenhum serviço encontrado",
+          description: "Não foram encontrados serviços para o seu número mecanográfico na escala.",
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Escala carregada",
+          description: `Encontrados ${entries.length} serviço(s) para o seu número mecanográfico.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading XLSX:', error);
+      setError(error instanceof Error ? error.message : 'Erro ao carregar escala XLSX');
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar a escala XLSX. Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const extractDataFromPdfText = (text: string, userMechNumber: string): ServiceEntry[] => {
     const entries: ServiceEntry[] = [];

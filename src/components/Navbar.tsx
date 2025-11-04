@@ -114,6 +114,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
   const scheduleFileSubmenu = [
     { path: '/dashboard/schedule-upload', icon: Upload, label: 'Upload Escala Atual' },
     { path: '/dashboard/config/pdf-additional', icon: Settings, label: 'Configuração do Link PDF Adicional' },
+    { path: '/dashboard/config/xlsx', icon: Settings, label: 'Configuração XLSX' },
   ];
 
   return (
