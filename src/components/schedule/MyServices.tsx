@@ -94,63 +94,153 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       console.log('XLSX loaded, rows:', jsonData.length);
       console.log('First 5 rows:', jsonData.slice(0, 5));
 
-      const entries: ServiceEntry[] = [];
       const datePattern = /(\d{2}[\/\-]\d{2}[\/\-]\d{2,4})/;
+      // Heurística para detetar Mês/Ano no topo (necessário para dias sem mês)
+      const monthMap: Record<string, number> = {
+        'janeiro': 1, 'fevereiro': 2, 'março': 3, 'marco': 3, 'abril': 4, 'maio': 5,
+        'junho': 6, 'julho': 7, 'agosto': 8, 'setembro': 9, 'outubro': 10, 'novembro': 11, 'dezembro': 12
+      };
+      let headerMonth: number | undefined;
+      let headerYear: number | undefined;
 
-      // Find column indices (usually: Data | Num Mec | Nome | ...)
-      const headerRow = jsonData[0] || [];
-      const dateColIndex = 0; // Usually first column
-      const mechColIndex = 1; // Usually second column  
-      const nameColIndex = 2; // Usually third column
+      const excelSerialToDate = (serial: number) => {
+        // Excel (1900-date system) -> JS Date
+        const ms = Math.round((serial - 25569) * 86400 * 1000);
+        return new Date(ms);
+      };
+      const pad2 = (n: number) => String(n).padStart(2, '0');
+      const toPtDate = (d: Date) => `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`;
 
-      console.log('Header row:', headerRow);
+      // Procurar mês e ano nas primeiras 100 linhas
+      for (let i = 0; i < Math.min(100, jsonData.length); i++) {
+        const row = jsonData[i] || [];
+        for (const cell of row) {
+          if (cell === null || cell === undefined) continue;
+          if (typeof cell === 'string') {
+            const s = cell.toLowerCase();
+            for (const [mName, mNum] of Object.entries(monthMap)) {
+              if (s.includes(mName)) headerMonth = headerMonth ?? mNum;
+            }
+            const yearMatch = s.match(/\b(20\d{2})\b/);
+            if (yearMatch) headerYear = headerYear ?? parseInt(yearMatch[1], 10);
+          } else if (typeof cell === 'number') {
+            if (cell > 40000 && cell < 60000) {
+              const d = excelSerialToDate(cell);
+              headerMonth = headerMonth ?? (d.getMonth() + 1);
+              headerYear = headerYear ?? d.getFullYear();
+            } else if (cell >= 2020 && cell <= 2035) {
+              headerYear = headerYear ?? cell;
+            }
+          }
+        }
+      }
+
+      console.log('Header month/year detected:', { headerMonth, headerYear });
+
+      const isDayNumber = (v: unknown) => typeof v === 'number' && v >= 1 && v <= 31;
+      const isExcelSerial = (v: unknown) => typeof v === 'number' && v > 40000 && v < 60000;
+      const looksLikeDateStr = (v: unknown) => typeof v === 'string' && (datePattern.test(v) || v.includes('/') || v.includes('-'));
+
+      const buildDateFromDay = (day: number): string | '' => {
+        if (!headerMonth || !headerYear) return '';
+        const d = new Date(headerYear, headerMonth - 1, day);
+        return toPtDate(d);
+      };
+
+      const entries: ServiceEntry[] = [];
       console.log('Searching for mech number:', mechNumber);
 
-      // Process data rows (skip header)
-      for (let i = 1; i < jsonData.length; i++) {
-        const row = jsonData[i];
-        if (!row || row.length === 0) continue;
+      for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i] || [];
+        if (row.length === 0) continue;
 
-        const mechCell = row[mechColIndex];
-        const dateCell = row[dateColIndex];
-        const nameCell = row[nameColIndex];
+        // Encontrar células que correspondem ao número mecanográfico
+        const mechIdxs: number[] = [];
+        for (let c = 0; c < row.length; c++) {
+          const cell = row[c];
+          if (cell === null || cell === undefined) continue;
+          const cellStr = String(cell).trim();
+          if (cellStr === String(mechNumber).trim()) mechIdxs.push(c);
+        }
+        if (mechIdxs.length === 0) continue;
 
-        // Check if this row contains the user's mechanographic number
-        if (mechCell && String(mechCell).trim() === String(mechNumber).trim()) {
-          let date = '';
-          
-          // Extract date - could be in the same row or a merged cell above
-          if (dateCell) {
-            // Date is in the same row
-            const dateStr = String(dateCell);
-            const match = dateStr.match(datePattern);
-            if (match) {
-              date = match[1];
-            } else if (dateStr.includes('/') || dateStr.includes('-')) {
-              date = dateStr;
+        // Para cada ocorrência, detetar data e nome
+        for (const mechCol of mechIdxs) {
+          let foundDate = '';
+
+          // 1) Procurar data na mesma linha (string tipo 22/11/2025, serial excel, ou dia)
+          // Preferir colunas à esquerda do número mecanográfico
+          const sameRowCandidates: { col: number; dateStr: string }[] = [];
+          for (let c = 0; c < row.length; c++) {
+            const cell = row[c];
+            if (cell === null || cell === undefined) continue;
+
+            if (looksLikeDateStr(cell)) {
+              const s = String(cell);
+              const m = s.match(datePattern);
+              sameRowCandidates.push({ col: c, dateStr: m ? m[1] : s });
+            } else if (isExcelSerial(cell)) {
+              sameRowCandidates.push({ col: c, dateStr: toPtDate(excelSerialToDate(cell as number)) });
+            } else if (isDayNumber(cell)) {
+              const dayDate = buildDateFromDay(cell as number);
+              if (dayDate) sameRowCandidates.push({ col: c, dateStr: dayDate });
             }
-          } else {
-            // Date might be in a merged cell above - search backwards
-            for (let j = i - 1; j >= 0; j--) {
-              const prevRow = jsonData[j];
-              if (prevRow && prevRow[dateColIndex]) {
-                const dateStr = String(prevRow[dateColIndex]);
-                const match = dateStr.match(datePattern);
-                if (match) {
-                  date = match[1];
+          }
+          if (sameRowCandidates.length > 0) {
+            // Ordenar: mais à esquerda do mech, depois mais perto
+            sameRowCandidates.sort((a, b) => {
+              const aLeft = a.col <= mechCol ? 0 : 1;
+              const bLeft = b.col <= mechCol ? 0 : 1;
+              if (aLeft !== bLeft) return aLeft - bLeft;
+              return Math.abs(mechCol - a.col) - Math.abs(mechCol - b.col);
+            });
+            foundDate = sameRowCandidates[0].dateStr;
+          }
+
+          // 2) Se não encontrou, procurar para cima (células mescladas)
+          if (!foundDate) {
+            for (let up = i - 1; up >= Math.max(0, i - 15); up--) {
+              const prev = jsonData[up] || [];
+              for (let c = 0; c < prev.length; c++) {
+                const cell = prev[c];
+                if (cell === null || cell === undefined) continue;
+                if (looksLikeDateStr(cell)) {
+                  const s = String(cell);
+                  const m = s.match(datePattern);
+                  foundDate = m ? m[1] : s;
                   break;
+                } else if (isExcelSerial(cell)) {
+                  foundDate = toPtDate(excelSerialToDate(cell as number));
+                  break;
+                } else if (isDayNumber(cell)) {
+                  const dayDate = buildDateFromDay(cell as number);
+                  if (dayDate) { foundDate = dayDate; break; }
                 }
               }
+              if (foundDate) break;
             }
           }
 
-          if (date) {
-            console.log('✓ Found service:', { date, mechNumber, name: nameCell });
-            entries.push({
-              date,
-              mechanographicNumber: mechNumber,
-              rawText: nameCell ? String(nameCell) : ''
-            });
+          if (foundDate) {
+            // Extrair nome: primeiro texto à direita do nº mecanográfico, caso contrário o mais "alfabético" da linha
+            let name = '';
+            const alphaScore = (s: string) => (s.match(/[A-Za-zÁ-ú]/g) || []).length;
+            // primeiro tentar à direita
+            for (let c = mechCol + 1; c < row.length; c++) {
+              const v = row[c];
+              if (typeof v === 'string' && alphaScore(v) >= 2) { name = v.trim(); break; }
+            }
+            // fallback: melhor string da linha
+            if (!name) {
+              let best = '';
+              for (const v of row) if (typeof v === 'string' && alphaScore(v) >= 2 && v.trim() !== String(mechNumber)) {
+                if (v.length > best.length) best = v.trim();
+              }
+              name = best;
+            }
+
+            console.log('✓ Found service (XLSX):', { foundDate, mechNumber, name });
+            entries.push({ date: foundDate, mechanographicNumber: mechNumber, rawText: name });
           }
         }
       }
