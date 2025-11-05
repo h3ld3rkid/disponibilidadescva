@@ -166,11 +166,21 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       const dateByAbsRow: Record<number, string> = {};
 
       const parseDateFromAny = (cell: any, cellAddr?: string): string => {
-        if (!cell) return '';
+        if (!cell) {
+          if (cellAddr) console.log(`🔍 ${cellAddr}: null/undefined cell`);
+          return '';
+        }
         const val = cell.v ?? cell.w;
         // Ignore empty strings or whitespace
-        if (val === null || val === undefined) return '';
-        if (typeof val === 'string' && val.trim() === '') return '';
+        if (val === null || val === undefined) {
+          if (cellAddr && cell.f) console.log(`🔍 ${cellAddr}: no v/w, but has formula: ${cell.f}`);
+          else if (cellAddr) console.log(`🔍 ${cellAddr}: no v/w value`);
+          return '';
+        }
+        if (typeof val === 'string' && val.trim() === '') {
+          if (cellAddr) console.log(`🔍 ${cellAddr}: empty string`);
+          return '';
+        }
 
         const pad2 = (n: number) => String(n).padStart(2, '0');
         const fromSerial = (n: number, date1904?: boolean) => {
@@ -184,14 +194,16 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         if (typeof val === 'number' && val > 40000 && val < 60000) {
           const parsed = fromSerial(val, isDate1904);
           if (parsed) {
-            console.log(`📅 Parsed serial ${val} at ${cellAddr}: ${parsed}`);
+            console.log(`📅 ${cellAddr}: serial ${val} => ${parsed}`);
             return parsed;
           }
         }
 
         // 2) If looks like day number and header month/year known
         if (typeof val === 'number' && val >= 1 && val <= 31 && headerMonth && headerYear) {
-          return `${pad2(val)}/${pad2(headerMonth)}/${headerYear}`;
+          const result = `${pad2(val)}/${pad2(headerMonth)}/${headerYear}`;
+          console.log(`📅 ${cellAddr}: day ${val} => ${result}`);
+          return result;
         }
 
         // 3) If string date
@@ -199,13 +211,14 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
           const m = val.match(datePattern);
           if (m) {
             const normalized = normalizeDateStr(m[1]);
-            console.log(`📅 Parsed string "${val}" at ${cellAddr}: ${normalized}`);
+            console.log(`📅 ${cellAddr}: string "${val}" => ${normalized}`);
             return normalized;
           }
         }
 
         // 4) If formula, try simple evaluation like =A359+1 or =A359-1
         if (cell.f && typeof cell.f === 'string') {
+          console.log(`🧮 ${cellAddr}: formula "${cell.f}", val=${val} (${typeof val})`);
           const f = cell.f.replace(/^=/, '');
           const simple = f.match(/^([A-Z]+)(\d+)\s*([+\-])\s*(\d+)$/i) || f.match(/^([A-Z]+)(\d+)$/i);
           if (simple) {
@@ -223,12 +236,13 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
               const delta = op ? (op === '+' ? n : -n) : 0;
               baseDate.setDate(baseDate.getDate() + delta);
               const result = `${pad2(baseDate.getDate())}/${pad2(baseDate.getMonth() + 1)}/${baseDate.getFullYear()}`;
-              console.log(`🧮 Evaluated formula ${cell.f} at ${cellAddr} => ${result} (from ${baseAddr})`);
+              console.log(`🧮 ${cellAddr}: formula result => ${result}`);
               return result;
             }
           }
         }
 
+        if (cellAddr) console.log(`❌ ${cellAddr}: couldn't parse val=${val} (${typeof val}), hasFormula=${!!cell.f}`);
         return '';
       };
 
@@ -293,11 +307,13 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
 
           // Encontrado nº mecanográfico nesta linha
           let foundDate = dateByAbsRow[rAbs] || '';
+          console.log(`🔎 Found mech ${mechStr} at row ${rAbs}, col ${c}. Checking column A...`);
 
           // Ler sempre Coluna A desta mesma linha
           if (!foundDate) {
             const addrA = XLSX.utils.encode_cell({ r: rAbs, c: 0 });
             const cellA = (firstSheet as any)[addrA];
+            console.log(`   Checking same row A${rAbs+1} (${addrA}):`, cellA ? `v=${cellA.v}, w=${cellA.w}, f=${cellA.f}` : 'empty');
             foundDate = parseDateFromAny(cellA, addrA);
           }
 
