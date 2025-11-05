@@ -94,6 +94,10 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       console.log('XLSX loaded, rows:', jsonData.length);
       console.log('First 5 rows:', jsonData.slice(0, 5));
 
+      const range = XLSX.utils.decode_range(firstSheet['!ref'] || 'A1');
+      const startRow = range.s.r; // 0-based sheet start row
+      const endRow = range.e.r;
+
       const datePattern = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/;
       // Heurística para detetar Mês/Ano no topo (necessário para dias sem mês)
       const monthMap: Record<string, number> = {
@@ -139,7 +143,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
 
       // Mapear datas da Coluna A considerando células mescladas
       const merges: any[] = (firstSheet['!merges'] || []) as any[];
-      const dateByRow: Record<number, string> = {};
+      const dateByAbsRow: Record<number, string> = {};
 
       const parseDateFromAny = (val: any): string => {
         if (val === null || val === undefined) return '';
@@ -164,21 +168,28 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
           const topCell = (firstSheet as any)[topAddr];
           const parsed = parseDateFromAny(topCell?.v ?? topCell?.w);
           if (parsed) {
-            for (let r = m.s.r; r <= m.e.r; r++) dateByRow[r] = parsed;
+            for (let r = m.s.r; r <= m.e.r; r++) dateByAbsRow[r] = parsed;
           }
         }
       }
 
-      // 2) Linhas não cobertas por merge: ler A{linha}
-      for (let r = 0; r < jsonData.length; r++) {
-        if (dateByRow[r]) continue;
-        const addr = XLSX.utils.encode_cell({ r, c: 0 });
+      // 2) Linhas não cobertas por merge: ler A{linha} usando índices absolutos da folha
+      for (let rAbs = startRow; rAbs <= endRow; rAbs++) {
+        if (dateByAbsRow[rAbs]) continue;
+        const addr = XLSX.utils.encode_cell({ r: rAbs, c: 0 });
         const cell = (firstSheet as any)[addr];
         const parsed = parseDateFromAny(cell?.v ?? cell?.w);
-        if (parsed) dateByRow[r] = parsed;
+        if (parsed) dateByAbsRow[rAbs] = parsed;
       }
 
-      console.log('Exemplo datas Coluna A (linhas 1..15):', Array.from({length: 15}, (_,k) => ({row:k, date: dateByRow[k]})));
+      console.log(
+        'Exemplo datas Coluna A (primeiras 15 linhas visíveis):',
+        Array.from({ length: 15 }, (_, k) => ({
+          jsonIndex: k,
+          sheetRow: startRow + k,
+          date: dateByAbsRow[startRow + k]
+        }))
+      );
 
       const isDayNumber = (v: unknown) => typeof v === 'number' && v >= 1 && v <= 31;
       const isExcelSerial = (v: unknown) => typeof v === 'number' && v > 40000 && v < 60000;
@@ -208,7 +219,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
 
         // Para cada ocorrência, detetar data e nome
         for (const mechCol of mechIdxs) {
-          let foundDate = dateByRow[i] || '';
+          let foundDate = dateByAbsRow[startRow + i] || '';
           // 1) Procurar data na mesma linha (string tipo 22/11/2025, serial excel, ou dia)
           // Preferir colunas à esquerda do número mecanográfico
           const sameRowCandidates: { col: number; dateStr: string }[] = [];
@@ -227,7 +238,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
               if (dayDate) sameRowCandidates.push({ col: c, dateStr: dayDate });
             }
           }
-          if (sameRowCandidates.length > 0) {
+          if (!foundDate && sameRowCandidates.length > 0) {
             // Ordenar: mais à esquerda do mech, depois mais perto
             sameRowCandidates.sort((a, b) => {
               const aLeft = a.col <= mechCol ? 0 : 1;
