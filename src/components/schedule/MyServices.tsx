@@ -145,9 +145,11 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
             if (yearMatch) headerYear = headerYear ?? parseInt(yearMatch[1], 10);
           } else if (typeof cell === 'number') {
             if (cell > 40000 && cell < 60000) {
-              const d = excelSerialToDate(cell);
-              headerMonth = headerMonth ?? (d.getMonth() + 1);
-              headerYear = headerYear ?? d.getFullYear();
+              const dc = XLSX.SSF.parse_date_code(cell);
+              if (dc) {
+                headerMonth = headerMonth ?? dc.m;
+                headerYear = headerYear ?? dc.y;
+              }
             } else if (cell >= 2020 && cell <= 2035) {
               headerYear = headerYear ?? cell;
             }
@@ -168,13 +170,16 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         
         if (typeof val === 'number') {
           if (val > 40000 && val < 60000) {
-            const parsed = toPtDate(excelSerialToDate(val));
-            console.log(`📅 Parsed serial ${val} at ${cellAddr}: ${parsed}`);
-            return parsed;
+            const dc = XLSX.SSF.parse_date_code(val);
+            if (dc) {
+              const parsed = `${pad2(dc.d)}/${pad2(dc.m)}/${dc.y}`;
+              console.log(`📅 Parsed serial ${val} at ${cellAddr}: ${parsed}`);
+              return parsed;
+            }
           }
           if (val >= 1 && val <= 31 && headerMonth && headerYear) {
-            const d = new Date(headerYear, headerMonth - 1, val);
-            return toPtDate(d);
+            const parsed = `${pad2(val)}/${pad2(headerMonth)}/${headerYear}`;
+            return parsed;
           }
         }
         if (typeof val === 'string') {
