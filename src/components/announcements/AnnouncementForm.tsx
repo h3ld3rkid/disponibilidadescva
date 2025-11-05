@@ -88,12 +88,13 @@ const AnnouncementForm = ({ onSubmit, editingAnnouncement, onCancel }: Announcem
                     {startDate ? format(startDate, "dd/MM/yyyy") : "Selecione uma data"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
                   <Calendar
                     mode="single"
                     selected={startDate}
                     onSelect={(date) => date && setStartDate(date)}
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
@@ -111,12 +112,13 @@ const AnnouncementForm = ({ onSubmit, editingAnnouncement, onCancel }: Announcem
                     {endDate ? format(endDate, "dd/MM/yyyy") : "Selecione uma data"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
                   <Calendar
                     mode="single"
                     selected={endDate}
                     onSelect={(date) => date && setEndDate(date)}
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>

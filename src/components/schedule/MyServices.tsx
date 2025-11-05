@@ -161,10 +161,17 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       const merges: any[] = (firstSheet['!merges'] || []) as any[];
       const dateByAbsRow: Record<number, string> = {};
 
-      const parseDateFromAny = (val: any): string => {
-        if (val === null || val === undefined) return '';
+      const parseDateFromAny = (val: any, cellAddr?: string): string => {
+        if (val === null || val === undefined || val === '') return '';
+        // Ignore empty strings or whitespace
+        if (typeof val === 'string' && val.trim() === '') return '';
+        
         if (typeof val === 'number') {
-          if (val > 40000 && val < 60000) return toPtDate(excelSerialToDate(val)); // serial Excel
+          if (val > 40000 && val < 60000) {
+            const parsed = toPtDate(excelSerialToDate(val));
+            console.log(`📅 Parsed serial ${val} at ${cellAddr}: ${parsed}`);
+            return parsed;
+          }
           if (val >= 1 && val <= 31 && headerMonth && headerYear) {
             const d = new Date(headerYear, headerMonth - 1, val);
             return toPtDate(d);
@@ -172,7 +179,11 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         }
         if (typeof val === 'string') {
           const m = val.match(datePattern);
-          if (m) return normalizeDateStr(m[1]);
+          if (m) {
+            const normalized = normalizeDateStr(m[1]);
+            console.log(`📅 Parsed string "${val}" at ${cellAddr}: ${normalized}`);
+            return normalized;
+          }
         }
         return '';
       };
@@ -182,8 +193,9 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         if (m.s.c === 0 && m.e.c === 0) {
           const topAddr = XLSX.utils.encode_cell({ r: m.s.r, c: 0 });
           const topCell = (firstSheet as any)[topAddr];
-          const parsed = parseDateFromAny(topCell?.v ?? topCell?.w);
+          const parsed = parseDateFromAny(topCell?.v ?? topCell?.w, topAddr);
           if (parsed) {
+            console.log(`📌 Merge detected at ${topAddr} (rows ${m.s.r}-${m.e.r}): ${parsed}`);
             for (let r = m.s.r; r <= m.e.r; r++) dateByAbsRow[r] = parsed;
           }
         }
@@ -194,7 +206,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         if (dateByAbsRow[rAbs]) continue;
         const addr = XLSX.utils.encode_cell({ r: rAbs, c: 0 });
         const cell = (firstSheet as any)[addr];
-        const parsed = parseDateFromAny(cell?.v ?? cell?.w);
+        const parsed = parseDateFromAny(cell?.v ?? cell?.w, addr);
         if (parsed) dateByAbsRow[rAbs] = parsed;
       }
 
@@ -242,7 +254,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
           if (!foundDate) {
             const addrA = XLSX.utils.encode_cell({ r: sheetRow, c: 0 });
             const cellA = (firstSheet as any)[addrA];
-            foundDate = parseDateFromAny(cellA?.v ?? cellA?.w);
+            foundDate = parseDateFromAny(cellA?.v ?? cellA?.w, addrA);
           }
 
           // Fallback: procurar somente na Coluna A para cima (para casos de mesclagem não detectada)
@@ -250,9 +262,18 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
             for (let upAbs = sheetRow - 1; upAbs >= Math.max(startRow, sheetRow - 20); upAbs--) {
               const addrUp = XLSX.utils.encode_cell({ r: upAbs, c: 0 });
               const cellUp = (firstSheet as any)[addrUp];
-              const parsedUp = parseDateFromAny(cellUp?.v ?? cellUp?.w);
-              if (parsedUp) { foundDate = parsedUp; break; }
+              const parsedUp = parseDateFromAny(cellUp?.v ?? cellUp?.w, addrUp);
+              if (parsedUp) { 
+                console.log(`🔼 Using date from ${addrUp} for row ${sheetRow}: ${parsedUp}`);
+                foundDate = parsedUp; 
+                break; 
+              }
             }
+          }
+
+          // Log if mech number found but no date
+          if (!foundDate) {
+            console.warn(`⚠️ Found mech ${mechNumber} at row ${sheetRow} (json idx ${i}) but no date in col A`);
           }
 
           if (foundDate) {
