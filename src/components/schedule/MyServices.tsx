@@ -235,57 +235,23 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
 
         // Para cada ocorrência, detetar data e nome
         for (const mechCol of mechIdxs) {
-          let foundDate = dateByAbsRow[startRow + i] || '';
-          // 1) Procurar data na mesma linha (string tipo 22/11/2025, serial excel, ou dia)
-          // Preferir colunas à esquerda do número mecanográfico
-          const sameRowCandidates: { col: number; dateStr: string }[] = [];
-          for (let c = 0; c < row.length; c++) {
-            const cell = row[c];
-            if (cell === null || cell === undefined) continue;
+          const sheetRow = startRow + i;
+          let foundDate = dateByAbsRow[sheetRow] || '';
 
-            if (looksLikeDateStr(cell)) {
-              const s = String(cell);
-              const m = s.match(datePattern);
-              sameRowCandidates.push({ col: c, dateStr: m ? normalizeDateStr(m[1]) : s });
-            } else if (isExcelSerial(cell)) {
-              sameRowCandidates.push({ col: c, dateStr: toPtDate(excelSerialToDate(cell as number)) });
-            } else if (isDayNumber(cell)) {
-              const dayDate = buildDateFromDay(cell as number);
-              if (dayDate) sameRowCandidates.push({ col: c, dateStr: dayDate });
-            }
-          }
-          if (!foundDate && sameRowCandidates.length > 0) {
-            // Ordenar: mais à esquerda do mech, depois mais perto
-            sameRowCandidates.sort((a, b) => {
-              const aLeft = a.col <= mechCol ? 0 : 1;
-              const bLeft = b.col <= mechCol ? 0 : 1;
-              if (aLeft !== bLeft) return aLeft - bLeft;
-              return Math.abs(mechCol - a.col) - Math.abs(mechCol - b.col);
-            });
-            foundDate = sameRowCandidates[0].dateStr;
-          }
-
-          // 2) Se não encontrou, procurar para cima (células mescladas)
+          // Usar APENAS a Coluna A (data) para determinar a data
           if (!foundDate) {
-            for (let up = i - 1; up >= Math.max(0, i - 15); up--) {
-              const prev = jsonData[up] || [];
-              for (let c = 0; c < prev.length; c++) {
-                const cell = prev[c];
-                if (cell === null || cell === undefined) continue;
-                if (looksLikeDateStr(cell)) {
-                  const s = String(cell);
-                  const m = s.match(datePattern);
-                  foundDate = m ? normalizeDateStr(m[1]) : s;
-                  break;
-                } else if (isExcelSerial(cell)) {
-                  foundDate = toPtDate(excelSerialToDate(cell as number));
-                  break;
-                } else if (isDayNumber(cell)) {
-                  const dayDate = buildDateFromDay(cell as number);
-                  if (dayDate) { foundDate = dayDate; break; }
-                }
-              }
-              if (foundDate) break;
+            const addrA = XLSX.utils.encode_cell({ r: sheetRow, c: 0 });
+            const cellA = (firstSheet as any)[addrA];
+            foundDate = parseDateFromAny(cellA?.v ?? cellA?.w);
+          }
+
+          // Fallback: procurar somente na Coluna A para cima (para casos de mesclagem não detectada)
+          if (!foundDate) {
+            for (let upAbs = sheetRow - 1; upAbs >= Math.max(startRow, sheetRow - 20); upAbs--) {
+              const addrUp = XLSX.utils.encode_cell({ r: upAbs, c: 0 });
+              const cellUp = (firstSheet as any)[addrUp];
+              const parsedUp = parseDateFromAny(cellUp?.v ?? cellUp?.w);
+              if (parsedUp) { foundDate = parsedUp; break; }
             }
           }
 
