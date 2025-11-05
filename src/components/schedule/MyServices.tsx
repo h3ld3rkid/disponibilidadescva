@@ -236,76 +236,84 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
 
       const entries: ServiceEntry[] = [];
 
-      for (let i = 0; i < jsonData.length; i++) {
-        const row = jsonData[i] || [];
-        if (row.length === 0) continue;
+      // Nova varredura direta por células (não depende do sheet_to_json),
+      // garantindo que cada ocorrência do nº mecanográfico usa a data da Coluna A (inclui linhas cinzentas)
+      const endCol = range.e.c;
+      const mechStr = String(mechNumber).trim();
+      const alphaScore = (s: string) => (s.match(/[A-Za-zÁ-ú]/g) || []).length;
 
-        // Encontrar células que correspondem ao número mecanográfico
-        const mechIdxs: number[] = [];
-        for (let c = 0; c < row.length; c++) {
-          const cell = row[c];
-          if (cell === null || cell === undefined) continue;
-          const cellStr = String(cell).trim();
-          if (cellStr === String(mechNumber).trim()) mechIdxs.push(c);
-        }
-        if (mechIdxs.length === 0) continue;
+      for (let rAbs = startRow; rAbs <= endRow; rAbs++) {
+        for (let c = 0; c <= endCol; c++) {
+          const addr = XLSX.utils.encode_cell({ r: rAbs, c });
+          const cell = (firstSheet as any)[addr];
+          if (!cell) continue;
+          const raw = cell.v ?? cell.w;
+          if (raw === null || raw === undefined) continue;
+          const str = String(raw).trim();
+          if (str !== mechStr) continue;
 
-        // Para cada ocorrência, detetar data e nome
-        for (const mechCol of mechIdxs) {
-          const sheetRow = startRow + i;
-          let foundDate = dateByAbsRow[sheetRow] || '';
+          // Encontrado nº mecanográfico nesta linha
+          let foundDate = dateByAbsRow[rAbs] || '';
 
-          // Usar APENAS a Coluna A (data) para determinar a data
+          // Ler sempre Coluna A desta mesma linha
           if (!foundDate) {
-            const addrA = XLSX.utils.encode_cell({ r: sheetRow, c: 0 });
+            const addrA = XLSX.utils.encode_cell({ r: rAbs, c: 0 });
             const cellA = (firstSheet as any)[addrA];
             foundDate = parseDateFromAny(cellA?.v ?? cellA?.w, addrA);
           }
 
-          // Fallback: procurar somente na Coluna A para cima (para casos de mesclagem não detectada)
+          // Fallback: procurar para cima apenas na Coluna A (casos de merges não detetados)
           if (!foundDate) {
-            for (let upAbs = sheetRow - 1; upAbs >= Math.max(startRow, sheetRow - 20); upAbs--) {
+            for (let upAbs = rAbs - 1; upAbs >= Math.max(startRow, rAbs - 30); upAbs--) {
               const addrUp = XLSX.utils.encode_cell({ r: upAbs, c: 0 });
               const cellUp = (firstSheet as any)[addrUp];
               const parsedUp = parseDateFromAny(cellUp?.v ?? cellUp?.w, addrUp);
-              if (parsedUp) { 
-                console.log(`🔼 Using date from ${addrUp} for row ${sheetRow}: ${parsedUp}`);
-                foundDate = parsedUp; 
-                break; 
+              if (parsedUp) {
+                console.log(`🔼 Using date from ${addrUp} for row ${rAbs}: ${parsedUp}`);
+                foundDate = parsedUp;
+                break;
               }
             }
           }
 
-          // Log if mech number found but no date
           if (!foundDate) {
-            console.warn(`⚠️ Found mech ${mechNumber} at row ${sheetRow} (json idx ${i}) but no date in col A`);
+            console.warn(`⚠️ Found mech ${mechStr} at row ${rAbs} but no date in column A`);
+            continue;
           }
 
-          if (foundDate) {
-            // Extrair nome: preferir a 3ª coluna (Nome). Se vazia, procurar à direita do nº mecanográfico e por fim melhor string da linha
-            let name = '';
-            if (typeof row[2] === 'string' && row[2].trim()) {
-              name = row[2].trim();
-            } else {
-              const alphaScore = (s: string) => (s.match(/[A-Za-zÁ-ú]/g) || []).length;
-              // tentar à direita do nº mecanográfico
-              for (let c = mechCol + 1; c < row.length; c++) {
-                const v = row[c];
-                if (typeof v === 'string' && alphaScore(v) >= 2) { name = v.trim(); break; }
-              }
-              // fallback: melhor string da linha
-              if (!name) {
-                let best = '';
-                for (const v of row) if (typeof v === 'string' && alphaScore(v) >= 2 && v.trim() !== String(mechNumber)) {
-                  if (v.length > best.length) best = v.trim();
-                }
-                name = best;
+          // Extrair nome: preferir a coluna 3 (c=2). Caso vazio, procurar à direita do nº e depois melhor string da linha
+          let name = '';
+          const addrNamePref = XLSX.utils.encode_cell({ r: rAbs, c: 2 });
+          const cellNamePref = (firstSheet as any)[addrNamePref];
+          if (typeof (cellNamePref?.v ?? cellNamePref?.w) === 'string') {
+            const cand = String(cellNamePref.v ?? cellNamePref.w).trim();
+            if (cand) name = cand;
+          }
+          if (!name) {
+            // à direita do nº mecanográfico
+            for (let cRight = c + 1; cRight <= endCol; cRight++) {
+              const addrR = XLSX.utils.encode_cell({ r: rAbs, c: cRight });
+              const cellR = (firstSheet as any)[addrR];
+              const v = cellR?.v ?? cellR?.w;
+              if (typeof v === 'string' && alphaScore(v) >= 2) { name = v.trim(); break; }
+            }
+          }
+          if (!name) {
+            // melhor string da linha inteira
+            let best = '';
+            for (let cScan = 0; cScan <= endCol; cScan++) {
+              const addrS = XLSX.utils.encode_cell({ r: rAbs, c: cScan });
+              const cellS = (firstSheet as any)[addrS];
+              const v = cellS?.v ?? cellS?.w;
+              if (typeof v === 'string' && alphaScore(v) >= 2 && v.trim() !== mechStr) {
+                if (v.length > best.length) best = v.trim();
               }
             }
-
-            console.log('✓ Found service (XLSX):', { foundDate, mechNumber, name });
-            entries.push({ date: foundDate, mechanographicNumber: mechNumber, rawText: name });
+            name = best;
           }
+
+          console.log('🎯 Serviço (XLSX)', { row: rAbs, col: c, date: foundDate, mechNumber: mechStr, name });
+          entries.push({ date: foundDate, mechanographicNumber: mechStr, rawText: name });
         }
       }
 
