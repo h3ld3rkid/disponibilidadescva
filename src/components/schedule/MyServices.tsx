@@ -85,11 +85,13 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       }
 
       const arrayBuffer = await response.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true, cellNF: true, cellText: true });
+      
+      const isDate1904 = !!((workbook as any).Workbook?.WB?.Date1904);
       
       // Get the first sheet
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, blankrows: true, raw: true }) as any[][];;
+      const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, blankrows: true, raw: true }) as any[][];
       
       console.log('XLSX loaded, rows:', jsonData.length);
       console.log('First 5 rows:', jsonData.slice(0, 5));
@@ -163,25 +165,36 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       const merges: any[] = (firstSheet['!merges'] || []) as any[];
       const dateByAbsRow: Record<number, string> = {};
 
-      const parseDateFromAny = (val: any, cellAddr?: string): string => {
-        if (val === null || val === undefined || val === '') return '';
+      const parseDateFromAny = (cell: any, cellAddr?: string): string => {
+        if (!cell) return '';
+        const val = cell.v ?? cell.w;
         // Ignore empty strings or whitespace
+        if (val === null || val === undefined) return '';
         if (typeof val === 'string' && val.trim() === '') return '';
-        
-        if (typeof val === 'number') {
-          if (val > 40000 && val < 60000) {
-            const dc = XLSX.SSF.parse_date_code(val);
-            if (dc) {
-              const parsed = `${pad2(dc.d)}/${pad2(dc.m)}/${dc.y}`;
-              console.log(`📅 Parsed serial ${val} at ${cellAddr}: ${parsed}`);
-              return parsed;
-            }
-          }
-          if (val >= 1 && val <= 31 && headerMonth && headerYear) {
-            const parsed = `${pad2(val)}/${pad2(headerMonth)}/${headerYear}`;
+
+        const pad2 = (n: number) => String(n).padStart(2, '0');
+        const fromSerial = (n: number, date1904?: boolean) => {
+          // Prefer SSF.parse_date_code for exact d/m/y
+          const dc = XLSX.SSF.parse_date_code(n + (date1904 ? 1462 : 0));
+          if (dc) return `${pad2(dc.d)}/${pad2(dc.m)}/${dc.y}`;
+          return '';
+        };
+
+        // 1) If numeric serial
+        if (typeof val === 'number' && val > 40000 && val < 60000) {
+          const parsed = fromSerial(val, isDate1904);
+          if (parsed) {
+            console.log(`📅 Parsed serial ${val} at ${cellAddr}: ${parsed}`);
             return parsed;
           }
         }
+
+        // 2) If looks like day number and header month/year known
+        if (typeof val === 'number' && val >= 1 && val <= 31 && headerMonth && headerYear) {
+          return `${pad2(val)}/${pad2(headerMonth)}/${headerYear}`;
+        }
+
+        // 3) If string date
         if (typeof val === 'string') {
           const m = val.match(datePattern);
           if (m) {
@@ -190,6 +203,32 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
             return normalized;
           }
         }
+
+        // 4) If formula, try simple evaluation like =A359+1 or =A359-1
+        if (cell.f && typeof cell.f === 'string') {
+          const f = cell.f.replace(/^=/, '');
+          const simple = f.match(/^([A-Z]+)(\d+)\s*([+\-])\s*(\d+)$/i) || f.match(/^([A-Z]+)(\d+)$/i);
+          if (simple) {
+            const col = simple[1];
+            const row = parseInt(simple[2], 10);
+            const op = (simple as any)[3];
+            const n = (simple as any)[4] ? parseInt((simple as any)[4], 10) : 0;
+            const baseAddr = `${col.toUpperCase()}${row}`;
+            const baseCell = (firstSheet as any)[baseAddr];
+            const baseParsed = parseDateFromAny(baseCell, baseAddr);
+            if (baseParsed) {
+              // Convert parsed to serial via Date and re-apply op (in days)
+              const [dd, mm, yyyy] = baseParsed.split('/').map(Number);
+              const baseDate = new Date(yyyy, mm - 1, dd);
+              const delta = op ? (op === '+' ? n : -n) : 0;
+              baseDate.setDate(baseDate.getDate() + delta);
+              const result = `${pad2(baseDate.getDate())}/${pad2(baseDate.getMonth() + 1)}/${baseDate.getFullYear()}`;
+              console.log(`🧮 Evaluated formula ${cell.f} at ${cellAddr} => ${result} (from ${baseAddr})`);
+              return result;
+            }
+          }
+        }
+
         return '';
       };
 
@@ -198,7 +237,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         if (m.s.c === 0 && m.e.c === 0) {
           const topAddr = XLSX.utils.encode_cell({ r: m.s.r, c: 0 });
           const topCell = (firstSheet as any)[topAddr];
-          const parsed = parseDateFromAny(topCell?.v ?? topCell?.w, topAddr);
+          const parsed = parseDateFromAny(topCell, topAddr);
           if (parsed) {
             console.log(`📌 Merge detected at ${topAddr} (rows ${m.s.r}-${m.e.r}): ${parsed}`);
             for (let r = m.s.r; r <= m.e.r; r++) dateByAbsRow[r] = parsed;
@@ -211,7 +250,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         if (dateByAbsRow[rAbs]) continue;
         const addr = XLSX.utils.encode_cell({ r: rAbs, c: 0 });
         const cell = (firstSheet as any)[addr];
-        const parsed = parseDateFromAny(cell?.v ?? cell?.w, addr);
+        const parsed = parseDateFromAny(cell, addr);
         if (parsed) dateByAbsRow[rAbs] = parsed;
       }
 
@@ -259,7 +298,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
           if (!foundDate) {
             const addrA = XLSX.utils.encode_cell({ r: rAbs, c: 0 });
             const cellA = (firstSheet as any)[addrA];
-            foundDate = parseDateFromAny(cellA?.v ?? cellA?.w, addrA);
+            foundDate = parseDateFromAny(cellA, addrA);
           }
 
           // Fallback: procurar para cima apenas na Coluna A (casos de merges não detetados)
@@ -267,7 +306,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
             for (let upAbs = rAbs - 1; upAbs >= Math.max(startRow, rAbs - 30); upAbs--) {
               const addrUp = XLSX.utils.encode_cell({ r: upAbs, c: 0 });
               const cellUp = (firstSheet as any)[addrUp];
-              const parsedUp = parseDateFromAny(cellUp?.v ?? cellUp?.w, addrUp);
+              const parsedUp = parseDateFromAny(cellUp, addrUp);
               if (parsedUp) {
                 console.log(`🔼 Using date from ${addrUp} for row ${rAbs}: ${parsedUp}`);
                 foundDate = parsedUp;
