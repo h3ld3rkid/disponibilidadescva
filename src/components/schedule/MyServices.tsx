@@ -98,7 +98,23 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       const startRow = range.s.r; // 0-based sheet start row
       const endRow = range.e.r;
 
-      const datePattern = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/;
+      const datePattern = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/;
+      
+      // Normalize 2-digit years to 4-digit (e.g., 25 -> 2025, 99 -> 1999)
+      const normalizeDateStr = (dateStr: string): string => {
+        const parts = dateStr.split(/[\/\-]/);
+        if (parts.length === 3) {
+          const [day, month, year] = parts;
+          if (year.length === 2) {
+            const yearNum = parseInt(year, 10);
+            const fullYear = yearNum >= 0 && yearNum <= 50 ? `20${year}` : `19${year}`;
+            return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${fullYear}`;
+          }
+          return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
+        }
+        return dateStr;
+      };
+
       // Heurística para detetar Mês/Ano no topo (necessário para dias sem mês)
       const monthMap: Record<string, number> = {
         'janeiro': 1, 'fevereiro': 2, 'março': 3, 'marco': 3, 'abril': 4, 'maio': 5,
@@ -156,7 +172,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         }
         if (typeof val === 'string') {
           const m = val.match(datePattern);
-          if (m) return m[1];
+          if (m) return normalizeDateStr(m[1]);
         }
         return '';
       };
@@ -230,7 +246,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
             if (looksLikeDateStr(cell)) {
               const s = String(cell);
               const m = s.match(datePattern);
-              sameRowCandidates.push({ col: c, dateStr: m ? m[1] : s });
+              sameRowCandidates.push({ col: c, dateStr: m ? normalizeDateStr(m[1]) : s });
             } else if (isExcelSerial(cell)) {
               sameRowCandidates.push({ col: c, dateStr: toPtDate(excelSerialToDate(cell as number)) });
             } else if (isDayNumber(cell)) {
@@ -259,7 +275,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                 if (looksLikeDateStr(cell)) {
                   const s = String(cell);
                   const m = s.match(datePattern);
-                  foundDate = m ? m[1] : s;
+                  foundDate = m ? normalizeDateStr(m[1]) : s;
                   break;
                 } else if (isExcelSerial(cell)) {
                   foundDate = toPtDate(excelSerialToDate(cell as number));
