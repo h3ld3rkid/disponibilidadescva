@@ -89,7 +89,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       
       // Get the first sheet
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as any[][];
+      const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, blankrows: true, raw: true }) as any[][];;
       
       console.log('XLSX loaded, rows:', jsonData.length);
       console.log('First 5 rows:', jsonData.slice(0, 5));
