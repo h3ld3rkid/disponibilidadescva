@@ -6,9 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 
 interface AnnouncementFormProps {
@@ -31,8 +29,12 @@ interface AnnouncementFormProps {
 const AnnouncementForm = ({ onSubmit, editingAnnouncement, onCancel }: AnnouncementFormProps) => {
   const [title, setTitle] = React.useState(editingAnnouncement?.title || '');
   const [content, setContent] = React.useState(editingAnnouncement?.content || '');
-  const [startDate, setStartDate] = React.useState<Date>(editingAnnouncement?.startDate || new Date());
-  const [endDate, setEndDate] = React.useState<Date>(editingAnnouncement?.endDate || new Date());
+  const [startDateStr, setStartDateStr] = React.useState(
+    editingAnnouncement?.startDate ? format(editingAnnouncement.startDate, "dd/MM/yyyy") : ""
+  );
+  const [endDateStr, setEndDateStr] = React.useState(
+    editingAnnouncement?.endDate ? format(editingAnnouncement.endDate, "dd/MM/yyyy") : ""
+  );
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -47,11 +49,32 @@ const AnnouncementForm = ({ onSubmit, editingAnnouncement, onCancel }: Announcem
       return;
     }
 
+    const startParsed = parse(startDateStr.trim(), "dd/MM/yyyy", new Date());
+    const endParsed = parse(endDateStr.trim(), "dd/MM/yyyy", new Date());
+
+    if (!isValid(startParsed) || !isValid(endParsed)) {
+      toast({
+        title: "Datas inválidas",
+        description: "Use o formato dd/mm/aaaa para as datas.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (startParsed > endParsed) {
+      toast({
+        title: "Intervalo de datas inválido",
+        description: "A data de início não pode ser posterior à data de fim.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     onSubmit({
       title,
       content,
-      startDate,
-      endDate
+      startDate: startParsed,
+      endDate: endParsed,
     });
   };
 
@@ -78,50 +101,28 @@ const AnnouncementForm = ({ onSubmit, editingAnnouncement, onCancel }: Announcem
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Data de Início</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "dd/MM/yyyy") : "Selecione uma data"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={(date) => date && setStartDate(date)}
-                    initialFocus
-                    className="p-3 pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="start-date"
+                  placeholder="dd/mm/aaaa"
+                  value={startDateStr}
+                  onChange={(e) => setStartDateStr(e.target.value)}
+                />
+              </div>
             </div>
             
             <div className="space-y-2">
               <Label>Data de Fim</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "dd/MM/yyyy") : "Selecione uma data"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={endDate}
-                    onSelect={(date) => date && setEndDate(date)}
-                    initialFocus
-                    className="p-3 pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="end-date"
+                  placeholder="dd/mm/aaaa"
+                  value={endDateStr}
+                  onChange={(e) => setEndDateStr(e.target.value)}
+                />
+              </div>
             </div>
           </div>
           
