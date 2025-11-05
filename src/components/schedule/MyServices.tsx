@@ -85,13 +85,11 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       }
 
       const arrayBuffer = await response.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true, cellNF: true, cellText: true });
-      
-      const isDate1904 = !!((workbook as any).Workbook?.WB?.Date1904);
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
       
       // Get the first sheet
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, blankrows: true, raw: true }) as any[][];
+      const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, blankrows: true, raw: true }) as any[][];;
       
       console.log('XLSX loaded, rows:', jsonData.length);
       console.log('First 5 rows:', jsonData.slice(0, 5));
@@ -165,84 +163,33 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       const merges: any[] = (firstSheet['!merges'] || []) as any[];
       const dateByAbsRow: Record<number, string> = {};
 
-      const parseDateFromAny = (cell: any, cellAddr?: string): string => {
-        if (!cell) {
-          if (cellAddr) console.log(`🔍 ${cellAddr}: null/undefined cell`);
-          return '';
-        }
-        const val = cell.v ?? cell.w;
+      const parseDateFromAny = (val: any, cellAddr?: string): string => {
+        if (val === null || val === undefined || val === '') return '';
         // Ignore empty strings or whitespace
-        if (val === null || val === undefined) {
-          if (cellAddr && cell.f) console.log(`🔍 ${cellAddr}: no v/w, but has formula: ${cell.f}`);
-          else if (cellAddr) console.log(`🔍 ${cellAddr}: no v/w value`);
-          return '';
-        }
-        if (typeof val === 'string' && val.trim() === '') {
-          if (cellAddr) console.log(`🔍 ${cellAddr}: empty string`);
-          return '';
-        }
-
-        const pad2 = (n: number) => String(n).padStart(2, '0');
-        const fromSerial = (n: number, date1904?: boolean) => {
-          // Prefer SSF.parse_date_code for exact d/m/y
-          const dc = XLSX.SSF.parse_date_code(n + (date1904 ? 1462 : 0));
-          if (dc) return `${pad2(dc.d)}/${pad2(dc.m)}/${dc.y}`;
-          return '';
-        };
-
-        // 1) If numeric serial
-        if (typeof val === 'number' && val > 40000 && val < 60000) {
-          const parsed = fromSerial(val, isDate1904);
-          if (parsed) {
-            console.log(`📅 ${cellAddr}: serial ${val} => ${parsed}`);
+        if (typeof val === 'string' && val.trim() === '') return '';
+        
+        if (typeof val === 'number') {
+          if (val > 40000 && val < 60000) {
+            const dc = XLSX.SSF.parse_date_code(val);
+            if (dc) {
+              const parsed = `${pad2(dc.d)}/${pad2(dc.m)}/${dc.y}`;
+              console.log(`📅 Parsed serial ${val} at ${cellAddr}: ${parsed}`);
+              return parsed;
+            }
+          }
+          if (val >= 1 && val <= 31 && headerMonth && headerYear) {
+            const parsed = `${pad2(val)}/${pad2(headerMonth)}/${headerYear}`;
             return parsed;
           }
         }
-
-        // 2) If looks like day number and header month/year known
-        if (typeof val === 'number' && val >= 1 && val <= 31 && headerMonth && headerYear) {
-          const result = `${pad2(val)}/${pad2(headerMonth)}/${headerYear}`;
-          console.log(`📅 ${cellAddr}: day ${val} => ${result}`);
-          return result;
-        }
-
-        // 3) If string date
         if (typeof val === 'string') {
           const m = val.match(datePattern);
           if (m) {
             const normalized = normalizeDateStr(m[1]);
-            console.log(`📅 ${cellAddr}: string "${val}" => ${normalized}`);
+            console.log(`📅 Parsed string "${val}" at ${cellAddr}: ${normalized}`);
             return normalized;
           }
         }
-
-        // 4) If formula, try simple evaluation like =A359+1 or =A359-1
-        if (cell.f && typeof cell.f === 'string') {
-          console.log(`🧮 ${cellAddr}: formula "${cell.f}", val=${val} (${typeof val})`);
-          const f = cell.f.replace(/^=/, '');
-          const simple = f.match(/^([A-Z]+)(\d+)\s*([+\-])\s*(\d+)$/i) || f.match(/^([A-Z]+)(\d+)$/i);
-          if (simple) {
-            const col = simple[1];
-            const row = parseInt(simple[2], 10);
-            const op = (simple as any)[3];
-            const n = (simple as any)[4] ? parseInt((simple as any)[4], 10) : 0;
-            const baseAddr = `${col.toUpperCase()}${row}`;
-            const baseCell = (firstSheet as any)[baseAddr];
-            const baseParsed = parseDateFromAny(baseCell, baseAddr);
-            if (baseParsed) {
-              // Convert parsed to serial via Date and re-apply op (in days)
-              const [dd, mm, yyyy] = baseParsed.split('/').map(Number);
-              const baseDate = new Date(yyyy, mm - 1, dd);
-              const delta = op ? (op === '+' ? n : -n) : 0;
-              baseDate.setDate(baseDate.getDate() + delta);
-              const result = `${pad2(baseDate.getDate())}/${pad2(baseDate.getMonth() + 1)}/${baseDate.getFullYear()}`;
-              console.log(`🧮 ${cellAddr}: formula result => ${result}`);
-              return result;
-            }
-          }
-        }
-
-        if (cellAddr) console.log(`❌ ${cellAddr}: couldn't parse val=${val} (${typeof val}), hasFormula=${!!cell.f}`);
         return '';
       };
 
@@ -251,7 +198,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         if (m.s.c === 0 && m.e.c === 0) {
           const topAddr = XLSX.utils.encode_cell({ r: m.s.r, c: 0 });
           const topCell = (firstSheet as any)[topAddr];
-          const parsed = parseDateFromAny(topCell, topAddr);
+          const parsed = parseDateFromAny(topCell?.v ?? topCell?.w, topAddr);
           if (parsed) {
             console.log(`📌 Merge detected at ${topAddr} (rows ${m.s.r}-${m.e.r}): ${parsed}`);
             for (let r = m.s.r; r <= m.e.r; r++) dateByAbsRow[r] = parsed;
@@ -264,7 +211,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         if (dateByAbsRow[rAbs]) continue;
         const addr = XLSX.utils.encode_cell({ r: rAbs, c: 0 });
         const cell = (firstSheet as any)[addr];
-        const parsed = parseDateFromAny(cell, addr);
+        const parsed = parseDateFromAny(cell?.v ?? cell?.w, addr);
         if (parsed) dateByAbsRow[rAbs] = parsed;
       }
 
@@ -289,86 +236,76 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
 
       const entries: ServiceEntry[] = [];
 
-      // Nova varredura direta por células (não depende do sheet_to_json),
-      // garantindo que cada ocorrência do nº mecanográfico usa a data da Coluna A (inclui linhas cinzentas)
-      const endCol = range.e.c;
-      const mechStr = String(mechNumber).trim();
-      const alphaScore = (s: string) => (s.match(/[A-Za-zÁ-ú]/g) || []).length;
+      for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i] || [];
+        if (row.length === 0) continue;
 
-      for (let rAbs = startRow; rAbs <= endRow; rAbs++) {
-        for (let c = 0; c <= endCol; c++) {
-          const addr = XLSX.utils.encode_cell({ r: rAbs, c });
-          const cell = (firstSheet as any)[addr];
-          if (!cell) continue;
-          const raw = cell.v ?? cell.w;
-          if (raw === null || raw === undefined) continue;
-          const str = String(raw).trim();
-          if (str !== mechStr) continue;
+        // Encontrar células que correspondem ao número mecanográfico
+        const mechIdxs: number[] = [];
+        for (let c = 0; c < row.length; c++) {
+          const cell = row[c];
+          if (cell === null || cell === undefined) continue;
+          const cellStr = String(cell).trim();
+          if (cellStr === String(mechNumber).trim()) mechIdxs.push(c);
+        }
+        if (mechIdxs.length === 0) continue;
 
-          // Encontrado nº mecanográfico nesta linha
-          let foundDate = dateByAbsRow[rAbs] || '';
-          console.log(`🔎 Found mech ${mechStr} at row ${rAbs}, col ${c}. Checking column A...`);
+        // Para cada ocorrência, detetar data e nome
+        for (const mechCol of mechIdxs) {
+          const sheetRow = startRow + i;
+          let foundDate = dateByAbsRow[sheetRow] || '';
 
-          // Ler sempre Coluna A desta mesma linha
+          // Usar APENAS a Coluna A (data) para determinar a data
           if (!foundDate) {
-            const addrA = XLSX.utils.encode_cell({ r: rAbs, c: 0 });
+            const addrA = XLSX.utils.encode_cell({ r: sheetRow, c: 0 });
             const cellA = (firstSheet as any)[addrA];
-            console.log(`   Checking same row A${rAbs+1} (${addrA}):`, cellA ? `v=${cellA.v}, w=${cellA.w}, f=${cellA.f}` : 'empty');
-            foundDate = parseDateFromAny(cellA, addrA);
+            foundDate = parseDateFromAny(cellA?.v ?? cellA?.w, addrA);
           }
 
-          // Fallback: procurar para cima apenas na Coluna A (casos de merges não detetados)
+          // Fallback: procurar somente na Coluna A para cima (para casos de mesclagem não detectada)
           if (!foundDate) {
-            for (let upAbs = rAbs - 1; upAbs >= Math.max(startRow, rAbs - 30); upAbs--) {
+            for (let upAbs = sheetRow - 1; upAbs >= Math.max(startRow, sheetRow - 20); upAbs--) {
               const addrUp = XLSX.utils.encode_cell({ r: upAbs, c: 0 });
               const cellUp = (firstSheet as any)[addrUp];
-              const parsedUp = parseDateFromAny(cellUp, addrUp);
-              if (parsedUp) {
-                console.log(`🔼 Using date from ${addrUp} for row ${rAbs}: ${parsedUp}`);
-                foundDate = parsedUp;
-                break;
+              const parsedUp = parseDateFromAny(cellUp?.v ?? cellUp?.w, addrUp);
+              if (parsedUp) { 
+                console.log(`🔼 Using date from ${addrUp} for row ${sheetRow}: ${parsedUp}`);
+                foundDate = parsedUp; 
+                break; 
               }
             }
           }
 
+          // Log if mech number found but no date
           if (!foundDate) {
-            console.warn(`⚠️ Found mech ${mechStr} at row ${rAbs} but no date in column A`);
-            continue;
+            console.warn(`⚠️ Found mech ${mechNumber} at row ${sheetRow} (json idx ${i}) but no date in col A`);
           }
 
-          // Extrair nome: preferir a coluna 3 (c=2). Caso vazio, procurar à direita do nº e depois melhor string da linha
-          let name = '';
-          const addrNamePref = XLSX.utils.encode_cell({ r: rAbs, c: 2 });
-          const cellNamePref = (firstSheet as any)[addrNamePref];
-          if (typeof (cellNamePref?.v ?? cellNamePref?.w) === 'string') {
-            const cand = String(cellNamePref.v ?? cellNamePref.w).trim();
-            if (cand) name = cand;
-          }
-          if (!name) {
-            // à direita do nº mecanográfico
-            for (let cRight = c + 1; cRight <= endCol; cRight++) {
-              const addrR = XLSX.utils.encode_cell({ r: rAbs, c: cRight });
-              const cellR = (firstSheet as any)[addrR];
-              const v = cellR?.v ?? cellR?.w;
-              if (typeof v === 'string' && alphaScore(v) >= 2) { name = v.trim(); break; }
-            }
-          }
-          if (!name) {
-            // melhor string da linha inteira
-            let best = '';
-            for (let cScan = 0; cScan <= endCol; cScan++) {
-              const addrS = XLSX.utils.encode_cell({ r: rAbs, c: cScan });
-              const cellS = (firstSheet as any)[addrS];
-              const v = cellS?.v ?? cellS?.w;
-              if (typeof v === 'string' && alphaScore(v) >= 2 && v.trim() !== mechStr) {
-                if (v.length > best.length) best = v.trim();
+          if (foundDate) {
+            // Extrair nome: preferir a 3ª coluna (Nome). Se vazia, procurar à direita do nº mecanográfico e por fim melhor string da linha
+            let name = '';
+            if (typeof row[2] === 'string' && row[2].trim()) {
+              name = row[2].trim();
+            } else {
+              const alphaScore = (s: string) => (s.match(/[A-Za-zÁ-ú]/g) || []).length;
+              // tentar à direita do nº mecanográfico
+              for (let c = mechCol + 1; c < row.length; c++) {
+                const v = row[c];
+                if (typeof v === 'string' && alphaScore(v) >= 2) { name = v.trim(); break; }
+              }
+              // fallback: melhor string da linha
+              if (!name) {
+                let best = '';
+                for (const v of row) if (typeof v === 'string' && alphaScore(v) >= 2 && v.trim() !== String(mechNumber)) {
+                  if (v.length > best.length) best = v.trim();
+                }
+                name = best;
               }
             }
-            name = best;
-          }
 
-          console.log('🎯 Serviço (XLSX)', { row: rAbs, col: c, date: foundDate, mechNumber: mechStr, name });
-          entries.push({ date: foundDate, mechanographicNumber: mechStr, rawText: name });
+            console.log('✓ Found service (XLSX):', { foundDate, mechNumber, name });
+            entries.push({ date: foundDate, mechanographicNumber: mechNumber, rawText: name });
+          }
         }
       }
 
