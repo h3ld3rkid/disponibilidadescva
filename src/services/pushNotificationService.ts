@@ -110,4 +110,16 @@ export class PushNotificationService {
       console.error('Error sending deadline reminder:', error);
     }
   }
+
+  /**
+   * Notificar utilizador sobre submissão bem-sucedida
+   */
+  static async onUserScheduleSubmitted(userEmail: string, month: string, editCount: number) {
+    try {
+      await pushNotifications.userScheduleSubmitted(userEmail, month, editCount);
+      console.log(`Push notification sent to user ${userEmail} for schedule submission`);
+    } catch (error) {
+      console.error('Error sending user schedule submission notification:', error);
+    }
+  }
 }

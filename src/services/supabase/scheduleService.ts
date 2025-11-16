@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { systemSettingsService } from "./systemSettingsService";
+import { PushNotificationService } from "@/services/pushNotificationService";
 
 // Auto-check and reset monthly counters on the 1st of each month
 const checkMonthlyReset = async () => {
@@ -205,6 +206,14 @@ export const scheduleService = {
         }
       } catch (telegramError) {
         console.error('Failed to send Telegram notifications:', telegramError);
+      }
+
+      // Send push notification to user about successful submission
+      try {
+        const finalEditCount = existing ? (existing.edit_count || 0) + 1 : 1;
+        await PushNotificationService.onUserScheduleSubmitted(userEmail, month, finalEditCount);
+      } catch (pushError) {
+        console.error('Failed to send push notification to user:', pushError);
       }
       
       return { success: true };

@@ -124,5 +124,17 @@ export const pushNotifications = {
         tag: 'deadline-reminder'
       },
       { isAll: true }
+    ),
+
+  // Notificar utilizador sobre submissão bem-sucedida
+  userScheduleSubmitted: (userEmail: string, month: string, editCount: number) =>
+    sendPushNotification(
+      {
+        title: 'Escala Submetida',
+        body: `A sua escala para ${month} foi submetida com sucesso (${editCount}ª tentativa)`,
+        url: '/dashboard/schedule',
+        tag: 'user-schedule-submitted'
+      },
+      { userEmails: [userEmail] }
     )
 };
