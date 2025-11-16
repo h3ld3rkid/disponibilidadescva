@@ -13,6 +13,7 @@ interface SchedulePrintButtonProps {
   mechanographicNumber: string;
   scheduleData: any;
   printedAt: string | null;
+  createdAt?: string;
   onPrintComplete: () => void;
 }
 
@@ -22,6 +23,7 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
   mechanographicNumber,
   scheduleData,
   printedAt,
+  createdAt,
   onPrintComplete
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -54,7 +56,8 @@ const SchedulePrintButton: React.FC<SchedulePrintButtonProps> = ({
         userEmail,
         userName: actualUserName,
         mechanographicNumber: actualMechanographicNumber,
-        scheduleData
+        scheduleData,
+        createdAt
       });
       
       // Mark as printed in database

@@ -6,6 +6,7 @@ interface PDFData {
   userName: string;
   mechanographicNumber: string;
   scheduleData: any;
+  createdAt?: string;
 }
 
 export class PDFGenerator {
@@ -92,11 +93,12 @@ export class PDFGenerator {
 
   private addUserInfo(userData: PDFData) {
     // Modern user info section with subtle styling
+    const boxHeight = userData.createdAt ? 38 : 30;
     this.doc.setFillColor(250, 250, 250);
-    this.doc.roundedRect(20, 70, 170, 30, 5, 5, 'F');
+    this.doc.roundedRect(20, 70, 170, boxHeight, 5, 5, 'F');
     this.doc.setDrawColor(240, 240, 240);
     this.doc.setLineWidth(1);
-    this.doc.roundedRect(20, 70, 170, 30, 5, 5, 'S');
+    this.doc.roundedRect(20, 70, 170, boxHeight, 5, 5, 'S');
     
     this.doc.setTextColor(220, 53, 69);
     this.doc.setFontSize(12);
@@ -108,6 +110,15 @@ export class PDFGenerator {
     this.doc.setFont('helvetica', 'normal');
     this.doc.text(`Nome: ${userData.userName}`, 25, 87);
     this.doc.text(`Nº Mecanográfico: ${userData.mechanographicNumber}`, 25, 94);
+    
+    if (userData.createdAt) {
+      const submitDate = new Date(userData.createdAt);
+      const dateStr = submitDate.toLocaleDateString('pt-PT');
+      const timeStr = submitDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+      this.doc.setFontSize(9);
+      this.doc.setTextColor(100, 100, 100);
+      this.doc.text(`Submetido em: ${dateStr} às ${timeStr}`, 25, 101);
+    }
   }
 
   private formatDateForPDF(dateStr: string): string {

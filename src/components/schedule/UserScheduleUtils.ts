@@ -101,12 +101,13 @@ export const exportSchedulesToPDF = async (
       doc.setFont('helvetica', 'bold');
       doc.text(`Escala de Serviço - ${monthName}`, 105, 45, { align: 'center' });
       
-      // User info section with modern styling
+      // User info section with modern styling - adjusted height for submission date
+      const boxHeight = (schedule.createdAt || schedule.created_at) ? 30 : 25;
       doc.setFillColor(250, 250, 250);
-      doc.roundedRect(15, 55, 180, 25, 3, 3, 'F');
+      doc.roundedRect(15, 55, 180, boxHeight, 3, 3, 'F');
       doc.setDrawColor(240, 240, 240);
       doc.setLineWidth(0.5);
-      doc.roundedRect(15, 55, 180, 25, 3, 3, 'S');
+      doc.roundedRect(15, 55, 180, boxHeight, 3, 3, 'S');
       
       doc.setTextColor(220, 53, 69);
       doc.setFontSize(11);
@@ -118,6 +119,16 @@ export const exportSchedulesToPDF = async (
       doc.setFont('helvetica', 'normal');
       doc.text(`Nome: ${schedule.user_name || schedule.user}`, 20, 70);
       doc.text(`Email: ${schedule.user_email || schedule.email}`, 20, 75);
+      
+      // Submission date if available
+      if (schedule.createdAt || schedule.created_at) {
+        const submitDate = new Date(schedule.createdAt || schedule.created_at);
+        const dateStr = submitDate.toLocaleDateString('pt-PT');
+        const timeStr = submitDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Submetido em: ${dateStr} às ${timeStr}`, 20, 80);
+      }
       
       // Date and export info
       doc.setFontSize(8);
