@@ -32,36 +32,40 @@ const UserItem: React.FC<UserItemProps> = ({
   onDelete
 }) => {
   return (
-    <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-      <div className="flex-1">
-        <div className="flex items-center gap-3">
-          <div className="font-medium text-gray-900">{user.name}</div>
-          <Badge variant={user.active ? "default" : "secondary"}>
-            {user.active ? "Ativo" : "Inativo"}
-          </Badge>
-          <Badge variant={user.role === "admin" ? "destructive" : "outline"}>
-            {user.role === "admin" ? "Administrador" : "Utilizador"}
-          </Badge>
-          {user.allow_late_submission && (
-            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-              Submissão Tardia
+    <div className="flex flex-col md:flex-row md:items-center justify-between p-4 border rounded-lg hover:bg-gray-50 gap-4">
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+          <div className="font-medium text-gray-900 truncate">{user.name}</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={user.active ? "default" : "secondary"}>
+              {user.active ? "Ativo" : "Inativo"}
             </Badge>
-          )}
+            <Badge variant={user.role === "admin" ? "destructive" : "outline"}>
+              {user.role === "admin" ? "Administrador" : "Utilizador"}
+            </Badge>
+            {user.allow_late_submission && (
+              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                Submissão Tardia
+              </Badge>
+            )}
+          </div>
         </div>
-        <div className="text-sm text-gray-500">{user.email}</div>
+        <div className="text-sm text-gray-500 truncate">{user.email}</div>
         <div className="text-xs text-gray-400">
           Nº Mecanográfico: {user.mechanographic_number}
         </div>
       </div>
       
-      <UserActions
-        user={user}
-        onEdit={onEdit}
-        onToggleStatus={onToggleStatus}
-        onToggleLateSubmission={onToggleLateSubmission}
-        onResetPassword={onResetPassword}
-        onDelete={onDelete}
-      />
+      <div className="flex justify-end md:justify-start">
+        <UserActions
+          user={user}
+          onEdit={onEdit}
+          onToggleStatus={onToggleStatus}
+          onToggleLateSubmission={onToggleLateSubmission}
+          onResetPassword={onResetPassword}
+          onDelete={onDelete}
+        />
+      </div>
     </div>
   );
 };

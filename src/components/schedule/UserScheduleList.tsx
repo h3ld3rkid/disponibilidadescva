@@ -151,6 +151,7 @@ const UserScheduleList: React.FC<UserScheduleListProps> = ({
                         mechanographicNumber={userDetails.mechanographicNumber}
                         scheduleData={userSchedule.dates}
                         printedAt={userSchedule.printedAt}
+                        createdAt={userSchedule.createdAt}
                         onPrintComplete={() => window.location.reload()}
                       />
                     )}
@@ -268,6 +269,7 @@ const UserScheduleList: React.FC<UserScheduleListProps> = ({
                         mechanographicNumber={userDetails.mechanographicNumber}
                         scheduleData={userSchedule.dates}
                         printedAt={userSchedule.printedAt}
+                        createdAt={userSchedule.createdAt}
                         onPrintComplete={() => window.location.reload()}
                       />
                     )}

@@ -353,7 +353,7 @@ export type Database = {
         }[]
       }
       get_admin_notifications: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           id: string
@@ -362,14 +362,8 @@ export type Database = {
           user_email: string
         }[]
       }
-      get_current_user_email: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_current_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_current_user_email: { Args: never; Returns: string }
+      get_current_user_role: { Args: never; Returns: string }
       get_user_for_auth: {
         Args: { p_email: string }
         Returns: {
@@ -382,14 +376,8 @@ export type Database = {
           role: string
         }[]
       }
-      is_admin_user: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      mark_all_notifications_read: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      is_admin_user: { Args: never; Returns: boolean }
+      mark_all_notifications_read: { Args: never; Returns: undefined }
       mark_notification_read: {
         Args: { notification_id: string }
         Returns: undefined

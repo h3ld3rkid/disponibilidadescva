@@ -239,7 +239,8 @@ export const scheduleService = {
           month: schedule.month,
           dates: schedule.dates,
           editCount: schedule.edit_count,
-          printedAt: schedule.printed_at
+          printedAt: schedule.printed_at,
+          createdAt: schedule.created_at
         }));
       }
       
