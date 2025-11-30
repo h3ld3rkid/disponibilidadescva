@@ -391,31 +391,21 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
               }
             }
 
-            // Check if the mechanographic number cell has gray background
+            // Temporarily disabled gray cell detection for debugging
             const mechAddr = XLSX.utils.encode_cell({ r: sheetRow, c: mechCol });
-            console.log(`\n🔍 Checking gray for mech cell at ${mechAddr} (date: ${foundDate})`);
-            const isGray = isCellGray(mechAddr);
-
+            
             console.log('✅ Found service (XLSX):', { 
               foundDate, 
               mechNumber, 
               name, 
-              isGray, 
               mechAddr, 
               sheetRow, 
-              mechCol 
+              mechCol,
+              dateRowInExcel: sheetRow + 1, // Excel row number (1-indexed)
+              mechColInExcel: String.fromCharCode(65 + mechCol) // Excel column letter
             });
             
-            // Special log for 30/11
-            if (foundDate.includes('30/11')) {
-              console.log('🎯 SPECIAL: Service on 30/11 detected!', { 
-                isGray, 
-                mechAddr,
-                willBeFiltered: isGray ? 'YES (gray cell will be excluded)' : 'NO (will be shown)'
-              });
-            }
-            
-            entries.push({ date: foundDate, mechanographicNumber: mechNumber, rawText: name, isGray });
+            entries.push({ date: foundDate, mechanographicNumber: mechNumber, rawText: name, isGray: false });
           }
         }
       }
@@ -432,26 +422,22 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       const deduplicatedEntries = Array.from(uniqueByDate.values());
       console.log('Entries after deduplication:', deduplicatedEntries.length);
       
-      // Filter out gray cells (services user should ignore)
-      const filteredEntries = deduplicatedEntries.filter(entry => !entry.isGray);
-      console.log('Entries after filtering gray cells:', filteredEntries.length);
-      console.log('Gray cells filtered:', deduplicatedEntries.length - filteredEntries.length);
+      // Temporarily disabled gray cell filtering for debugging
+      console.log('📊 All services with dates:', deduplicatedEntries.map(s => ({ date: s.date, mech: s.mechanographicNumber })));
       
-      setServices(filteredEntries);
+      setServices(deduplicatedEntries);
       
-      if (filteredEntries.length === 0) {
+      if (deduplicatedEntries.length === 0) {
         toast({
           title: "Nenhum serviço encontrado",
           description: "Não foram encontrados serviços ativos para o seu número mecanográfico na escala.",
           variant: "default",
         });
       } else {
-        const grayCount = deduplicatedEntries.length - filteredEntries.length;
         const duplicateCount = entries.length - deduplicatedEntries.length;
         
-        let description = `Encontrados ${filteredEntries.length} serviço(s).`;
+        let description = `Encontrados ${deduplicatedEntries.length} serviço(s).`;
         if (duplicateCount > 0) description += ` ${duplicateCount} duplicado(s) removido(s).`;
-        if (grayCount > 0) description += ` ${grayCount} em células cinzentas excluído(s).`;
         
         toast({
           title: "Escala carregada",
