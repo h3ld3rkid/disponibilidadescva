@@ -16,6 +16,7 @@ interface ServiceEntry {
   date: string;
   mechanographicNumber: string;
   rawText: string;
+  isGray?: boolean;
 }
 
 interface MyServicesProps {
@@ -163,11 +164,32 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       const merges: any[] = (firstSheet['!merges'] || []) as any[];
       const dateByAbsRow: Record<number, string> = {};
 
-      const parseDateFromAny = (val: any, cellAddr?: string): string => {
+      const parseDateFromAny = (val: any, cellAddr?: string, formattedText?: string): string => {
         if (val === null || val === undefined || val === '') return '';
         // Ignore empty strings or whitespace
         if (typeof val === 'string' && val.trim() === '') return '';
         
+        // PRIORITY 1: Use formatted text (cell.w) if available - this is what user sees!
+        if (formattedText && typeof formattedText === 'string') {
+          const m = formattedText.match(datePattern);
+          if (m) {
+            const normalized = normalizeDateStr(m[1]);
+            console.log(`📅 Parsed formatted text "${formattedText}" at ${cellAddr}: ${normalized}`);
+            return normalized;
+          }
+        }
+        
+        // PRIORITY 2: Parse string values
+        if (typeof val === 'string') {
+          const m = val.match(datePattern);
+          if (m) {
+            const normalized = normalizeDateStr(m[1]);
+            console.log(`📅 Parsed string "${val}" at ${cellAddr}: ${normalized}`);
+            return normalized;
+          }
+        }
+        
+        // PRIORITY 3: Parse Excel serial numbers
         if (typeof val === 'number') {
           if (val > 40000 && val < 60000) {
             const dc = XLSX.SSF.parse_date_code(val);
@@ -182,14 +204,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
             return parsed;
           }
         }
-        if (typeof val === 'string') {
-          const m = val.match(datePattern);
-          if (m) {
-            const normalized = normalizeDateStr(m[1]);
-            console.log(`📅 Parsed string "${val}" at ${cellAddr}: ${normalized}`);
-            return normalized;
-          }
-        }
+        
         return '';
       };
 
@@ -198,7 +213,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         if (m.s.c === 0 && m.e.c === 0) {
           const topAddr = XLSX.utils.encode_cell({ r: m.s.r, c: 0 });
           const topCell = (firstSheet as any)[topAddr];
-          const parsed = parseDateFromAny(topCell?.v ?? topCell?.w, topAddr);
+          const parsed = parseDateFromAny(topCell?.v, topAddr, topCell?.w);
           if (parsed) {
             console.log(`📌 Merge detected at ${topAddr} (rows ${m.s.r}-${m.e.r}): ${parsed}`);
             for (let r = m.s.r; r <= m.e.r; r++) dateByAbsRow[r] = parsed;
@@ -211,7 +226,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         if (dateByAbsRow[rAbs]) continue;
         const addr = XLSX.utils.encode_cell({ r: rAbs, c: 0 });
         const cell = (firstSheet as any)[addr];
-        const parsed = parseDateFromAny(cell?.v ?? cell?.w, addr);
+        const parsed = parseDateFromAny(cell?.v, addr, cell?.w);
         if (parsed) dateByAbsRow[rAbs] = parsed;
       }
 
@@ -232,6 +247,36 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         if (!headerMonth || !headerYear) return '';
         const d = new Date(headerYear, headerMonth - 1, day);
         return toPtDate(d);
+      };
+
+      // Helper to check if cell has gray background
+      const isCellGray = (cellAddr: string): boolean => {
+        const cell = (firstSheet as any)[cellAddr];
+        if (!cell || !cell.s) return false;
+        
+        const style = cell.s;
+        // Check for gray fill color
+        if (style.fgColor) {
+          const rgb = style.fgColor.rgb;
+          if (rgb) {
+            // Gray colors typically have R=G=B and are in the range C0-D0
+            const r = parseInt(rgb.substring(2, 4), 16);
+            const g = parseInt(rgb.substring(4, 6), 16);
+            const b = parseInt(rgb.substring(6, 8), 16);
+            // Consider gray if RGB values are close and in gray range (e.g., 192-224)
+            return Math.abs(r - g) < 10 && Math.abs(g - b) < 10 && r >= 192 && r <= 224;
+          }
+        }
+        if (style.bgColor) {
+          const rgb = style.bgColor.rgb;
+          if (rgb) {
+            const r = parseInt(rgb.substring(2, 4), 16);
+            const g = parseInt(rgb.substring(4, 6), 16);
+            const b = parseInt(rgb.substring(6, 8), 16);
+            return Math.abs(r - g) < 10 && Math.abs(g - b) < 10 && r >= 192 && r <= 224;
+          }
+        }
+        return false;
       };
 
       const entries: ServiceEntry[] = [];
@@ -259,7 +304,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
           if (!foundDate) {
             const addrA = XLSX.utils.encode_cell({ r: sheetRow, c: 0 });
             const cellA = (firstSheet as any)[addrA];
-            foundDate = parseDateFromAny(cellA?.v ?? cellA?.w, addrA);
+            foundDate = parseDateFromAny(cellA?.v, addrA, cellA?.w);
           }
 
           // Fallback: procurar somente na Coluna A para cima (para casos de mesclagem não detectada)
@@ -267,7 +312,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
             for (let upAbs = sheetRow - 1; upAbs >= Math.max(startRow, sheetRow - 20); upAbs--) {
               const addrUp = XLSX.utils.encode_cell({ r: upAbs, c: 0 });
               const cellUp = (firstSheet as any)[addrUp];
-              const parsedUp = parseDateFromAny(cellUp?.v ?? cellUp?.w, addrUp);
+              const parsedUp = parseDateFromAny(cellUp?.v, addrUp, cellUp?.w);
               if (parsedUp) { 
                 console.log(`🔼 Using date from ${addrUp} for row ${sheetRow}: ${parsedUp}`);
                 foundDate = parsedUp; 
@@ -303,8 +348,12 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
               }
             }
 
-            console.log('✓ Found service (XLSX):', { foundDate, mechNumber, name });
-            entries.push({ date: foundDate, mechanographicNumber: mechNumber, rawText: name });
+            // Check if the mechanographic number cell has gray background
+            const mechAddr = XLSX.utils.encode_cell({ r: sheetRow, c: mechCol });
+            const isGray = isCellGray(mechAddr);
+
+            console.log('✓ Found service (XLSX):', { foundDate, mechNumber, name, isGray });
+            entries.push({ date: foundDate, mechanographicNumber: mechNumber, rawText: name, isGray });
           }
         }
       }
@@ -683,7 +732,10 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                   </TableHeader>
                   <TableBody>
                     {services.map((service, index) => (
-                      <TableRow key={index}>
+                      <TableRow 
+                        key={index}
+                        className={service.isGray ? 'bg-muted/50' : ''}
+                      >
                         <TableCell className="font-medium">{service.date}</TableCell>
                         <TableCell>{service.mechanographicNumber}</TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
