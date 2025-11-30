@@ -341,6 +341,8 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
           const sheetRow = startRow + i;
           let foundDate = dateByAbsRow[sheetRow] || '';
 
+          console.log(`\n📍 Found mech ${mechNumber} at row ${sheetRow}, col ${mechCol} (json idx ${i})`);
+
           // Usar APENAS a Coluna A (data) para determinar a data
           if (!foundDate) {
             const addrA = XLSX.utils.encode_cell({ r: sheetRow, c: 0 });
@@ -391,10 +393,10 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
 
             // Check if the mechanographic number cell has gray background
             const mechAddr = XLSX.utils.encode_cell({ r: sheetRow, c: mechCol });
-            console.log(`\n🔍 Checking gray for mech cell at ${mechAddr}`);
+            console.log(`\n🔍 Checking gray for mech cell at ${mechAddr} (date: ${foundDate})`);
             const isGray = isCellGray(mechAddr);
 
-            console.log('✓ Found service (XLSX):', { 
+            console.log('✅ Found service (XLSX):', { 
               foundDate, 
               mechNumber, 
               name, 
@@ -403,6 +405,16 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
               sheetRow, 
               mechCol 
             });
+            
+            // Special log for 30/11
+            if (foundDate.includes('30/11')) {
+              console.log('🎯 SPECIAL: Service on 30/11 detected!', { 
+                isGray, 
+                mechAddr,
+                willBeFiltered: isGray ? 'YES (gray cell will be excluded)' : 'NO (will be shown)'
+              });
+            }
+            
             entries.push({ date: foundDate, mechanographicNumber: mechNumber, rawText: name, isGray });
           }
         }
