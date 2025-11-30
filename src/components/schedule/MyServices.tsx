@@ -86,7 +86,14 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       }
 
       const arrayBuffer = await response.arrayBuffer();
-      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      
+      // Read with cellStyles to preserve formatting
+      const workbook = XLSX.read(arrayBuffer, { 
+        type: 'array', 
+        cellStyles: true,
+        cellNF: true,
+        cellDates: false // Keep as serial numbers to get proper formatting
+      });
       
       // Get the first sheet
       const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -169,12 +176,19 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         // Ignore empty strings or whitespace
         if (typeof val === 'string' && val.trim() === '') return '';
         
+        console.log(`🔍 Parsing date at ${cellAddr}:`, { 
+          val, 
+          formattedText, 
+          valType: typeof val,
+          formattedType: typeof formattedText 
+        });
+        
         // PRIORITY 1: Use formatted text (cell.w) if available - this is what user sees!
         if (formattedText && typeof formattedText === 'string') {
           const m = formattedText.match(datePattern);
           if (m) {
             const normalized = normalizeDateStr(m[1]);
-            console.log(`📅 Parsed formatted text "${formattedText}" at ${cellAddr}: ${normalized}`);
+            console.log(`✅ Parsed formatted text "${formattedText}" at ${cellAddr}: ${normalized}`);
             return normalized;
           }
         }
@@ -184,7 +198,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
           const m = val.match(datePattern);
           if (m) {
             const normalized = normalizeDateStr(m[1]);
-            console.log(`📅 Parsed string "${val}" at ${cellAddr}: ${normalized}`);
+            console.log(`✅ Parsed string "${val}" at ${cellAddr}: ${normalized}`);
             return normalized;
           }
         }
@@ -195,16 +209,18 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
             const dc = XLSX.SSF.parse_date_code(val);
             if (dc) {
               const parsed = `${pad2(dc.d)}/${pad2(dc.m)}/${dc.y}`;
-              console.log(`📅 Parsed serial ${val} at ${cellAddr}: ${parsed}`);
+              console.log(`⚠️ Parsed serial ${val} at ${cellAddr}: ${parsed} (from date code: d=${dc.d}, m=${dc.m}, y=${dc.y})`);
               return parsed;
             }
           }
           if (val >= 1 && val <= 31 && headerMonth && headerYear) {
             const parsed = `${pad2(val)}/${pad2(headerMonth)}/${headerYear}`;
+            console.log(`✅ Parsed day number ${val} at ${cellAddr}: ${parsed}`);
             return parsed;
           }
         }
         
+        console.log(`❌ Could not parse date at ${cellAddr}`);
         return '';
       };
 
@@ -252,30 +268,55 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       // Helper to check if cell has gray background
       const isCellGray = (cellAddr: string): boolean => {
         const cell = (firstSheet as any)[cellAddr];
-        if (!cell || !cell.s) return false;
+        if (!cell) {
+          console.log(`❌ No cell at ${cellAddr}`);
+          return false;
+        }
+        
+        if (!cell.s) {
+          console.log(`❌ No style at ${cellAddr}`);
+          return false;
+        }
         
         const style = cell.s;
-        // Check for gray fill color
-        if (style.fgColor) {
+        console.log(`🎨 Cell ${cellAddr} style:`, JSON.stringify({
+          fgColor: style.fgColor,
+          bgColor: style.bgColor,
+          patternType: style.patternType
+        }));
+        
+        // Check fgColor (foreground/pattern color)
+        if (style.fgColor && style.fgColor.rgb) {
           const rgb = style.fgColor.rgb;
-          if (rgb) {
-            // Gray colors typically have R=G=B and are in the range C0-D0
-            const r = parseInt(rgb.substring(2, 4), 16);
-            const g = parseInt(rgb.substring(4, 6), 16);
-            const b = parseInt(rgb.substring(6, 8), 16);
-            // Consider gray if RGB values are close and in gray range (e.g., 192-224)
-            return Math.abs(r - g) < 10 && Math.abs(g - b) < 10 && r >= 192 && r <= 224;
+          const r = parseInt(rgb.substring(2, 4), 16);
+          const g = parseInt(rgb.substring(4, 6), 16);
+          const b = parseInt(rgb.substring(6, 8), 16);
+          
+          console.log(`🎨 fgColor RGB at ${cellAddr}: R=${r}, G=${g}, B=${b}`);
+          
+          // Gray if RGB values are close (within 15) and above 180 (light gray)
+          if (Math.abs(r - g) < 15 && Math.abs(g - b) < 15 && Math.abs(r - b) < 15 && r >= 180) {
+            console.log(`✅ Cell ${cellAddr} is GRAY (fgColor)`);
+            return true;
           }
         }
-        if (style.bgColor) {
+        
+        // Check bgColor (background color)
+        if (style.bgColor && style.bgColor.rgb) {
           const rgb = style.bgColor.rgb;
-          if (rgb) {
-            const r = parseInt(rgb.substring(2, 4), 16);
-            const g = parseInt(rgb.substring(4, 6), 16);
-            const b = parseInt(rgb.substring(6, 8), 16);
-            return Math.abs(r - g) < 10 && Math.abs(g - b) < 10 && r >= 192 && r <= 224;
+          const r = parseInt(rgb.substring(2, 4), 16);
+          const g = parseInt(rgb.substring(4, 6), 16);
+          const b = parseInt(rgb.substring(6, 8), 16);
+          
+          console.log(`🎨 bgColor RGB at ${cellAddr}: R=${r}, G=${g}, B=${b}`);
+          
+          if (Math.abs(r - g) < 15 && Math.abs(g - b) < 15 && Math.abs(r - b) < 15 && r >= 180) {
+            console.log(`✅ Cell ${cellAddr} is GRAY (bgColor)`);
+            return true;
           }
         }
+        
+        console.log(`❌ Cell ${cellAddr} is NOT gray`);
         return false;
       };
 
@@ -350,9 +391,18 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
 
             // Check if the mechanographic number cell has gray background
             const mechAddr = XLSX.utils.encode_cell({ r: sheetRow, c: mechCol });
+            console.log(`\n🔍 Checking gray for mech cell at ${mechAddr}`);
             const isGray = isCellGray(mechAddr);
 
-            console.log('✓ Found service (XLSX):', { foundDate, mechNumber, name, isGray });
+            console.log('✓ Found service (XLSX):', { 
+              foundDate, 
+              mechNumber, 
+              name, 
+              isGray, 
+              mechAddr, 
+              sheetRow, 
+              mechCol 
+            });
             entries.push({ date: foundDate, mechanographicNumber: mechNumber, rawText: name, isGray });
           }
         }
