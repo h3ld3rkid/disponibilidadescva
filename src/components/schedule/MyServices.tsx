@@ -410,10 +410,20 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
 
       console.log('Total entries found:', entries.length);
       
+      // Remove duplicates by date
+      const uniqueByDate = new Map<string, ServiceEntry>();
+      for (const entry of entries) {
+        if (!uniqueByDate.has(entry.date)) {
+          uniqueByDate.set(entry.date, entry);
+        }
+      }
+      const deduplicatedEntries = Array.from(uniqueByDate.values());
+      console.log('Entries after deduplication:', deduplicatedEntries.length);
+      
       // Filter out gray cells (services user should ignore)
-      const filteredEntries = entries.filter(entry => !entry.isGray);
+      const filteredEntries = deduplicatedEntries.filter(entry => !entry.isGray);
       console.log('Entries after filtering gray cells:', filteredEntries.length);
-      console.log('Gray cells filtered:', entries.length - filteredEntries.length);
+      console.log('Gray cells filtered:', deduplicatedEntries.length - filteredEntries.length);
       
       setServices(filteredEntries);
       
@@ -424,10 +434,12 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
           variant: "default",
         });
       } else {
-        const grayCount = entries.length - filteredEntries.length;
-        const description = grayCount > 0 
-          ? `Encontrados ${filteredEntries.length} serviço(s). ${grayCount} serviço(s) em células cinzentas foram excluídos.`
-          : `Encontrados ${filteredEntries.length} serviço(s) para o seu número mecanográfico.`;
+        const grayCount = deduplicatedEntries.length - filteredEntries.length;
+        const duplicateCount = entries.length - deduplicatedEntries.length;
+        
+        let description = `Encontrados ${filteredEntries.length} serviço(s).`;
+        if (duplicateCount > 0) description += ` ${duplicateCount} duplicado(s) removido(s).`;
+        if (grayCount > 0) description += ` ${grayCount} em células cinzentas excluído(s).`;
         
         toast({
           title: "Escala carregada",
