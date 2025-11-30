@@ -832,14 +832,19 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                     {services.map((service, index) => (
                       <TableRow 
                         key={index}
-                        className={service.isGray ? "bg-muted/40" : ""}
+                        className={service.isGray ? "bg-amber-50 dark:bg-amber-950/20 border-l-4 border-l-amber-500" : ""}
                       >
-                        <TableCell className="font-medium">{service.date}</TableCell>
+                        <TableCell className="font-medium">
+                          {service.isGray && <span className="mr-2">⚠️</span>}
+                          {service.date}
+                        </TableCell>
                         <TableCell>{service.mechanographicNumber}</TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                           {service.rawText}
                           {service.isGray && (
-                            <span className="ml-2 text-xs text-muted-foreground">(cancelado)</span>
+                            <span className="ml-2 inline-flex items-center px-2 py-1 rounded-md bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-xs font-medium">
+                              Serviço Cancelado
+                            </span>
                           )}
                         </TableCell>
                       </TableRow>
