@@ -409,18 +409,29 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       }
 
       console.log('Total entries found:', entries.length);
-      setServices(entries);
       
-      if (entries.length === 0) {
+      // Filter out gray cells (services user should ignore)
+      const filteredEntries = entries.filter(entry => !entry.isGray);
+      console.log('Entries after filtering gray cells:', filteredEntries.length);
+      console.log('Gray cells filtered:', entries.length - filteredEntries.length);
+      
+      setServices(filteredEntries);
+      
+      if (filteredEntries.length === 0) {
         toast({
           title: "Nenhum serviço encontrado",
-          description: "Não foram encontrados serviços para o seu número mecanográfico na escala.",
+          description: "Não foram encontrados serviços ativos para o seu número mecanográfico na escala.",
           variant: "default",
         });
       } else {
+        const grayCount = entries.length - filteredEntries.length;
+        const description = grayCount > 0 
+          ? `Encontrados ${filteredEntries.length} serviço(s). ${grayCount} serviço(s) em células cinzentas foram excluídos.`
+          : `Encontrados ${filteredEntries.length} serviço(s) para o seu número mecanográfico.`;
+        
         toast({
           title: "Escala carregada",
-          description: `Encontrados ${entries.length} serviço(s) para o seu número mecanográfico.`,
+          description,
         });
       }
     } catch (error) {
@@ -782,10 +793,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                   </TableHeader>
                   <TableBody>
                     {services.map((service, index) => (
-                      <TableRow 
-                        key={index}
-                        className={service.isGray ? 'bg-muted/50' : ''}
-                      >
+                      <TableRow key={index}>
                         <TableCell className="font-medium">{service.date}</TableCell>
                         <TableCell>{service.mechanographicNumber}</TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
