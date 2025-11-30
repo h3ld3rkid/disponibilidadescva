@@ -340,14 +340,21 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         for (const mechCol of mechIdxs) {
           const sheetRow = startRow + i;
           let foundDate = dateByAbsRow[sheetRow] || '';
+          
+          const mechAddr = XLSX.utils.encode_cell({ r: sheetRow, c: mechCol });
+          const dateAddr = XLSX.utils.encode_cell({ r: sheetRow, c: 0 });
 
-          console.log(`\n📍 Found mech ${mechNumber} at row ${sheetRow}, col ${mechCol} (json idx ${i})`);
+          console.log(`\n📍 Found mech ${mechNumber} at ${mechAddr} (sheetRow ${sheetRow}, json idx ${i})`);
+          console.log(`   🗓️  Reading date from ${dateAddr} (same row)`);
+          console.log(`   📅 Date found in dateByAbsRow[${sheetRow}]: "${foundDate}"`);
 
           // Usar APENAS a Coluna A (data) para determinar a data
           if (!foundDate) {
             const addrA = XLSX.utils.encode_cell({ r: sheetRow, c: 0 });
             const cellA = (firstSheet as any)[addrA];
+            console.log(`   ⚠️  No date in dateByAbsRow, trying to parse from ${addrA}`);
             foundDate = parseDateFromAny(cellA?.v, addrA, cellA?.w);
+            console.log(`   📅 Parsed date: "${foundDate}"`);
           }
 
           // Fallback: procurar somente na Coluna A para cima (para casos de mesclagem não detectada)
