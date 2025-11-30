@@ -405,7 +405,9 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
               mechColInExcel: String.fromCharCode(65 + mechCol) // Excel column letter
             });
             
+            const entryIndex = entries.length;
             entries.push({ date: foundDate, mechanographicNumber: mechNumber, rawText: name, isGray: false });
+            console.log(`➕ Entry #${entryIndex} added:`, { date: foundDate, mech: mechNumber });
           }
         }
       }
@@ -417,6 +419,11 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         mech: e.mechanographicNumber,
         rawText: e.rawText 
       })));
+      
+      console.log('\n🎯 FINAL ARRAY that will be shown in table:');
+      entries.forEach((e, i) => {
+        console.log(`  [${i}] Date: "${e.date}" | Mech: ${e.mechanographicNumber}`);
+      });
       
       // No deduplication - show all services as found
       setServices(entries);
