@@ -411,37 +411,26 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       }
 
       console.log('Total entries found:', entries.length);
+      console.log('📋 All entries found (raw):', entries.map((e, i) => ({ 
+        index: i,
+        date: e.date, 
+        mech: e.mechanographicNumber,
+        rawText: e.rawText 
+      })));
       
-      // Remove duplicates by date
-      const uniqueByDate = new Map<string, ServiceEntry>();
-      for (const entry of entries) {
-        if (!uniqueByDate.has(entry.date)) {
-          uniqueByDate.set(entry.date, entry);
-        }
-      }
-      const deduplicatedEntries = Array.from(uniqueByDate.values());
-      console.log('Entries after deduplication:', deduplicatedEntries.length);
+      // No deduplication - show all services as found
+      setServices(entries);
       
-      // Temporarily disabled gray cell filtering for debugging
-      console.log('📊 All services with dates:', deduplicatedEntries.map(s => ({ date: s.date, mech: s.mechanographicNumber })));
-      
-      setServices(deduplicatedEntries);
-      
-      if (deduplicatedEntries.length === 0) {
+      if (entries.length === 0) {
         toast({
           title: "Nenhum serviço encontrado",
           description: "Não foram encontrados serviços ativos para o seu número mecanográfico na escala.",
           variant: "default",
         });
       } else {
-        const duplicateCount = entries.length - deduplicatedEntries.length;
-        
-        let description = `Encontrados ${deduplicatedEntries.length} serviço(s).`;
-        if (duplicateCount > 0) description += ` ${duplicateCount} duplicado(s) removido(s).`;
-        
         toast({
           title: "Escala carregada",
-          description,
+          description: `Encontrados ${entries.length} serviço(s).`,
         });
       }
     } catch (error) {
