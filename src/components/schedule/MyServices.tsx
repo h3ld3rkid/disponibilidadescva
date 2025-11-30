@@ -420,14 +420,16 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
               }
             }
 
-            // Temporarily disabled gray cell detection for debugging
+            // Check if the mechanographic number cell has gray background
             const mechAddr = XLSX.utils.encode_cell({ r: sheetRow, c: mechCol });
+            const isGray = isCellGray(mechAddr);
             
             console.log('✅ Found service (XLSX):', { 
               foundDate, 
               mechNumber, 
               name, 
               mechAddr, 
+              isGray,
               sheetRow, 
               mechCol,
               dateRowInExcel: sheetRow + 1, // Excel row number (1-indexed)
@@ -435,8 +437,8 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
             });
             
             const entryIndex = entries.length;
-            entries.push({ date: foundDate, mechanographicNumber: mechNumber, rawText: name, isGray: false });
-            console.log(`➕ Entry #${entryIndex} added:`, { date: foundDate, mech: mechNumber });
+            entries.push({ date: foundDate, mechanographicNumber: mechNumber, rawText: name, isGray });
+            console.log(`➕ Entry #${entryIndex} added:`, { date: foundDate, mech: mechNumber, isGray });
           }
         }
       }
@@ -828,11 +830,17 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                   </TableHeader>
                   <TableBody>
                     {services.map((service, index) => (
-                      <TableRow key={index}>
+                      <TableRow 
+                        key={index}
+                        className={service.isGray ? "bg-muted/40" : ""}
+                      >
                         <TableCell className="font-medium">{service.date}</TableCell>
                         <TableCell>{service.mechanographicNumber}</TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                           {service.rawText}
+                          {service.isGray && (
+                            <span className="ml-2 text-xs text-muted-foreground">(cancelado)</span>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
