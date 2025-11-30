@@ -356,6 +356,28 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
             foundDate = parseDateFromAny(cellA?.v, addrA, cellA?.w);
             console.log(`   📅 Parsed date: "${foundDate}"`);
           }
+          
+          // Try next row if current row has no date (formula case: A366 = A359+1)
+          if (!foundDate) {
+            const nextRow = sheetRow + 1;
+            const nextDateAddr = XLSX.utils.encode_cell({ r: nextRow, c: 0 });
+            const nextDateFromMap = dateByAbsRow[nextRow];
+            
+            console.log(`   🔽 Trying NEXT row ${nextDateAddr} (sheetRow ${nextRow})`);
+            console.log(`   📅 Date in dateByAbsRow[${nextRow}]: "${nextDateFromMap}"`);
+            
+            if (nextDateFromMap) {
+              foundDate = nextDateFromMap;
+              console.log(`   ✅ Using date from NEXT row: "${foundDate}"`);
+            } else {
+              const cellNextA = (firstSheet as any)[nextDateAddr];
+              const parsedNext = parseDateFromAny(cellNextA?.v, nextDateAddr, cellNextA?.w);
+              if (parsedNext) {
+                foundDate = parsedNext;
+                console.log(`   ✅ Parsed date from NEXT row: "${foundDate}"`);
+              }
+            }
+          }
 
           // Fallback: procurar somente na Coluna A para cima (para casos de mesclagem não detectada)
           if (!foundDate) {
