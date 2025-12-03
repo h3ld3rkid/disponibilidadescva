@@ -169,6 +169,7 @@ export type Database = {
       }
       shift_exchange_requests: {
         Row: {
+          broadcast_id: string | null
           created_at: string
           email_sent: boolean | null
           email_sent_at: string | null
@@ -187,6 +188,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          broadcast_id?: string | null
           created_at?: string
           email_sent?: boolean | null
           email_sent_at?: string | null
@@ -205,6 +207,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          broadcast_id?: string | null
           created_at?: string
           email_sent?: boolean | null
           email_sent_at?: string | null

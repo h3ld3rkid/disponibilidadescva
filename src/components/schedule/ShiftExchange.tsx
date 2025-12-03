@@ -202,6 +202,9 @@ const ShiftExchange = () => {
         return;
       }
 
+      // Generate a broadcast_id to group all these requests
+      const broadcastId = crypto.randomUUID();
+
       // Create exchange request for each user
       let successCount = 0;
       let errorCount = 0;
@@ -217,7 +220,8 @@ const ShiftExchange = () => {
             requested_shift: offeredShift,
             offered_date: '', // They will provide their own
             offered_shift: '',
-            message: `[PROPOSTA GERAL] ${message || 'Disponível para troca de turno'}`
+            message: `[PROPOSTA GERAL] ${message || 'Disponível para troca de turno'}`,
+            broadcast_id: broadcastId
           });
           successCount++;
         } catch (error) {
@@ -271,7 +275,8 @@ const ShiftExchange = () => {
       case 'pending': return 'text-yellow-600';
       case 'accepted': return 'text-green-600';
       case 'rejected': return 'text-red-600';
-      default: return 'text-gray-600';
+      case 'cancelled': return 'text-muted-foreground';
+      default: return 'text-muted-foreground';
     }
   };
 
@@ -280,6 +285,7 @@ const ShiftExchange = () => {
       case 'pending': return 'Pendente';
       case 'accepted': return 'Aceite';
       case 'rejected': return 'Recusado';
+      case 'cancelled': return 'Cancelado';
       default: return status;
     }
   };
