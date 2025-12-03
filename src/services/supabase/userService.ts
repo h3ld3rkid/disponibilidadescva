@@ -12,6 +12,7 @@ interface User {
   needs_password_change?: boolean;
   allow_late_submission?: boolean;
   telegram_chat_id?: string;
+  categoria?: 'Condutor' | 'Socorrista' | 'Estagiario' | null;
 }
 
 // Define types for Supabase tables to help TypeScript understand our database schema
@@ -35,7 +36,8 @@ export const userService = {
         role: userData.role,
         password_hash: defaultPassword, // Store plaintext for now
         needs_password_change: true,
-        telegram_chat_id: null
+        telegram_chat_id: null,
+        categoria: userData.categoria || null
       }])
       .select()
       .single();
@@ -61,6 +63,7 @@ export const userService = {
       needs_password_change: data.needs_password_change,
       allow_late_submission: false, // Default value since it's not in the database yet
       telegram_chat_id: data.telegram_chat_id,
+      categoria: data.categoria as 'Condutor' | 'Socorrista' | 'Estagiario' | null,
       temporaryPassword: defaultPassword
     };
   },
@@ -119,6 +122,7 @@ export const userService = {
       ...(userData.active !== undefined && { active: userData.active }),
       ...(userData.needs_password_change !== undefined && { needs_password_change: userData.needs_password_change }),
       ...(userData.telegram_chat_id !== undefined && { telegram_chat_id: userData.telegram_chat_id }),
+      ...(userData.categoria !== undefined && { categoria: userData.categoria }),
       updated_at: new Date().toISOString()
     };
     
@@ -158,7 +162,8 @@ export const userService = {
       active: data.active,
       needs_password_change: data.needs_password_change,
       allow_late_submission: userData.allow_late_submission,
-      telegram_chat_id: data.telegram_chat_id
+      telegram_chat_id: data.telegram_chat_id,
+      categoria: data.categoria as 'Condutor' | 'Socorrista' | 'Estagiario' | null
     };
   },
   
@@ -233,7 +238,8 @@ export const userService = {
             active: user.active,
             needs_password_change: user.needs_password_change,
             allow_late_submission: setting === 'true',
-            telegram_chat_id: user.telegram_chat_id
+            telegram_chat_id: user.telegram_chat_id,
+            categoria: user.categoria as 'Condutor' | 'Socorrista' | 'Estagiario' | null
           };
         } catch (error) {
           return {
@@ -245,7 +251,8 @@ export const userService = {
             active: user.active,
             needs_password_change: user.needs_password_change,
             allow_late_submission: false,
-            telegram_chat_id: user.telegram_chat_id
+            telegram_chat_id: user.telegram_chat_id,
+            categoria: user.categoria as 'Condutor' | 'Socorrista' | 'Estagiario' | null
           };
         }
       })

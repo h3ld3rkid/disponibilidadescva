@@ -257,6 +257,7 @@ export type Database = {
       users: {
         Row: {
           active: boolean
+          categoria: string | null
           created_at: string
           email: string
           id: string
@@ -271,6 +272,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          categoria?: string | null
           created_at?: string
           email: string
           id?: string
@@ -285,6 +287,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          categoria?: string | null
           created_at?: string
           email?: string
           id?: string

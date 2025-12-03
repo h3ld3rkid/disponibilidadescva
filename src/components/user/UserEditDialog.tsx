@@ -46,6 +46,7 @@ const userEditSchema = z.object({
   role: z.union([z.literal("admin"), z.literal("user")]).refine((val) => val === "admin" || val === "user", {
     message: "Por favor, selecione um nível de acesso.",
   }),
+  categoria: z.union([z.literal("Condutor"), z.literal("Socorrista"), z.literal("Estagiario"), z.literal(""), z.null()]).optional(),
 });
 
 type UserEditValues = z.infer<typeof userEditSchema>;
@@ -59,6 +60,7 @@ interface User {
   role: 'admin' | 'user';
   active: boolean;
   needs_password_change?: boolean;
+  categoria?: 'Condutor' | 'Socorrista' | 'Estagiario' | null;
 }
 
 interface UserEditDialogProps {
@@ -79,6 +81,7 @@ const UserEditDialog = ({ user, open, onClose, onUserUpdated }: UserEditDialogPr
       email: user.email,
       mechanographicNumber: user.mechanographic_number,
       role: user.role,
+      categoria: user.categoria || '',
     },
   });
   
@@ -91,6 +94,7 @@ const UserEditDialog = ({ user, open, onClose, onUserUpdated }: UserEditDialogPr
         email: data.email,
         mechanographic_number: data.mechanographicNumber,
         role: data.role,
+        categoria: data.categoria === '' ? null : data.categoria,
       });
       
       onUserUpdated(updatedUser);
@@ -182,6 +186,30 @@ const UserEditDialog = ({ user, open, onClose, onUserUpdated }: UserEditDialogPr
                     <SelectContent>
                       <SelectItem value="user">Utilizador</SelectItem>
                       <SelectItem value="admin">Administrador</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="categoria"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Categoria</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma categoria (opcional)" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">Nenhuma</SelectItem>
+                      <SelectItem value="Condutor">Condutor</SelectItem>
+                      <SelectItem value="Socorrista">Socorrista</SelectItem>
+                      <SelectItem value="Estagiario">Estagiário</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

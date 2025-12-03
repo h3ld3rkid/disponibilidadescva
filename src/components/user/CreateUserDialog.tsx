@@ -26,6 +26,7 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
   const [email, setEmail] = useState('');
   const [mechanographicNumber, setMechanographicNumber] = useState('');
   const [role, setRole] = useState<'admin' | 'user'>('user');
+  const [categoria, setCategoria] = useState<'Condutor' | 'Socorrista' | 'Estagiario' | ''>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [temporaryPassword, setTemporaryPassword] = useState<string>('');
@@ -51,6 +52,7 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
         email,
         mechanographic_number: mechanographicNumber,
         role,
+        categoria: categoria || null,
       });
 
       setTemporaryPassword(result.temporaryPassword);
@@ -65,6 +67,7 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
       setEmail('');
       setMechanographicNumber('');
       setRole('user');
+      setCategoria('');
       setIsOpen(false);
       onUserCreated();
     } catch (error: any) {
@@ -150,6 +153,20 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
               <SelectContent>
                 <SelectItem value="user">User</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="categoria">Categoria</Label>
+            <Select value={categoria} onValueChange={(value) => setCategoria(value as 'Condutor' | 'Socorrista' | 'Estagiario' | '')}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar Categoria (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Nenhuma</SelectItem>
+                <SelectItem value="Condutor">Condutor</SelectItem>
+                <SelectItem value="Socorrista">Socorrista</SelectItem>
+                <SelectItem value="Estagiario">Estagiário</SelectItem>
               </SelectContent>
             </Select>
           </div>
