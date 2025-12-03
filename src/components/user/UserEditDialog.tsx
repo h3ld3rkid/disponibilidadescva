@@ -199,14 +199,14 @@ const UserEditDialog = ({ user, open, onClose, onUserUpdated }: UserEditDialogPr
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Categoria</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                  <Select onValueChange={(value) => field.onChange(value === 'none' ? '' : value)} value={field.value || 'none'}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione uma categoria (opcional)" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Nenhuma</SelectItem>
+                      <SelectItem value="none">Nenhuma</SelectItem>
                       <SelectItem value="Condutor">Condutor</SelectItem>
                       <SelectItem value="Socorrista">Socorrista</SelectItem>
                       <SelectItem value="Estagiario">Estagiário</SelectItem>

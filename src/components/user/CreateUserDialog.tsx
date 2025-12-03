@@ -158,12 +158,12 @@ const CreateUserDialog = ({ onUserCreated }: CreateUserDialogProps) => {
           </div>
           <div>
             <Label htmlFor="categoria">Categoria</Label>
-            <Select value={categoria} onValueChange={(value) => setCategoria(value as 'Condutor' | 'Socorrista' | 'Estagiario' | '')}>
+            <Select value={categoria || 'none'} onValueChange={(value) => setCategoria(value === 'none' ? '' : value as 'Condutor' | 'Socorrista' | 'Estagiario')}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecionar Categoria (opcional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma</SelectItem>
+                <SelectItem value="none">Nenhuma</SelectItem>
                 <SelectItem value="Condutor">Condutor</SelectItem>
                 <SelectItem value="Socorrista">Socorrista</SelectItem>
                 <SelectItem value="Estagiario">Estagiário</SelectItem>
