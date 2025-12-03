@@ -42,8 +42,18 @@ const ShiftExchange = () => {
     const storedUser = localStorage.getItem('mysqlConnection');
     if (storedUser) {
       const parsedUserInfo = JSON.parse(storedUser);
-      setUserInfo(parsedUserInfo);
-      loadUsers();
+      // Fetch user's categoria from database
+      userService.getAllUsers().then(allUsers => {
+        const currentUser = allUsers.find(u => u.email === parsedUserInfo.email);
+        setUserInfo({
+          ...parsedUserInfo,
+          categoria: currentUser?.categoria || null
+        });
+        setUsers(allUsers.filter(user => user.active));
+      }).catch(error => {
+        console.error('Error loading users:', error);
+        setUserInfo(parsedUserInfo);
+      });
       loadExchangeRequests(parsedUserInfo.email);
     }
   }, []);
