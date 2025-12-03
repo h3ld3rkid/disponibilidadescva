@@ -19,6 +19,7 @@ interface User {
   name: string;
   email: string;
   mechanographic_number: string;
+  categoria?: string | null;
 }
 
 const ShiftExchange = () => {
@@ -238,8 +239,16 @@ const ShiftExchange = () => {
     setIsSubmitting(true);
 
     try {
-      // Get all active users except current user
-      const activeUsers = users.filter(user => user.email !== userInfo.email);
+      // Get all active users except current user, filtered by categoria
+      const activeUsers = users.filter(user => {
+        if (user.email === userInfo.email) return false;
+        // If current user has a categoria, only include users with the same categoria
+        if (userInfo.categoria) {
+          return user.categoria === userInfo.categoria;
+        }
+        // If current user has no categoria, include all users
+        return true;
+      });
       
       if (activeUsers.length === 0) {
         toast({
@@ -382,7 +391,10 @@ const ShiftExchange = () => {
                 className="flex items-center gap-2"
               >
                 <Users className="h-4 w-4" />
-                Enviar para Todos
+                {userInfo.categoria === 'Condutor' ? 'Enviar para Condutores' :
+                 userInfo.categoria === 'Socorrista' ? 'Enviar para Socorristas' :
+                 userInfo.categoria === 'Estagiario' ? 'Enviar para Estagiários' :
+                 'Enviar para Todos'}
               </Button>
             </div>
           </CardHeader>
