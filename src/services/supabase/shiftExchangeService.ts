@@ -11,13 +11,14 @@ export interface ShiftExchangeRequest {
   requested_shift: string;
   offered_date: string;
   offered_shift: string;
-  status: 'pending' | 'accepted' | 'rejected';
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
   message?: string;
   created_at: string;
   updated_at: string;
   responded_at?: string;
   email_sent?: boolean;
   email_sent_at?: string;
+  broadcast_id?: string;
 }
 
 export const shiftExchangeService = {
@@ -32,6 +33,7 @@ export const shiftExchangeService = {
     offered_date: string;
     offered_shift: string;
     message?: string;
+    broadcast_id?: string;
   }): Promise<{ success: boolean; data?: ShiftExchangeRequest }> {
     console.log('=== CREATING EXCHANGE REQUEST ===');
     console.log('Request data:', data);
@@ -48,7 +50,8 @@ export const shiftExchangeService = {
           requested_shift: data.requested_shift,
           offered_date: data.offered_date,
           offered_shift: data.offered_shift,
-          message: data.message
+          message: data.message,
+          broadcast_id: data.broadcast_id
         })
         .select()
         .single();
@@ -245,6 +248,26 @@ export const shiftExchangeService = {
       }
       
       console.log('Exchange request response saved successfully');
+
+      // Se aceite e faz parte de um broadcast, cancelar os outros pedidos pendentes
+      if (status === 'accepted' && requestData.broadcast_id) {
+        console.log('Cancelling other broadcast requests with broadcast_id:', requestData.broadcast_id);
+        const { error: cancelError } = await supabase
+          .from('shift_exchange_requests')
+          .update({
+            status: 'cancelled',
+            updated_at: new Date().toISOString()
+          })
+          .eq('broadcast_id', requestData.broadcast_id)
+          .eq('status', 'pending')
+          .neq('id', requestId);
+
+        if (cancelError) {
+          console.error('Error cancelling other broadcast requests:', cancelError);
+        } else {
+          console.log('Other broadcast requests cancelled successfully');
+        }
+      }
 
       // Enviar notificação push ao utilizador que fez o pedido
       try {
