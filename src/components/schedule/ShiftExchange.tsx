@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { shiftExchangeService, ShiftExchangeRequest } from "@/services/supabase/shiftExchangeService";
 import { userService } from "@/services/supabase/userService";
-import { ArrowLeftRight, Send, Check, X, Search, Info, Users } from 'lucide-react';
+import { ArrowLeftRight, Send, Check, X, Search, Info, Users, Ban } from 'lucide-react';
 import { isWeekendOrHoliday, getDayType } from '@/utils/dateUtils';
 import ExchangeSuccessSplash from './ExchangeSuccessSplash';
 import BroadcastExchangeDialog from './BroadcastExchangeDialog';
@@ -181,6 +181,54 @@ const ShiftExchange = () => {
       toast({
         title: "Erro ao responder",
         description: "Ocorreu um erro ao responder ao pedido.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelRequest = async (requestId: string) => {
+    try {
+      const result = await shiftExchangeService.cancelExchangeRequest(requestId);
+      
+      if (result.success) {
+        toast({
+          title: "Pedido cancelado",
+          description: "O pedido de troca foi cancelado com sucesso.",
+        });
+        
+        loadExchangeRequests(userInfo.email);
+      } else {
+        throw new Error('Failed to cancel request');
+      }
+    } catch (error) {
+      console.error('Error cancelling request:', error);
+      toast({
+        title: "Erro ao cancelar",
+        description: "Ocorreu um erro ao cancelar o pedido.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelBroadcast = async (broadcastId: string) => {
+    try {
+      const result = await shiftExchangeService.cancelBroadcastRequests(broadcastId);
+      
+      if (result.success) {
+        toast({
+          title: "Proposta cancelada",
+          description: "Todos os pedidos pendentes da proposta foram cancelados.",
+        });
+        
+        loadExchangeRequests(userInfo.email);
+      } else {
+        throw new Error('Failed to cancel broadcast');
+      }
+    } catch (error) {
+      console.error('Error cancelling broadcast:', error);
+      toast({
+        title: "Erro ao cancelar",
+        description: "Ocorreu um erro ao cancelar a proposta.",
         variant: "destructive",
       });
     }
@@ -530,23 +578,24 @@ const ShiftExchange = () => {
                         const pendingCount = requests.filter(r => r.status === 'pending').length;
                         const acceptedCount = requests.filter(r => r.status === 'accepted').length;
                         const rejectedCount = requests.filter(r => r.status === 'rejected').length;
+                        const cancelledCount = requests.filter(r => r.status === 'cancelled').length;
 
                         return (
-                          <div key={key} className="border rounded-lg p-4 bg-blue-50">
+                          <div key={key} className="border rounded-lg p-4 bg-blue-50 dark:bg-blue-950/20">
                             <div className="flex justify-between items-start mb-2">
                               <div className="text-sm">
                                 <span className="font-medium">Proposta Geral Enviada</span>
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {requests.length} utilizador(es) • {pendingCount} pendente(s) • {acceptedCount} aceite(s) • {rejectedCount} recusado(s)
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {requests.length} utilizador(es) • {pendingCount} pendente(s) • {acceptedCount} aceite(s) • {rejectedCount} recusado(s){cancelledCount > 0 && ` • ${cancelledCount} cancelado(s)`}
                                 </div>
                               </div>
                             </div>
                             
-                            <div className="text-sm text-gray-600 space-y-1">
+                            <div className="text-sm text-muted-foreground space-y-1">
                               <div>
                                 <strong>Necessita de troca dia:</strong> {getShiftTypeLabel(firstRequest.requested_shift)} em{' '}
                                 {new Date(firstRequest.requested_date).toLocaleDateString('pt-PT')}
-                                <span className="text-xs text-gray-400 ml-1">
+                                <span className="text-xs text-muted-foreground ml-1">
                                   ({getDayTypeLabel(firstRequest.requested_date)})
                                 </span>
                               </div>
@@ -556,8 +605,22 @@ const ShiftExchange = () => {
                                 </div>
                               )}
                             </div>
+
+                            {pendingCount > 0 && firstRequest.broadcast_id && (
+                              <div className="flex gap-2 mt-3">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleCancelBroadcast(firstRequest.broadcast_id!)}
+                                  className="flex items-center gap-1 text-destructive hover:text-destructive"
+                                >
+                                  <Ban className="h-3 w-3" />
+                                  Cancelar Proposta ({pendingCount} pendentes)
+                                </Button>
+                              </div>
+                            )}
                             
-                            <div className="text-xs text-gray-400 mt-2">
+                            <div className="text-xs text-muted-foreground mt-2">
                               {new Date(firstRequest.created_at).toLocaleDateString('pt-PT')} às{' '}
                               {new Date(firstRequest.created_at).toLocaleTimeString('pt-PT')}
                             </div>
@@ -584,11 +647,11 @@ const ShiftExchange = () => {
                               </span>
                             </div>
                             
-                            <div className="text-sm text-gray-600 space-y-1">
+                            <div className="text-sm text-muted-foreground space-y-1">
                               <div>
                                 <strong>{isBroadcast ? 'Necessita de troca dia:' : 'Pretende:'}</strong> {getShiftTypeLabel(request.requested_shift)} em{' '}
                                 {new Date(request.requested_date).toLocaleDateString('pt-PT')}
-                                <span className="text-xs text-gray-400 ml-1">
+                                <span className="text-xs text-muted-foreground ml-1">
                                   ({getDayTypeLabel(request.requested_date)})
                                 </span>
                               </div>
@@ -596,7 +659,7 @@ const ShiftExchange = () => {
                                 <div>
                                   <strong>Oferece:</strong> {getShiftTypeLabel(request.offered_shift)} em{' '}
                                   {new Date(request.offered_date).toLocaleDateString('pt-PT')}
-                                  <span className="text-xs text-gray-400 ml-1">
+                                  <span className="text-xs text-muted-foreground ml-1">
                                     ({getDayTypeLabel(request.offered_date)})
                                   </span>
                                 </div>
@@ -608,6 +671,7 @@ const ShiftExchange = () => {
                               )}
                             </div>
                             
+                            {/* Botões para destinatário aceitar/recusar */}
                             {request.target_email === userInfo.email && request.status === 'pending' && (
                               <div className="flex gap-2 mt-3">
                                 <Button
@@ -629,8 +693,23 @@ const ShiftExchange = () => {
                                 </Button>
                               </div>
                             )}
+
+                            {/* Botão para remetente cancelar pedido pendente */}
+                            {request.requester_email === userInfo.email && request.status === 'pending' && (
+                              <div className="flex gap-2 mt-3">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleCancelRequest(request.id)}
+                                  className="flex items-center gap-1 text-destructive hover:text-destructive"
+                                >
+                                  <Ban className="h-3 w-3" />
+                                  Cancelar Pedido
+                                </Button>
+                              </div>
+                            )}
                             
-                            <div className="text-xs text-gray-400 mt-2">
+                            <div className="text-xs text-muted-foreground mt-2">
                               {new Date(request.created_at).toLocaleDateString('pt-PT')} às{' '}
                               {new Date(request.created_at).toLocaleTimeString('pt-PT')}
                             </div>

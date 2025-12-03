@@ -351,6 +351,61 @@ export const shiftExchangeService = {
     }
   },
 
+  // Cancelar um pedido de troca (pelo remetente)
+  async cancelExchangeRequest(requestId: string): Promise<{ success: boolean }> {
+    console.log('=== CANCELLING EXCHANGE REQUEST ===');
+    console.log('Request ID:', requestId);
+    
+    try {
+      const { error } = await supabase
+        .from('shift_exchange_requests')
+        .update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', requestId);
+        
+      if (error) {
+        console.error('Error cancelling exchange request:', error);
+        throw error;
+      }
+      
+      console.log('Exchange request cancelled successfully');
+      return { success: true };
+    } catch (error) {
+      console.error('Error in cancelExchangeRequest:', error);
+      return { success: false };
+    }
+  },
+
+  // Cancelar todos os pedidos de um broadcast
+  async cancelBroadcastRequests(broadcastId: string): Promise<{ success: boolean }> {
+    console.log('=== CANCELLING BROADCAST REQUESTS ===');
+    console.log('Broadcast ID:', broadcastId);
+    
+    try {
+      const { error } = await supabase
+        .from('shift_exchange_requests')
+        .update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString()
+        })
+        .eq('broadcast_id', broadcastId)
+        .eq('status', 'pending');
+        
+      if (error) {
+        console.error('Error cancelling broadcast requests:', error);
+        throw error;
+      }
+      
+      console.log('Broadcast requests cancelled successfully');
+      return { success: true };
+    } catch (error) {
+      console.error('Error in cancelBroadcastRequests:', error);
+      return { success: false };
+    }
+  },
+
   // Configurar subscrição real-time para pedidos de troca
   setupRealtimeSubscription(userEmail: string, callback: () => void) {
     console.log('=== SETTING UP EXCHANGE REQUESTS REALTIME SUBSCRIPTION ===');
