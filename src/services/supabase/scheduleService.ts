@@ -100,7 +100,10 @@ export const scheduleService = {
         return { success: false, message: validation.reason };
       }
 
-      const month = new Date().getFullYear() + '-' + String(new Date().getMonth() + 2).padStart(2, '0'); // Next month
+      // Calculate next month properly, handling year rollover
+      const now = new Date();
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const month = nextMonth.getFullYear() + '-' + String(nextMonth.getMonth() + 1).padStart(2, '0');
       console.log('Month:', month);
       
       // Check if schedule already exists for THIS SPECIFIC USER
@@ -282,7 +285,10 @@ export const scheduleService = {
     console.log('User email:', userEmail);
     
     try {
-      const month = new Date().getFullYear() + '-' + String(new Date().getMonth() + 2).padStart(2, '0');
+      // Calculate next month properly, handling year rollover
+      const now = new Date();
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const month = nextMonth.getFullYear() + '-' + String(nextMonth.getMonth() + 1).padStart(2, '0');
       
       const { error } = await supabase
         .from('schedules')
