@@ -135,13 +135,71 @@ export const exportSchedulesToPDF = async (
       doc.setTextColor(120, 120, 120);
       doc.text(`Documento gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm")}`, 195, 75, { align: 'right' });
       
-      // Sort dates chronologically
-      const sortedDates = [...schedule.dates].sort((a, b) => 
-        new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
+      // Handle both old format (array of date objects) and new format (object with shifts/overnights)
+      const scheduleData = schedule.dates;
+      let tableData: any[] = [];
+      let totalItems = 0;
+      
+      // Check if dates is an object with shifts/overnights (new format)
+      if (scheduleData && typeof scheduleData === 'object' && !Array.isArray(scheduleData)) {
+        const shifts = scheduleData.shifts || [];
+        const overnights = scheduleData.overnights || [];
+        const shiftNotes = scheduleData.shiftNotes || '';
+        const overnightNotes = scheduleData.overnightNotes || '';
+        
+        // Add shifts to table
+        if (shifts.length > 0) {
+          shifts.forEach((shift: string) => {
+            tableData.push([
+              shift,
+              'Turno',
+              shiftNotes
+            ]);
+          });
+        }
+        
+        // Add overnights to table
+        if (overnights.length > 0) {
+          overnights.forEach((overnight: string) => {
+            tableData.push([
+              overnight,
+              'Pernoita',
+              overnightNotes
+            ]);
+          });
+        }
+        
+        totalItems = shifts.length + overnights.length;
+      } else if (Array.isArray(scheduleData)) {
+        // Old format - array of date objects
+        const sortedDates = [...scheduleData].sort((a, b) => 
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+        
+        tableData = sortedDates.map((dateInfo: any) => {
+          const dateObj = new Date(dateInfo.date);
+          const dayOfWeek = dateObj.toLocaleDateString('pt-PT', { weekday: 'long' });
+          const formattedDate = format(dateObj, "d 'de' MMMM", { locale: pt });
+          const fullDate = `${dayOfWeek}, ${formattedDate}`;
+          
+          const shifts = dateInfo.shifts.map((shift: string) => 
+            shift === "manha" ? "Manhã" : 
+            shift === "tarde" ? "Tarde" : 
+            shift === "noite" ? "Noite" : shift
+          ).join(", ");
+          
+          return [
+            fullDate,
+            shifts || "Sem turnos",
+            dateInfo.notes || ""
+          ];
+        });
+        
+        totalItems = sortedDates.length;
+      }
       
       // Check if there are any schedules
-      if (sortedDates.length === 0) {
+      if (tableData.length === 0) {
         // No schedules message
         doc.setFillColor(255, 249, 196);
         doc.roundedRect(15, 90, 180, 20, 3, 3, 'F');
@@ -152,30 +210,16 @@ export const exportSchedulesToPDF = async (
         continue;
       }
       
-      // Prepare table data with improved formatting
-      const tableData = sortedDates.map((dateInfo: any) => {
-        const dateObj = new Date(dateInfo.date);
-        const dayOfWeek = dateObj.toLocaleDateString('pt-PT', { weekday: 'long' });
-        const formattedDate = format(dateObj, "d 'de' MMMM", { locale: pt });
-        const fullDate = `${dayOfWeek}, ${formattedDate}`;
-        
-        const shifts = dateInfo.shifts.map((shift: string) => 
-          shift === "manha" ? "Manhã" : 
-          shift === "tarde" ? "Tarde" : 
-          shift === "noite" ? "Noite" : shift
-        ).join(", ");
-        
-        return [
-          fullDate,
-          shifts || "Sem turnos",
-          dateInfo.notes || ""
-        ];
-      });
+      // Determine table headers based on format
+      const isNewFormat = scheduleData && typeof scheduleData === 'object' && !Array.isArray(scheduleData);
+      const headers = isNewFormat 
+        ? [['Dia/Turno', 'Tipo', 'Observações']]
+        : [['Data', 'Turnos Atribuídos', 'Observações']];
       
       // Generate schedule table with improved styling
       autoTable(doc, {
         startY: 90,
-        head: [['Data', 'Turnos Atribuídos', 'Observações']],
+        head: headers,
         body: tableData,
         theme: 'striped',
         headStyles: { 
@@ -229,10 +273,7 @@ export const exportSchedulesToPDF = async (
         doc.setTextColor(60, 60, 60);
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Total de dias com turnos: ${sortedDates.length}`, 20, finalY + 25);
-        
-        const totalShifts = sortedDates.reduce((acc, date) => acc + date.shifts.length, 0);
-        doc.text(`Total de turnos: ${totalShifts}`, 20, finalY + 30);
+        doc.text(`Total de entradas: ${totalItems}`, 20, finalY + 25);
       }
       
       // Add footer
