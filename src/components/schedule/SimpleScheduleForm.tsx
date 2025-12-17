@@ -92,6 +92,8 @@ const SimpleScheduleForm: React.FC<SimpleScheduleFormProps> = ({ userEmail: prop
         scheduleData
       );
       
+      console.log('Save schedule result:', result);
+      
       if (result.success) {
         toast({
           title: "Sucesso",
@@ -103,7 +105,12 @@ const SimpleScheduleForm: React.FC<SimpleScheduleFormProps> = ({ userEmail: prop
         setSelectedOvernights([]);
         setNotes('');
       } else {
-        throw new Error('Failed to save schedule');
+        // Show the actual validation message
+        toast({
+          title: "Não permitido",
+          description: result.message || "Não é possível submeter a escala neste momento.",
+          variant: "destructive",
+        });
       }
       
     } catch (error) {
