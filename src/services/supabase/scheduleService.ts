@@ -52,10 +52,14 @@ export const scheduleService = {
   // Check if user can submit schedule after 15th
   async canUserSubmitAfter15th(userEmail: string): Promise<boolean> {
     try {
+      console.log('Checking late submission permission for:', userEmail);
       const setting = await systemSettingsService.getSystemSetting(`allow_submission_after_15th_${userEmail}`);
-      return setting === 'true';
+      console.log('Permission setting value:', setting);
+      const hasPermission = setting === 'true';
+      console.log('Has late submission permission:', hasPermission);
+      return hasPermission;
     } catch (error) {
-      console.log('No specific permission found for user, defaulting to false');
+      console.error('Error checking permission, defaulting to false:', error);
       return false;
     }
   },
@@ -65,21 +69,32 @@ export const scheduleService = {
     const today = new Date();
     const dayOfMonth = today.getDate();
     
+    console.log('=== VALIDATION CHECK ===');
+    console.log('User email:', userEmail);
+    console.log('Today:', today.toISOString());
+    console.log('Day of month:', dayOfMonth);
+    
     // If it's before or on the 15th, always allow
     if (dayOfMonth <= 15) {
+      console.log('Day is <= 15, submission allowed');
       return { allowed: true };
     }
     
+    console.log('Day is > 15, checking user permission...');
+    
     // After 15th, check user permission
     const canSubmit = await this.canUserSubmitAfter15th(userEmail);
+    console.log('Can user submit after 15th:', canSubmit);
     
     if (!canSubmit) {
+      console.log('Submission NOT allowed - user does not have permission');
       return { 
         allowed: false, 
         reason: 'Não é possível submeter escalas após o dia 15 do mês. Contacte o administrador se necessário.' 
       };
     }
     
+    console.log('Submission allowed - user has special permission');
     return { allowed: true };
   },
 
