@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Printer, Trash2, RotateCcw, Database, CheckSquare, X } from "lucide-react";
+import { Printer, Trash2, RotateCcw, CheckSquare, XSquare } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface UserSchedulesHeaderProps {
   isAdmin: boolean;
@@ -33,35 +33,134 @@ const UserSchedulesHeader: React.FC<UserSchedulesHeaderProps> = ({
   if (!isAdmin) return null;
   
   return (
-    <div className="mb-6 space-y-4">
-      {/* Mobile Layout */}
-      <div className="flex flex-col gap-4 md:hidden">
-        <div className="flex flex-col gap-2">
-          <span className="text-sm text-muted-foreground">
-            {selectedUsers.length} utilizador(es) selecionado(s)
-          </span>
-          <div className="flex gap-2">
-            <Button 
-              onClick={onExportPDF}
-              className="flex-1 flex items-center justify-center gap-2"
-              disabled={selectedUsers.length === 0}
-              size="sm"
-            >
-              <Printer className="h-4 w-4" />
-              Imprimir Seleção
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  className="flex-1 flex items-center justify-center gap-2"
+    <TooltipProvider>
+      <div className="mb-6 space-y-4">
+        {/* Mobile Layout */}
+        <div className="flex flex-col gap-4 md:hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">
+              {selectedUsers.length} selecionado(s)
+            </span>
+            <div className="flex gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={onExportPDF}
+                    disabled={selectedUsers.length === 0}
+                    size="icon"
+                    variant="outline"
+                  >
+                    <Printer className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Imprimir Seleção</TooltipContent>
+              </Tooltip>
+              
+              <AlertDialog>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        disabled={selectedUsers.length === 0}
+                        size="icon"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Apagar Seleção</TooltipContent>
+                </Tooltip>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Apagar escalas selecionadas</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Tem a certeza que pretende apagar as escalas de {selectedUsers.length} utilizador(es)? Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={onDeleteSelected} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Apagar
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={onSelectAll}
+                    variant="outline" 
+                    size="icon"
+                  >
+                    <CheckSquare className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Selecionar Tudo</TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={onDeselectAll}
+                    variant="outline" 
+                    size="icon"
+                  >
+                    <XSquare className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Desselecionar Tudo</TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={onRefresh}
+                    variant="outline" 
+                    size="icon"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Atualizar</TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Layout */}
+        <div className="hidden md:flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  onClick={onExportPDF}
                   disabled={selectedUsers.length === 0}
-                  size="sm"
+                  size="icon"
+                  variant="outline"
                 >
-                  <Trash2 className="h-4 w-4" />
-                  Apagar Seleção
+                  <Printer className="h-4 w-4" />
                 </Button>
-              </AlertDialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Imprimir Seleção</TooltipContent>
+            </Tooltip>
+            
+            <AlertDialog>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      disabled={selectedUsers.length === 0}
+                      size="icon"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Apagar Seleção</TooltipContent>
+              </Tooltip>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Apagar escalas selecionadas</AlertDialogTitle>
@@ -77,115 +176,55 @@ const UserSchedulesHeader: React.FC<UserSchedulesHeaderProps> = ({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+            
+            <span className="text-sm text-muted-foreground ml-2">
+              {selectedUsers.length} selecionado(s)
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  onClick={onSelectAll}
+                  variant="outline" 
+                  size="icon"
+                >
+                  <CheckSquare className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Selecionar Tudo</TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  onClick={onDeselectAll}
+                  variant="outline" 
+                  size="icon"
+                >
+                  <XSquare className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Desselecionar Tudo</TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  onClick={onRefresh}
+                  variant="outline" 
+                  size="icon"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Atualizar</TooltipContent>
+            </Tooltip>
           </div>
         </div>
-        
-        <div className="flex gap-2">
-          <Button 
-            onClick={onSelectAll}
-            variant="outline" 
-            className="flex-1 flex items-center justify-center gap-2"
-            size="sm"
-          >
-            <CheckSquare className="h-4 w-4" />
-            Selecionar Tudo
-          </Button>
-          <Button 
-            onClick={onDeselectAll}
-            variant="outline" 
-            className="flex-1 flex items-center justify-center gap-2"
-            size="sm"
-          >
-            <X className="h-4 w-4" />
-            Desselecionar Tudo
-          </Button>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button 
-            onClick={onRefresh}
-            variant="outline" 
-            className="flex-1 flex items-center justify-center gap-2"
-            size="sm"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Atualizar
-          </Button>
-        </div>
       </div>
-
-      {/* Desktop Layout */}
-      <div className="hidden md:flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button 
-            onClick={onExportPDF}
-            className="flex items-center gap-2"
-            disabled={selectedUsers.length === 0}
-          >
-            <Printer className="h-4 w-4" />
-            Imprimir Seleção
-          </Button>
-          
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="destructive"
-                className="flex items-center gap-2"
-                disabled={selectedUsers.length === 0}
-              >
-                <Trash2 className="h-4 w-4" />
-                Apagar Seleção
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Apagar escalas selecionadas</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Tem a certeza que pretende apagar as escalas de {selectedUsers.length} utilizador(es)? Esta ação não pode ser desfeita.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={onDeleteSelected} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Apagar
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          
-          <span className="text-sm text-muted-foreground">
-            {selectedUsers.length} utilizador(es) selecionado(s)
-          </span>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button 
-            onClick={onSelectAll}
-            variant="outline" 
-            className="flex items-center gap-2"
-          >
-            <CheckSquare className="h-4 w-4" />
-            Selecionar Tudo
-          </Button>
-          <Button 
-            onClick={onDeselectAll}
-            variant="outline" 
-            className="flex items-center gap-2"
-          >
-            <X className="h-4 w-4" />
-            Desselecionar Tudo
-          </Button>
-          <Button 
-            onClick={onRefresh}
-            variant="outline" 
-            className="flex items-center gap-2"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Atualizar
-          </Button>
-        </div>
-      </div>
-    </div>
+    </TooltipProvider>
   );
 };
 

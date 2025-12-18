@@ -297,11 +297,15 @@ export const exportSchedulesToPDF = async (
     return;
   }
 
-  const filteredSchedules = schedules.filter(schedule => 
-    selectedUsers.includes(schedule.user_email || schedule.email)
-  );
+  const filteredSchedules = schedules
+    .filter(schedule => selectedUsers.includes(schedule.user_email || schedule.email))
+    .sort((a, b) => {
+      const nameA = (a.user_name || '').toLowerCase();
+      const nameB = (b.user_name || '').toLowerCase();
+      return nameA.localeCompare(nameB, 'pt');
+    });
   
-  console.log('Filtered schedules for PDF:', filteredSchedules);
+  console.log('Filtered schedules for PDF (sorted alphabetically):', filteredSchedules);
   console.log('Selected users:', selectedUsers);
 
   if (filteredSchedules.length === 0) {
