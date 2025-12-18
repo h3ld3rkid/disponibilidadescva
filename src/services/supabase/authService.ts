@@ -152,7 +152,13 @@ export const authService = {
   },
   
   // Check login credentials using secure authentication function
-  async checkLogin(email: string, password: string): Promise<{ success: boolean; user?: { email: string; role: string; needsPasswordChange: boolean; name: string } }> {
+  async checkLogin(email: string, password: string): Promise<{ 
+    success: boolean; 
+    user?: { email: string; role: string; needsPasswordChange: boolean; name: string };
+    locked?: boolean;
+    remainingAttempts?: number;
+    message?: string;
+  }> {
     // Validar inputs
     const emailValidation = emailSchema.safeParse(email);
     const passwordValidation = passwordSchema.safeParse(password);
@@ -180,7 +186,12 @@ export const authService = {
 
       if (!data?.success) {
         console.log('Authentication failed');
-        return { success: false };
+        return { 
+          success: false,
+          locked: data?.locked,
+          remainingAttempts: data?.remainingAttempts,
+          message: data?.message
+        };
       }
 
       console.log('Login successful for user:', email);

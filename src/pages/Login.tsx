@@ -60,12 +60,28 @@ const Login = () => {
           navigate('/dashboard');
         }
       } else {
-        // Show error toast
-        toast({
-          title: "Erro de Login",
-          description: "Email ou palavra-passe incorretos.",
-          variant: "destructive"
-        });
+        // Check if account is locked
+        if (response.locked) {
+          toast({
+            title: "Conta Bloqueada",
+            description: response.message || "A sua conta foi bloqueada. Por favor contacte o administrador.",
+            variant: "destructive"
+          });
+        } else if (response.remainingAttempts !== undefined) {
+          // Show remaining attempts warning
+          toast({
+            title: "Erro de Login",
+            description: response.message || `Credenciais incorretas. Restam ${response.remainingAttempts} tentativa(s).`,
+            variant: "destructive"
+          });
+        } else {
+          // Show generic error toast
+          toast({
+            title: "Erro de Login",
+            description: "Email ou palavra-passe incorretos.",
+            variant: "destructive"
+          });
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
