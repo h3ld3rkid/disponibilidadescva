@@ -189,10 +189,22 @@ export const userService = {
     
     const newStatus = !user.active;
     
+    // Build update data - if activating, also reset lock fields
+    const updateData: Record<string, unknown> = { 
+      active: newStatus, 
+      updated_at: new Date().toISOString() 
+    };
+    
+    // If activating the user, reset lock-related fields
+    if (newStatus === true) {
+      updateData.locked_at = null;
+      updateData.failed_login_attempts = 0;
+    }
+    
     // Then update it
     const { error: updateError } = await supabase
       .from('users')
-      .update({ active: newStatus, updated_at: new Date().toISOString() })
+      .update(updateData)
       .eq('id', userId);
     
     if (updateError) {
