@@ -350,3 +350,68 @@ export const exportSchedulesToPDF = async (
     });
   }
 };
+
+export const exportSchedulesToIndividualPDFs = async (
+  selectedUsers: string[],
+  schedules: any[],
+  toast: any
+) => {
+  if (selectedUsers.length === 0) {
+    toast({
+      title: "Nenhum utilizador selecionado",
+      description: "Por favor, selecione pelo menos um utilizador para exportar.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  const filteredSchedules = schedules
+    .filter(schedule => selectedUsers.includes(schedule.user_email || schedule.email))
+    .sort((a, b) => {
+      const nameA = (a.user_name || '').toLowerCase();
+      const nameB = (b.user_name || '').toLowerCase();
+      return nameA.localeCompare(nameB, 'pt');
+    });
+
+  if (filteredSchedules.length === 0) {
+    toast({
+      title: "Sem escalas",
+      description: "Nenhuma escala encontrada para os utilizadores selecionados.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  try {
+    for (const schedule of filteredSchedules) {
+      const doc = new jsPDF();
+      
+      await addHeader(doc, 1, 1);
+      addTitle(doc);
+      addUserInfo(doc, schedule);
+      addShifts(doc, schedule.dates);
+      addFooter(doc);
+      
+      // Create safe filename from user name
+      const userName = (schedule.user_name || schedule.user || 'utilizador').replace(/[^a-zA-Z0-9À-ÿ\s-]/g, '').trim();
+      const safeFileName = userName.replace(/\s+/g, '_');
+      
+      doc.save(`escala_${safeFileName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      
+      // Small delay to avoid browser blocking multiple downloads
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    
+    toast({
+      title: "Exportação concluída",
+      description: `Exportados ${filteredSchedules.length} ficheiro(s) PDF individual(is).`,
+    });
+  } catch (error) {
+    console.error("Erro ao exportar PDFs individuais:", error);
+    toast({
+      title: "Erro na exportação",
+      description: "Ocorreu um erro ao exportar as escalas",
+      variant: "destructive",
+    });
+  }
+};
