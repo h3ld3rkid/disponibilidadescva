@@ -63,15 +63,15 @@ const Login = () => {
         // Check if account is locked
         if (response.locked) {
           toast({
-            title: "Conta Bloqueada",
-            description: response.message || "A sua conta foi bloqueada. Por favor contacte o administrador.",
+            title: "Socorrista Bloqueado",
+            description: "Socorrista bloqueado por tentativa de login errada, contatar o administrador.",
             variant: "destructive"
           });
         } else if (response.remainingAttempts !== undefined) {
           // Show remaining attempts warning
           toast({
             title: "Erro de Login",
-            description: response.message || `Credenciais incorretas. Restam ${response.remainingAttempts} tentativa(s).`,
+            description: `Erro de login, dispõe de mais ${response.remainingAttempts} tentativa(s).`,
             variant: "destructive"
           });
         } else {
