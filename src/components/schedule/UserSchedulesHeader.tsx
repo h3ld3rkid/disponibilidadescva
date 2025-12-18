@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Printer, Trash2, RotateCcw, CheckSquare, XSquare } from "lucide-react";
+import { Printer, Trash2, RotateCcw, CheckSquare, XSquare, Files } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -11,6 +11,7 @@ interface UserSchedulesHeaderProps {
   isMigrating: boolean;
   migrationDone: boolean;
   onExportPDF: () => void;
+  onExportIndividualPDFs: () => void;
   onMigrateData: () => void;
   onRefresh: () => void;
   onDeleteSelected: () => void;
@@ -24,6 +25,7 @@ const UserSchedulesHeader: React.FC<UserSchedulesHeaderProps> = ({
   isMigrating,
   migrationDone,
   onExportPDF,
+  onExportIndividualPDFs,
   onMigrateData,
   onRefresh,
   onDeleteSelected,
@@ -53,7 +55,21 @@ const UserSchedulesHeader: React.FC<UserSchedulesHeaderProps> = ({
                     <Printer className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Imprimir Seleção</TooltipContent>
+                <TooltipContent>Imprimir Seleção (PDF único)</TooltipContent>
+              </Tooltip>
+              
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={onExportIndividualPDFs}
+                    disabled={selectedUsers.length === 0}
+                    size="icon"
+                    variant="outline"
+                  >
+                    <Files className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Exportar Ficheiros Individuais</TooltipContent>
               </Tooltip>
               
               <AlertDialog>
@@ -143,7 +159,21 @@ const UserSchedulesHeader: React.FC<UserSchedulesHeaderProps> = ({
                   <Printer className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Imprimir Seleção</TooltipContent>
+              <TooltipContent>Imprimir Seleção (PDF único)</TooltipContent>
+            </Tooltip>
+            
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  onClick={onExportIndividualPDFs}
+                  disabled={selectedUsers.length === 0}
+                  size="icon"
+                  variant="outline"
+                >
+                  <Files className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Exportar Ficheiros Individuais</TooltipContent>
             </Tooltip>
             
             <AlertDialog>
