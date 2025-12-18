@@ -53,7 +53,8 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
       description: 'Ver avisos',
       icon: Bell,
       path: '/dashboard/announcements',
-      color: 'bg-red-500 hover:bg-red-600'
+      color: 'bg-red-500 hover:bg-red-600',
+      adminOnly: true
     }
   ];
 
@@ -66,7 +67,9 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {quickActions.map((action) => (
+            {quickActions
+              .filter(action => action.adminOnly ? isAdmin : true)
+              .map((action) => (
               <Button
                 key={action.path}
                 variant="outline"
