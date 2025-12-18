@@ -17,28 +17,28 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
       title: 'Escala',
       description: 'Ver escala atual',
       icon: Calendar,
-      path: '/dashboard/schedule',
+      path: '/dashboard/current-schedule',
       color: 'bg-blue-500 hover:bg-blue-600'
     },
     {
       title: 'Disponibilidade',
       description: 'Submeter disponibilidade',
       icon: ClipboardList,
-      path: '/dashboard/schedule/submit',
+      path: '/dashboard/schedule',
       color: 'bg-green-500 hover:bg-green-600'
     },
     {
       title: 'Meus Serviços',
       description: 'Ver os meus serviços',
       icon: Briefcase,
-      path: '/dashboard/schedule/my-services',
+      path: '/dashboard/my-services',
       color: 'bg-purple-500 hover:bg-purple-600'
     },
     {
       title: 'Trocas',
       description: 'Gerir pedidos de troca',
       icon: RefreshCw,
-      path: '/dashboard/schedule/exchange',
+      path: '/dashboard/exchanges',
       color: 'bg-orange-500 hover:bg-orange-600'
     },
     {
