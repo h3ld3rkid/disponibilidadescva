@@ -26,9 +26,43 @@ serve(async (req) => {
       }
     )
 
+    // Get the authorization header to extract caller email
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      console.log('No authorization header provided')
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: No authorization header' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401 
+        }
+      )
+    }
+
+    // Decode JWT to get caller email (JWT is base64 encoded, payload is the second part)
+    const token = authHeader.replace('Bearer ', '')
+    let callerEmail: string | null = null
+    
+    try {
+      // For service role or anon key, we need to check the request body for caller info
+      // But first, let's try to get the caller's identity from the token if it's a user JWT
+      const parts = token.split('.')
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]))
+        callerEmail = payload.email || null
+      }
+    } catch (e) {
+      console.log('Could not decode JWT payload, checking request body for caller email')
+    }
+
     // Get the request data
     const requestData = await req.json()
-    const { userId } = requestData
+    const { userId, callerEmail: bodyCallerEmail } = requestData
+
+    // Use caller email from request body if not found in token
+    if (!callerEmail && bodyCallerEmail) {
+      callerEmail = bodyCallerEmail
+    }
 
     if (!userId) {
       return new Response(
@@ -40,7 +74,55 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Attempting to delete user with ID: ${userId}`)
+    // Validate that the caller is an admin
+    if (!callerEmail) {
+      console.log('Could not determine caller identity')
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Could not determine caller identity' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401 
+        }
+      )
+    }
+
+    // Create admin client to check caller's role (bypasses RLS)
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    const { data: callerData, error: callerError } = await supabaseAdmin
+      .from('users')
+      .select('role, is_admin')
+      .eq('email', callerEmail)
+      .single()
+
+    if (callerError || !callerData) {
+      console.log('Could not verify caller role:', callerError?.message)
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: Could not verify caller permissions' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401 
+        }
+      )
+    }
+
+    // Check if caller is admin (either by role or is_admin flag)
+    const isAdmin = callerData.role === 'admin' || callerData.is_admin === true
+    if (!isAdmin) {
+      console.log('Non-admin user attempted to delete user:', callerEmail)
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: Admin access required to delete users' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 403 
+        }
+      )
+    }
+
+    console.log(`Admin ${callerEmail} attempting to delete user with ID: ${userId}`)
 
     // First, get the user email for local storage cleanup
     const { data: userData, error: userError } = await supabaseClient

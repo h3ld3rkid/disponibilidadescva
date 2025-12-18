@@ -68,14 +68,25 @@ export const userService = {
     };
   },
 
-  // Delete a user - Enhanced to use the Edge Function
+  // Delete a user - Enhanced to use the Edge Function with admin validation
   async deleteUser(userId: string): Promise<{ success: boolean; message?: string; email?: string }> {
-    console.log('Supabase: Attempting to delete user with ID:', userId);
+    // Get caller email from session for admin validation
+    const sessionData = localStorage.getItem('mysqlConnection');
+    let callerEmail: string | null = null;
+    
+    if (sessionData) {
+      try {
+        const session = JSON.parse(sessionData);
+        callerEmail = session.email || null;
+      } catch (e) {
+        console.error('Could not parse session data');
+      }
+    }
     
     try {
-      // Call the Edge Function to delete the user
+      // Call the Edge Function to delete the user with caller email for admin validation
       const { data, error } = await supabase.functions.invoke('delete-user', {
-        body: { userId }
+        body: { userId, callerEmail }
       });
       
       console.log('Supabase: Delete user function response:', data, error);
