@@ -63,7 +63,7 @@ const Login = () => {
         // Check if account is locked
         if (response.locked) {
           toast({
-            title: "Socorrista Bloqueado",
+            title: "User Bloqueado",
             description: "Socorrista bloqueado por tentativa de login errada, contatar o administrador.",
             variant: "destructive"
           });
