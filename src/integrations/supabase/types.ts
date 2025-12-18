@@ -260,8 +260,10 @@ export type Database = {
           categoria: string | null
           created_at: string
           email: string
+          failed_login_attempts: number | null
           id: string
           is_admin: boolean | null
+          locked_at: string | null
           mechanographic_number: string
           name: string
           needs_password_change: boolean
@@ -275,8 +277,10 @@ export type Database = {
           categoria?: string | null
           created_at?: string
           email: string
+          failed_login_attempts?: number | null
           id?: string
           is_admin?: boolean | null
+          locked_at?: string | null
           mechanographic_number: string
           name: string
           needs_password_change?: boolean
@@ -290,8 +294,10 @@ export type Database = {
           categoria?: string | null
           created_at?: string
           email?: string
+          failed_login_attempts?: number | null
           id?: string
           is_admin?: boolean | null
+          locked_at?: string | null
           mechanographic_number?: string
           name?: string
           needs_password_change?: boolean
