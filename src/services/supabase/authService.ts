@@ -14,7 +14,7 @@ export const authService = {
       throw new Error('Email inválido');
     }
     
-    console.log('Supabase: Password reset requested for', email);
+    // Password reset requested - email not logged for security
     
     const { error } = await supabase
       .from('password_reset_requests')
@@ -55,7 +55,7 @@ export const authService = {
       throw new Error('Email inválido');
     }
     
-    console.log('Supabase: Resetting password for', email);
+    // Resetting password - email not logged for security
     
     try {
       // Generate a simple temporary password
@@ -99,8 +99,7 @@ export const authService = {
         console.log('Warning: Could not mark reset request as fulfilled, but password was reset');
       }
       
-      console.log('Password successfully reset with secure hash for user:', email);
-      console.log('Temporary password:', tempPassword);
+      // Password reset successful - credentials not logged for security
       return { success: true, temporaryPassword: tempPassword };
     } catch (error) {
       console.error('Error in resetPassword:', error);
@@ -122,7 +121,7 @@ export const authService = {
       throw new Error('A senha deve ter no mínimo 6 caracteres');
     }
     
-    console.log('Supabase: Changing password for', email);
+    // Changing password - email not logged for security
     
     // Hash da nova senha
     const { data: hashData, error: hashError } = await supabase.functions.invoke('hash-password', {
@@ -168,7 +167,7 @@ export const authService = {
       return { success: false };
     }
     
-    console.log('Supabase: Checking login for', email);
+    // Checking login credentials
     
     try {
       // Usar edge function segura com bcrypt
@@ -194,7 +193,7 @@ export const authService = {
         };
       }
 
-      console.log('Login successful for user:', email);
+      // Login successful
       return { 
         success: true,
         user: data.user

@@ -22,7 +22,7 @@ type UsersTable = Tables['users']['Row'];
 export const userService = {
   // Create a new user - simplified without hashing
   async createUser(userData: Omit<User, 'id' | 'active'>): Promise<User & { temporaryPassword: string }> {
-    console.log('Supabase: Creating user', userData);
+    // Creating new user - data not logged for security
     
     // Generate a simple default password
     const defaultPassword = 'CVAmares_' + Math.random().toString(36).substr(2, 8);
@@ -51,7 +51,7 @@ export const userService = {
       throw new Error('No data returned from create user operation');
     }
     
-    console.log('User created with temporary password:', defaultPassword);
+    // User created - credentials not logged for security
     
     return {
       id: data.id,
