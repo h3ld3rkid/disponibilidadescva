@@ -5,6 +5,7 @@ import { scheduleService } from './scheduleService';
 import { announcementService } from './announcementService';
 import { systemSettingsService } from './systemSettingsService';
 import { shiftExchangeService } from './shiftExchangeService';
+import { roleService } from './roleService';
 
 export const supabaseService = {
   ...userService,
@@ -21,5 +22,6 @@ export {
   scheduleService, 
   announcementService, 
   systemSettingsService,
-  shiftExchangeService 
+  shiftExchangeService,
+  roleService 
 };
