@@ -36,6 +36,7 @@ import { AdminNotifications } from '@/components/admin/AdminNotifications';
 import { PushNotificationManager } from '@/components/push/PushNotificationManager';
 import { userService } from "@/services/supabase/userService";
 import { sessionManager } from '@/services/sessionManager';
+import { roleService } from '@/services/supabase/roleService';
 
 interface NavbarProps {
   email: string;
@@ -45,10 +46,22 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [userInfo, setUserInfo] = useState<any>(null);
+  const [verifiedAdmin, setVerifiedAdmin] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const isAdmin = role === 'admin';
+
+  // Verificar role na BD ao montar o componente
+  useEffect(() => {
+    const verifyRole = async () => {
+      const { isAdmin } = await roleService.getUserRole(email);
+      setVerifiedAdmin(isAdmin);
+    };
+    verifyRole();
+  }, [email]);
+
+  // Usar role verificado na BD em vez do prop
+  const isAdmin = verifiedAdmin;
 
   useEffect(() => {
     const fetchUserInfo = async () => {

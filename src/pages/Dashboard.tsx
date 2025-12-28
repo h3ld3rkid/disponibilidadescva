@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
 import Navbar from '@/components/Navbar';
@@ -21,6 +21,7 @@ import SessionTimer from '@/components/auth/SessionTimer';
 import PDFAdditionalConfig from '@/pages/PDFAdditionalConfig';
 import XLSXConfig from '@/pages/XLSXConfig';
 import { sessionManager } from '@/services/sessionManager';
+import { roleService } from '@/services/supabase/roleService';
 
 interface UserInfo {
   email: string;
@@ -32,20 +33,34 @@ const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [verifiedAdmin, setVerifiedAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [forceUpdate, setForceUpdate] = useState(0);
   const [currentPath, setCurrentPath] = useState<string>(window.location.pathname);
   const [showExchangeSplash, setShowExchangeSplash] = useState(false);
 
-  const updateUserInfo = () => {
+  // Verifica o role na BD - função segura
+  const verifyUserRole = useCallback(async (email: string) => {
+    try {
+      const { isAdmin } = await roleService.getUserRole(email);
+      setVerifiedAdmin(isAdmin);
+    } catch (error) {
+      console.error('Error verifying user role:', error);
+      setVerifiedAdmin(false);
+    }
+  }, []);
+
+  const updateUserInfo = useCallback(async () => {
     const session = sessionManager.getCurrentSession();
     if (session) {
       setUserInfo({
         email: session.email,
-        role: session.role,
+        role: session.role, // Usado apenas para UI inicial, não para segurança
         isConnected: session.isConnected
       });
-      console.log("User info updated:", session);
+      
+      // Verificar role na BD para decisões de segurança
+      await verifyUserRole(session.email);
       
       // Check if splash should be shown (once per session)
       const splashKey = `exchange-splash-${session.email}`;
@@ -63,7 +78,7 @@ const Dashboard = () => {
       });
       navigate('/login');
     }
-  };
+  }, [navigate, toast, verifyUserRole]);
 
   useEffect(() => {
     const handlePathChange = () => {
@@ -78,22 +93,22 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    updateUserInfo();
-    setLoading(false);
+    const init = async () => {
+      await updateUserInfo();
+      setLoading(false);
+    };
+    init();
     
-    const handleRoleChange = () => {
-      console.log("Role change event detected");
-      updateUserInfo();
+    const handleRoleChange = async () => {
+      await updateUserInfo();
       setForceUpdate(prev => prev + 1);
     };
     
     const handleAnnouncementsChange = () => {
-      console.log("Announcements change event detected");
       setForceUpdate(prev => prev + 1);
     };
     
     const handleSchedulesChange = () => {
-      console.log("Schedule change event detected");
       setForceUpdate(prev => prev + 1);
     };
     
@@ -101,17 +116,21 @@ const Dashboard = () => {
     window.addEventListener('announcementsChanged', handleAnnouncementsChange);
     window.addEventListener('schedulesChanged', handleSchedulesChange);
     
-    const userInfoTimer = setInterval(() => {
-      updateUserInfo();
-    }, 2000);
+    // Verificar role periodicamente na BD (a cada 30 segundos para não sobrecarregar)
+    const roleCheckTimer = setInterval(async () => {
+      const email = roleService.getCurrentUserEmail();
+      if (email) {
+        await verifyUserRole(email);
+      }
+    }, 30000);
     
     return () => {
       window.removeEventListener('userRoleChanged', handleRoleChange);
       window.removeEventListener('announcementsChanged', handleAnnouncementsChange);
       window.removeEventListener('schedulesChanged', handleSchedulesChange);
-      clearInterval(userInfoTimer);
+      clearInterval(roleCheckTimer);
     };
-  }, [navigate, toast]);
+  }, [updateUserInfo, verifyUserRole]);
 
 
   if (loading) {
@@ -126,15 +145,15 @@ const Dashboard = () => {
     return null;
   }
 
-  const isAdmin = userInfo.role === 'admin';
-
+  // IMPORTANTE: verifiedAdmin é verificado na BD, isAdmin é do localStorage (apenas para UI)
+  // Para proteção de rotas, usamos verifiedAdmin
   const checkAdminRoute = (element: React.ReactNode) => {
-    return isAdmin ? element : <Navigate to="/dashboard" replace />;
+    return verifiedAdmin ? element : <Navigate to="/dashboard" replace />;
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Navbar key={`nav-${forceUpdate}`} email={userInfo.email} role={userInfo.role} />
+      <Navbar key={`nav-${forceUpdate}`} email={userInfo.email} role={verifiedAdmin ? 'admin' : 'user'} />
       
       <div className="bg-white border-b border-gray-200 py-4">
         <div className="container mx-auto px-4 flex items-center">
@@ -160,9 +179,9 @@ const Dashboard = () => {
       <div className="flex-1">
         <div className="w-full max-w-[1440px] mx-auto px-4">
           <Routes>
-            <Route path="/" element={<Home userEmail={userInfo.email} isAdmin={isAdmin} />} />
-            <Route path="/schedule" element={<ScheduleCalendar key={`schedule-calendar-${forceUpdate}`} userEmail={userInfo.email} isAdmin={isAdmin} />} />
-            <Route path="/current-schedule" element={<CurrentSchedule isAdmin={isAdmin} />} />
+            <Route path="/" element={<Home userEmail={userInfo.email} isAdmin={verifiedAdmin} />} />
+            <Route path="/schedule" element={<ScheduleCalendar key={`schedule-calendar-${forceUpdate}`} userEmail={userInfo.email} isAdmin={verifiedAdmin} />} />
+            <Route path="/current-schedule" element={<CurrentSchedule isAdmin={verifiedAdmin} />} />
             <Route path="/my-services" element={<MyServices />} />
             <Route path="/profile" element={<ProfileEdit />} />
             <Route path="/exchanges" element={<ShiftExchange />} />
