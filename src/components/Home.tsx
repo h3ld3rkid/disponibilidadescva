@@ -66,28 +66,22 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
           <CardDescription>Navegue rapidamente para as funcionalidades principais</CardDescription>
         </CardHeader>
         <CardContent>
-          {(() => {
-            const filteredActions = quickActions.filter(action => action.adminOnly ? isAdmin : true);
-            const gridCols = filteredActions.length === 5 
-              ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-5" 
-              : "grid-cols-2 md:grid-cols-3 lg:grid-cols-6";
-            return (
-              <div className={`grid ${gridCols} gap-4`}>
-                {filteredActions.map((action) => (
-              <Button
-                key={action.path}
-                variant="outline"
-                className={`h-auto flex flex-col items-center justify-center gap-2 p-4 text-white border-0 ${action.color}`}
-                onClick={() => navigate(action.path)}
-              >
-                <action.icon className="h-8 w-8" />
-                <span className="font-medium text-sm">{action.title}</span>
-                <span className="text-xs opacity-80 text-center">{action.description}</span>
-              </Button>
-                ))}
-              </div>
-            );
-          })()}
+          <div className="flex flex-wrap justify-center gap-4">
+            {quickActions
+              .filter(action => action.adminOnly ? isAdmin : true)
+              .map((action) => (
+                <Button
+                  key={action.path}
+                  variant="outline"
+                  className={`h-auto flex flex-col items-center justify-center gap-2 p-4 text-white border-0 w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.75rem)] lg:w-[calc(16.666%-0.875rem)] min-w-[140px] ${action.color}`}
+                  onClick={() => navigate(action.path)}
+                >
+                  <action.icon className="h-8 w-8" />
+                  <span className="font-medium text-sm">{action.title}</span>
+                  <span className="text-xs opacity-80 text-center">{action.description}</span>
+                </Button>
+              ))}
+          </div>
         </CardContent>
       </Card>
     </div>
