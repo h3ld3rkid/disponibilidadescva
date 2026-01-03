@@ -66,10 +66,14 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
           <CardDescription>Navegue rapidamente para as funcionalidades principais</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {quickActions
-              .filter(action => action.adminOnly ? isAdmin : true)
-              .map((action) => (
+          {(() => {
+            const filteredActions = quickActions.filter(action => action.adminOnly ? isAdmin : true);
+            const gridCols = filteredActions.length === 5 
+              ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-5" 
+              : "grid-cols-2 md:grid-cols-3 lg:grid-cols-6";
+            return (
+              <div className={`grid ${gridCols} gap-4`}>
+                {filteredActions.map((action) => (
               <Button
                 key={action.path}
                 variant="outline"
@@ -80,8 +84,10 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
                 <span className="font-medium text-sm">{action.title}</span>
                 <span className="text-xs opacity-80 text-center">{action.description}</span>
               </Button>
-            ))}
-          </div>
+                ))}
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
     </div>
