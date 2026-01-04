@@ -32,7 +32,11 @@ const UserItem: React.FC<UserItemProps> = ({
   onDelete
 }) => {
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between p-4 border rounded-lg hover:bg-gray-50 gap-4">
+    <div className={`flex flex-col md:flex-row md:items-center justify-between p-4 border rounded-lg gap-4 ${
+      !user.active 
+        ? 'bg-orange-50 border-orange-300 hover:bg-orange-100' 
+        : 'hover:bg-gray-50'
+    }`}>
       <div className="flex-1 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
           <div className="font-medium text-gray-900 truncate">{user.name}</div>
