@@ -158,6 +158,28 @@ serve(async (req) => {
       )
     }
 
+    // Se o utilizador está ativo mas ficou com estado de bloqueio/contador antigo (ex.: desbloqueio manual), normalizar
+    const currentAttempts = user.failed_login_attempts ?? 0
+    if (currentAttempts >= MAX_LOGIN_ATTEMPTS || user.locked_at) {
+      console.log('Normalizing lockout state for active user:', email, {
+        failed_login_attempts: currentAttempts,
+        locked_at: user.locked_at,
+      })
+
+      const { error: normalizeError } = await supabaseClient
+        .from('users')
+        .update({ failed_login_attempts: 0, locked_at: null })
+        .eq('id', user.id)
+
+      if (normalizeError) {
+        console.error('Error normalizing lockout state:', normalizeError)
+      }
+
+      // manter o estado local consistente para o resto desta execução
+      user.failed_login_attempts = 0
+      user.locked_at = null
+    }
+
     // Verificar se password está em hash scrypt ou texto plano
     let isValid = false
     
@@ -240,12 +262,16 @@ serve(async (req) => {
       }
     }
 
-    // Login bem-sucedido - resetar contador de tentativas
-    if (user.failed_login_attempts > 0) {
-      await supabaseClient
+    // Login bem-sucedido - resetar contador de tentativas e limpar lock timestamp
+    if ((user.failed_login_attempts ?? 0) > 0 || user.locked_at) {
+      const { error: resetError } = await supabaseClient
         .from('users')
-        .update({ failed_login_attempts: 0 })
+        .update({ failed_login_attempts: 0, locked_at: null })
         .eq('id', user.id)
+
+      if (resetError) {
+        console.error('Error resetting failed_login_attempts after successful login:', resetError)
+      }
     }
 
     console.log('Login successful for:', email)
