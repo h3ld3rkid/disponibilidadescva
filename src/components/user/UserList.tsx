@@ -39,9 +39,15 @@ const UserList: React.FC<UserListProps> = ({
   const { toast } = useToast();
 
   const sortedUsers = useMemo(() => {
-    if (sortOrder === 'none') return users;
-    
     return [...users].sort((a, b) => {
+      // Inativos vão para o fim
+      if (a.active !== b.active) {
+        return a.active ? -1 : 1;
+      }
+      
+      // Dentro do mesmo grupo (ativos ou inativos), ordenar por nome
+      if (sortOrder === 'none') return 0;
+      
       const nameA = a.name.toLowerCase();
       const nameB = b.name.toLowerCase();
       
