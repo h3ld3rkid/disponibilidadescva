@@ -10,6 +10,18 @@ import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import * as XLSX from 'xlsx';
 
 // Configure PDF.js worker
+
+// Helper to get weekday name in Portuguese from a date string (DD/MM/YYYY)
+const getWeekdayName = (dateStr: string): string => {
+  const weekdays = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+  const parts = dateStr.split('/');
+  if (parts.length !== 3) return '';
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const year = parseInt(parts[2], 10);
+  const date = new Date(year, month, day);
+  return weekdays[date.getDay()];
+};
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 interface ServiceEntry {
@@ -834,7 +846,9 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                       <TableBody>
                         {services.filter(s => !s.isGray).map((service, index) => (
                           <TableRow key={index}>
-                            <TableCell className="font-medium">{service.date}</TableCell>
+                            <TableCell className="font-medium">
+                              {service.date} <span className="text-muted-foreground">({getWeekdayName(service.date)})</span>
+                            </TableCell>
                             <TableCell>{service.mechanographicNumber}</TableCell>
                             <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                               {service.rawText}
@@ -871,7 +885,9 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                             key={index}
                             className="bg-yellow-50 dark:bg-yellow-950/10"
                           >
-                            <TableCell className="font-medium">{service.date}</TableCell>
+                            <TableCell className="font-medium">
+                              {service.date} <span className="text-muted-foreground">({getWeekdayName(service.date)})</span>
+                            </TableCell>
                             <TableCell>{service.mechanographicNumber}</TableCell>
                             <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                               {service.rawText}
