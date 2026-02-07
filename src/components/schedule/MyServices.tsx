@@ -824,81 +824,41 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
               </p>
             </div>
           ) : (
-            <div className="space-y-6">
-              {/* Serviços Normais */}
-              {services.filter(s => !s.isGray).length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold">Serviços Agendados</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {services.filter(s => !s.isGray).length} serviço(s)
-                    </p>
-                  </div>
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Número Mecanográfico</TableHead>
-                          <TableHead className="hidden md:table-cell">Informação Completa</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {services.filter(s => !s.isGray).map((service, index) => (
-                          <TableRow key={index}>
-                            <TableCell className="font-medium">
-                              {service.date} <span className="text-muted-foreground">({getWeekdayName(service.date)})</span>
-                            </TableCell>
-                            <TableCell>{service.mechanographicNumber}</TableCell>
-                            <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                              {service.rawText}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              )}
-
-              {/* Serviços Destacados (células cinzentas) */}
-              {services.filter(s => s.isGray).length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400">🌙 Turnos Noturnos</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {services.filter(s => s.isGray).length} serviço(s)
-                    </p>
-                  </div>
-                  <div className="rounded-md border border-blue-200 dark:border-blue-900">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-blue-100 dark:bg-blue-950/30">
-                          <TableHead>Data</TableHead>
-                          <TableHead>Número Mecanográfico</TableHead>
-                          <TableHead className="hidden md:table-cell">Informação Completa</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {services.filter(s => s.isGray).map((service, index) => (
-                          <TableRow 
-                            key={index}
-                            className="bg-blue-50 dark:bg-blue-950/20"
-                          >
-                            <TableCell className="font-medium">
-                              {service.date} <span className="text-muted-foreground">({getWeekdayName(service.date)})</span>
-                            </TableCell>
-                            <TableCell>{service.mechanographicNumber}</TableCell>
-                            <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                              {service.rawText}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              )}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold">Serviços Agendados</h3>
+                <p className="text-sm text-muted-foreground">
+                  {services.length} serviço(s) • {services.filter(s => s.isGray).length} noturno(s)
+                </p>
+              </div>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Número Mecanográfico</TableHead>
+                      <TableHead className="hidden md:table-cell">Informação Completa</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {services.map((service, index) => (
+                      <TableRow 
+                        key={index}
+                        className={service.isGray ? "bg-blue-50 dark:bg-blue-950/20" : ""}
+                      >
+                        <TableCell className="font-medium">
+                          {service.date} <span className="text-muted-foreground">({getWeekdayName(service.date)})</span>
+                          {service.isGray && <span className="ml-2 text-blue-600 dark:text-blue-400">🌙</span>}
+                        </TableCell>
+                        <TableCell>{service.mechanographicNumber}</TableCell>
+                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
+                          {service.rawText}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </CardContent>
