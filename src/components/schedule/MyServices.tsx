@@ -277,58 +277,72 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         return toPtDate(d);
       };
 
-      // Helper to check if cell has gray background
+      // Helper to check if cell has gray-ish background (Excel may store it as different gray tones or theme colors)
       const isCellGray = (cellAddr: string): boolean => {
+        type RGB = { r: number; g: number; b: number };
+
+        const parseRgbHex = (hex: string): RGB | null => {
+          if (!hex) return null;
+          const clean = hex.replace(/^#/, '').toUpperCase();
+          const rgbHex = clean.length === 8 ? clean.slice(2) : clean.length === 6 ? clean : '';
+          if (!rgbHex || rgbHex.length !== 6) return null;
+          const r = parseInt(rgbHex.slice(0, 2), 16);
+          const g = parseInt(rgbHex.slice(2, 4), 16);
+          const b = parseInt(rgbHex.slice(4, 6), 16);
+          if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
+          return { r, g, b };
+        };
+
+        const extractRgb = (color: any): RGB | null => {
+          if (!color) return null;
+          if (typeof color === 'string') return parseRgbHex(color);
+          if (typeof color.rgb === 'string') return parseRgbHex(color.rgb);
+          return null;
+        };
+
+        const isGrayish = ({ r, g, b }: RGB): boolean => {
+          const max = Math.max(r, g, b);
+          const min = Math.min(r, g, b);
+          const delta = max - min;
+          // Low chroma (near gray) and not too close to pure white
+          return delta <= 20 && max >= 40 && max <= 245;
+        };
+
         const cell = (firstSheet as any)[cellAddr];
-        if (!cell) {
-          console.log(`❌ No cell at ${cellAddr}`);
-          return false;
-        }
-        
-        if (!cell.s) {
-          console.log(`❌ No style at ${cellAddr}`);
-          return false;
-        }
-        
+        if (!cell) return false;
+        if (!cell.s) return false;
+
         const style = cell.s;
-        console.log(`🎨 Cell ${cellAddr} style:`, JSON.stringify({
-          fgColor: style.fgColor,
-          bgColor: style.bgColor,
-          patternType: style.patternType
-        }));
-        
-        // Check fgColor (foreground/pattern color)
-        if (style.fgColor && style.fgColor.rgb) {
-          const rgb = style.fgColor.rgb;
-          const r = parseInt(rgb.substring(2, 4), 16);
-          const g = parseInt(rgb.substring(4, 6), 16);
-          const b = parseInt(rgb.substring(6, 8), 16);
-          
-          console.log(`🎨 fgColor RGB at ${cellAddr}: R=${r}, G=${g}, B=${b}`);
-          
-          // Gray if RGB values are close (within 15) and above 180 (light gray)
-          if (Math.abs(r - g) < 15 && Math.abs(g - b) < 15 && Math.abs(r - b) < 15 && r >= 180) {
-            console.log(`✅ Cell ${cellAddr} is GRAY (fgColor)`);
-            return true;
-          }
+        const patternType = style.patternType ?? style.fill?.patternType;
+
+        const rgb =
+          extractRgb(style.fgColor) ||
+          extractRgb(style.bgColor) ||
+          extractRgb(style.fill?.fgColor) ||
+          extractRgb(style.fill?.bgColor);
+
+        if (rgb) {
+          const gray = isGrayish(rgb);
+          console.log(`🎨 ${cellAddr} fill RGB`, { ...rgb, gray });
+          return gray;
         }
-        
-        // Check bgColor (background color)
-        if (style.bgColor && style.bgColor.rgb) {
-          const rgb = style.bgColor.rgb;
-          const r = parseInt(rgb.substring(2, 4), 16);
-          const g = parseInt(rgb.substring(4, 6), 16);
-          const b = parseInt(rgb.substring(6, 8), 16);
-          
-          console.log(`🎨 bgColor RGB at ${cellAddr}: R=${r}, G=${g}, B=${b}`);
-          
-          if (Math.abs(r - g) < 15 && Math.abs(g - b) < 15 && Math.abs(r - b) < 15 && r >= 180) {
-            console.log(`✅ Cell ${cellAddr} is GRAY (bgColor)`);
-            return true;
-          }
+
+        const hasThemeOrIndexedFill =
+          (style.fgColor && (style.fgColor.theme !== undefined || style.fgColor.indexed !== undefined)) ||
+          (style.bgColor && (style.bgColor.theme !== undefined || style.bgColor.indexed !== undefined)) ||
+          (style.fill?.fgColor && (style.fill.fgColor.theme !== undefined || style.fill.fgColor.indexed !== undefined)) ||
+          (style.fill?.bgColor && (style.fill.bgColor.theme !== undefined || style.fill.bgColor.indexed !== undefined));
+
+        // Fallback: if Excel stores fill as theme/indexed and we can't resolve RGB, treat filled cells as gray-highlight.
+        if (hasThemeOrIndexedFill && patternType !== 'none') {
+          console.log(`⚠️ ${cellAddr} has theme/indexed fill without RGB; treating as gray/highlight.`, {
+            patternType,
+            fgColor: style.fgColor,
+            bgColor: style.bgColor,
+          });
+          return true;
         }
-        
-        console.log(`❌ Cell ${cellAddr} is NOT gray`);
+
         return false;
       };
 
@@ -432,9 +446,11 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
               }
             }
 
-            // Check if the mechanographic number cell has gray background
+            // Check if the row has gray-ish background (Excel may apply formatting to a different column)
             const mechAddr = XLSX.utils.encode_cell({ r: sheetRow, c: mechCol });
-            const isGray = isCellGray(mechAddr);
+            const dateAddr = XLSX.utils.encode_cell({ r: sheetRow, c: 0 });
+            const nameAddr = XLSX.utils.encode_cell({ r: sheetRow, c: 2 });
+            const isGray = isCellGray(mechAddr) || isCellGray(dateAddr) || isCellGray(nameAddr);
             
             console.log('✅ Found service (XLSX):', { 
               foundDate, 
@@ -844,11 +860,11 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                     {services.map((service, index) => (
                       <TableRow 
                         key={index}
-                        className={service.isGray ? "bg-blue-50 dark:bg-blue-950/20" : ""}
+                        className={service.isGray ? "bg-accent/70" : ""}
                       >
                         <TableCell className="font-medium">
                           {service.date} <span className="text-muted-foreground">({getWeekdayName(service.date)})</span>
-                          {service.isGray && <span className="ml-2 text-blue-600 dark:text-blue-400">🌙</span>}
+                          {service.isGray && <span className="ml-2 text-muted-foreground">🌙</span>}
                         </TableCell>
                         <TableCell>{service.mechanographicNumber}</TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
