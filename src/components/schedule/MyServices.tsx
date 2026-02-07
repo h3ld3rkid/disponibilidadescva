@@ -865,15 +865,15 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
               {services.filter(s => s.isGray).length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold">Serviços Destacados</h3>
+                    <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400">🌙 Turnos Noturnos</h3>
                     <p className="text-sm text-muted-foreground">
                       {services.filter(s => s.isGray).length} serviço(s)
                     </p>
                   </div>
-                  <div className="rounded-md border border-yellow-200 dark:border-yellow-900">
+                  <div className="rounded-md border border-blue-200 dark:border-blue-900">
                     <Table>
                       <TableHeader>
-                        <TableRow className="bg-yellow-50 dark:bg-yellow-950/10">
+                        <TableRow className="bg-blue-100 dark:bg-blue-950/30">
                           <TableHead>Data</TableHead>
                           <TableHead>Número Mecanográfico</TableHead>
                           <TableHead className="hidden md:table-cell">Informação Completa</TableHead>
@@ -883,7 +883,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                         {services.filter(s => s.isGray).map((service, index) => (
                           <TableRow 
                             key={index}
-                            className="bg-yellow-50 dark:bg-yellow-950/10"
+                            className="bg-blue-50 dark:bg-blue-950/20"
                           >
                             <TableCell className="font-medium">
                               {service.date} <span className="text-muted-foreground">({getWeekdayName(service.date)})</span>
