@@ -850,17 +850,29 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
 
     ics.push('END:VCALENDAR');
 
-    const blob = new Blob([ics.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'servicos_cva.ics';
-    a.click();
-    URL.revokeObjectURL(url);
+    const icsContent = ics.join('\r\n');
+    
+    // On iOS Safari, use data URI to trigger native calendar import directly
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isIOS) {
+      const dataUri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
+      window.open(dataUri, '_blank');
+    } else {
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'servicos_cva.ics';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
 
     toast({
-      title: "Ficheiro exportado",
-      description: "Abra o ficheiro .ics para importar no Google Calendar, Apple Calendar ou Outlook.",
+      title: "Calendário",
+      description: isIOS 
+        ? "Confirme a adição dos eventos ao seu calendário." 
+        : "Abra o ficheiro .ics para importar no Google Calendar ou Outlook.",
     });
   };
 
