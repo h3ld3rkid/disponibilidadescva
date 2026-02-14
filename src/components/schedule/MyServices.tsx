@@ -4,8 +4,9 @@ import { useToast } from "@/hooks/use-toast";
 import { systemSettingsService } from "@/services/supabase/systemSettingsService";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, CalendarDays, Download } from "lucide-react";
+import { Loader2, CalendarDays, CalendarPlus, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import * as XLSX from 'xlsx';
@@ -808,7 +809,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
     }
   };
 
-  const exportToCalendar = (entries: ServiceEntry[]) => {
+  const buildIcsContent = (entries: ServiceEntry[]) => {
     const pad = (n: number) => String(n).padStart(2, '0');
     const formatIcsDate = (dateStr: string, hour: number, min: number) => {
       const parts = dateStr.split('/');
@@ -816,7 +817,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       return `${parts[2]}${pad(parseInt(parts[1]))}${pad(parseInt(parts[0]))}T${pad(hour)}${pad(min)}00`;
     };
 
-    let ics = [
+    const lines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//Escalas CVA//PT',
@@ -826,7 +827,6 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
     for (const entry of entries) {
       const isNight = entry.isGray;
       const dtStart = isNight ? formatIcsDate(entry.date, 20, 0) : formatIcsDate(entry.date, 8, 0);
-      // Night shifts: 20h to 08h next day
       let dtEnd: string;
       if (isNight) {
         const parts = entry.date.split('/');
@@ -837,42 +837,64 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       }
       if (!dtStart || !dtEnd) continue;
 
-      ics.push(
+      lines.push(
         'BEGIN:VEVENT',
         `DTSTART:${dtStart}`,
         `DTEND:${dtEnd}`,
-        `SUMMARY:${isNight ? '🌙 Serviço Noturno' : 'Serviço CVA'}`,
+        `SUMMARY:${isNight ? 'Serviço Noturno CVA' : 'Serviço CVA'}`,
         `DESCRIPTION:Nº Mecanográfico: ${entry.mechanographicNumber}`,
         `UID:${entry.date.replace(/\//g, '')}-${entry.mechanographicNumber}@cva`,
         'END:VEVENT'
       );
     }
 
-    ics.push('END:VCALENDAR');
+    lines.push('END:VCALENDAR');
+    return lines.join('\r\n');
+  };
 
-    const icsContent = ics.join('\r\n');
-    
-    // On iOS Safari, use data URI to trigger native calendar import directly
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
-    if (isIOS) {
-      const dataUri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
-      window.open(dataUri, '_blank');
-    } else {
-      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'servicos_cva.ics';
-      a.click();
-      URL.revokeObjectURL(url);
+  const addToGoogleCalendar = (entries: ServiceEntry[]) => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    // Google Calendar only supports adding one event at a time via URL
+    // We'll open the first one and provide instructions
+    for (const entry of entries) {
+      const parts = entry.date.split('/');
+      if (parts.length !== 3) continue;
+      const isNight = entry.isGray;
+      const dateBase = `${parts[2]}${pad(parseInt(parts[1]))}${pad(parseInt(parts[0]))}`;
+      const startTime = isNight ? '200000' : '080000';
+      let endDate: string;
+      if (isNight) {
+        const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]) + 1);
+        endDate = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+      } else {
+        endDate = dateBase;
+      }
+      const endTime = isNight ? '080000' : '200000';
+      const title = encodeURIComponent(isNight ? 'Serviço Noturno CVA' : 'Serviço CVA');
+      const details = encodeURIComponent(`Nº Mecanográfico: ${entry.mechanographicNumber}`);
+      const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${dateBase}T${startTime}/${endDate}T${endTime}&details=${details}`;
+      window.open(url, '_blank');
+      // Only open first event to avoid popup blocker; for bulk use Apple/ICS
+      break;
     }
+
+    if (entries.length > 1) {
+      toast({
+        title: "Google Calendar",
+        description: `Abriu o 1º evento. Para adicionar todos os ${entries.length} de uma vez, use a opção Apple/Outro.`,
+      });
+    }
+  };
+
+  const addToAppleCalendar = (entries: ServiceEntry[]) => {
+    const icsContent = buildIcsContent(entries);
+    // Use data URI — on iOS this triggers the native "Add to Calendar" dialog
+    const dataUri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
+    window.location.href = dataUri;
 
     toast({
       title: "Calendário",
-      description: isIOS 
-        ? "Confirme a adição dos eventos ao seu calendário." 
-        : "Abra o ficheiro .ics para importar no Google Calendar ou Outlook.",
+      description: "Confirme a adição dos eventos ao seu calendário.",
     });
   };
 
@@ -916,10 +938,23 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                   <p className="text-sm text-muted-foreground">
                     {services.length} serviço(s) • {services.filter(s => s.isGray).length} noturno(s)
                   </p>
-                  <Button variant="outline" size="sm" onClick={() => exportToCalendar(services)}>
-                    <Download className="h-4 w-4 mr-1" />
-                    Adicionar ao Calendário
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <CalendarPlus className="h-4 w-4 mr-1" />
+                        Adicionar ao Calendário
+                        <ChevronDown className="h-3 w-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => addToGoogleCalendar(services)}>
+                        Google Calendar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => addToAppleCalendar(services)}>
+                        Apple / Outro Calendário
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
               <div className="rounded-md border">
