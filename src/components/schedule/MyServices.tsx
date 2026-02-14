@@ -4,7 +4,8 @@ import { useToast } from "@/hooks/use-toast";
 import { systemSettingsService } from "@/services/supabase/systemSettingsService";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, CalendarDays } from "lucide-react";
+import { Loader2, CalendarDays, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import * as XLSX from 'xlsx';
@@ -807,6 +808,62 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
     }
   };
 
+  const exportToCalendar = (entries: ServiceEntry[]) => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const formatIcsDate = (dateStr: string, hour: number, min: number) => {
+      const parts = dateStr.split('/');
+      if (parts.length !== 3) return '';
+      return `${parts[2]}${pad(parseInt(parts[1]))}${pad(parseInt(parts[0]))}T${pad(hour)}${pad(min)}00`;
+    };
+
+    let ics = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Escalas CVA//PT',
+      'CALSCALE:GREGORIAN',
+    ];
+
+    for (const entry of entries) {
+      const isNight = entry.isGray;
+      const dtStart = isNight ? formatIcsDate(entry.date, 20, 0) : formatIcsDate(entry.date, 8, 0);
+      // Night shifts: 20h to 08h next day
+      let dtEnd: string;
+      if (isNight) {
+        const parts = entry.date.split('/');
+        const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]) + 1);
+        dtEnd = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T080000`;
+      } else {
+        dtEnd = formatIcsDate(entry.date, 20, 0);
+      }
+      if (!dtStart || !dtEnd) continue;
+
+      ics.push(
+        'BEGIN:VEVENT',
+        `DTSTART:${dtStart}`,
+        `DTEND:${dtEnd}`,
+        `SUMMARY:${isNight ? '🌙 Serviço Noturno' : 'Serviço CVA'}`,
+        `DESCRIPTION:Nº Mecanográfico: ${entry.mechanographicNumber}`,
+        `UID:${entry.date.replace(/\//g, '')}-${entry.mechanographicNumber}@cva`,
+        'END:VEVENT'
+      );
+    }
+
+    ics.push('END:VCALENDAR');
+
+    const blob = new Blob([ics.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'servicos_cva.ics';
+    a.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Ficheiro exportado",
+      description: "Abra o ficheiro .ics para importar no Google Calendar, Apple Calendar ou Outlook.",
+    });
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <Card>
@@ -841,11 +898,17 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                 <h3 className="text-lg font-semibold">Serviços Agendados</h3>
-                <p className="text-sm text-muted-foreground">
-                  {services.length} serviço(s) • {services.filter(s => s.isGray).length} noturno(s)
-                </p>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm text-muted-foreground">
+                    {services.length} serviço(s) • {services.filter(s => s.isGray).length} noturno(s)
+                  </p>
+                  <Button variant="outline" size="sm" onClick={() => exportToCalendar(services)}>
+                    <Download className="h-4 w-4 mr-1" />
+                    Adicionar ao Calendário
+                  </Button>
+                </div>
               </div>
               <div className="rounded-md border">
                 <Table>
