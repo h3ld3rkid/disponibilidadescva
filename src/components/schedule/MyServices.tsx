@@ -853,15 +853,19 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
 
   const syncToCalendar = (entries: ServiceEntry[]) => {
     const icsContent = buildIcsContent(entries);
-    // Use data: URI — triggers native calendar app on both iOS and Android
-    // On Android it asks "Open with" and user picks Google Calendar → adds ALL events
-    // On iOS it opens native Calendar with "Add All" option
-    const dataUri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
-    window.location.href = dataUri;
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'servicos-cva.ics';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 
     toast({
-      title: "Sincronizar Calendário",
-      description: `${entries.length} serviço(s) prontos para adicionar. Escolha o calendário e confirme.`,
+      title: "Ficheiro de Calendário",
+      description: `Ficheiro com ${entries.length} serviço(s) transferido. Abra-o para adicionar todos ao calendário de uma vez.`,
     });
   };
 
