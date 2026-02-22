@@ -851,26 +851,43 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
     return lines.join('\r\n');
   };
 
+  const buildGoogleCalendarUrl = (entry: ServiceEntry) => {
+    const parts = entry.date.split('/');
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+    const isNight = entry.isGray;
+
+    const startDate = new Date(year, month, day, isNight ? 20 : 8, 0, 0);
+    const endDate = isNight
+      ? new Date(year, month, day + 1, 8, 0, 0)
+      : new Date(year, month, day, 20, 0, 0);
+
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}00`;
+
+    const title = isNight ? 'Serviço Noturno CVA' : 'Serviço CVA';
+    const details = `Nº Mecanográfico: ${entry.mechanographicNumber}`;
+
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${fmt(startDate)}/${fmt(endDate)}&details=${encodeURIComponent(details)}`;
+  };
+
   const syncToCalendar = (entries: ServiceEntry[]) => {
-    const icsContent = buildIcsContent(entries);
-    const dataUri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
-    window.open(dataUri, '_blank');
+    // Open first event, then notify about the rest
+    if (entries.length > 0) {
+      window.open(buildGoogleCalendarUrl(entries[0]), '_blank');
+    }
 
     toast({
       title: "Sincronizar Calendário",
-      description: `${entries.length} serviço(s) prontos para adicionar ao calendário.`,
+      description: entries.length > 1
+        ? `A abrir o 1º serviço. Use o botão individual para adicionar os restantes ${entries.length - 1}.`
+        : `Serviço aberto no Google Calendar.`,
     });
   };
 
   const addSingleToCalendar = (entry: ServiceEntry) => {
-    const icsContent = buildIcsContent([entry]);
-    const dataUri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
-    window.open(dataUri, '_blank');
-
-    toast({
-      title: "Adicionar ao Calendário",
-      description: `Serviço de ${entry.date} pronto para adicionar.`,
-    });
+    window.open(buildGoogleCalendarUrl(entry), '_blank');
   };
 
   return (
