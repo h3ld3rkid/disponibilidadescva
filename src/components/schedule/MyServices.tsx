@@ -872,20 +872,25 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${fmt(startDate)}/${fmt(endDate)}&details=${encodeURIComponent(details)}`;
   };
 
-  const syncToCalendar = async (entries: ServiceEntry[]) => {
+  const syncToCalendar = (entries: ServiceEntry[]) => {
     if (entries.length === 0) return;
 
-    toast({
-      title: "Sincronizar Calendário",
-      description: `A abrir ${entries.length} serviço(s) no Google Calendar...`,
-    });
+    const icsContent = buildIcsContent(entries);
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'servicos_cva.ics');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 
-    for (let i = 0; i < entries.length; i++) {
-      if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-      }
-      window.open(buildGoogleCalendarUrl(entries[i]), '_blank');
-    }
+    toast({
+      title: "Ficheiro de Calendário",
+      description: `Ficheiro com ${entries.length} serviço(s) transferido. Abra-o para adicionar todos ao calendário de uma vez.`,
+    });
   };
 
   const addSingleToCalendar = (entry: ServiceEntry) => {
