@@ -872,18 +872,20 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${fmt(startDate)}/${fmt(endDate)}&details=${encodeURIComponent(details)}`;
   };
 
-  const syncToCalendar = (entries: ServiceEntry[]) => {
-    // Open first event, then notify about the rest
-    if (entries.length > 0) {
-      window.open(buildGoogleCalendarUrl(entries[0]), '_blank');
-    }
+  const syncToCalendar = async (entries: ServiceEntry[]) => {
+    if (entries.length === 0) return;
 
     toast({
       title: "Sincronizar Calendário",
-      description: entries.length > 1
-        ? `A abrir o 1º serviço. Use o botão individual para adicionar os restantes ${entries.length - 1}.`
-        : `Serviço aberto no Google Calendar.`,
+      description: `A abrir ${entries.length} serviço(s) no Google Calendar...`,
     });
+
+    for (let i = 0; i < entries.length; i++) {
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 800));
+      }
+      window.open(buildGoogleCalendarUrl(entries[i]), '_blank');
+    }
   };
 
   const addSingleToCalendar = (entry: ServiceEntry) => {
