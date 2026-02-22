@@ -853,19 +853,23 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
 
   const syncToCalendar = (entries: ServiceEntry[]) => {
     const icsContent = buildIcsContent(entries);
-    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'servicos-cva.ics';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const dataUri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
+    window.open(dataUri, '_blank');
 
     toast({
-      title: "Ficheiro de Calendário",
-      description: `Ficheiro com ${entries.length} serviço(s) transferido. Abra-o para adicionar todos ao calendário de uma vez.`,
+      title: "Sincronizar Calendário",
+      description: `${entries.length} serviço(s) prontos para adicionar ao calendário.`,
+    });
+  };
+
+  const addSingleToCalendar = (entry: ServiceEntry) => {
+    const icsContent = buildIcsContent([entry]);
+    const dataUri = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent);
+    window.open(dataUri, '_blank');
+
+    toast({
+      title: "Adicionar ao Calendário",
+      description: `Serviço de ${entry.date} pronto para adicionar.`,
     });
   };
 
@@ -922,6 +926,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                       <TableHead>Data</TableHead>
                       <TableHead>Número Mecanográfico</TableHead>
                       <TableHead className="hidden md:table-cell">Informação Completa</TableHead>
+                      <TableHead className="w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -937,6 +942,16 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                         <TableCell>{service.mechanographicNumber}</TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                           {service.rawText}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => addSingleToCalendar(service)}
+                            title="Adicionar ao calendário"
+                          >
+                            <CalendarPlus className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
