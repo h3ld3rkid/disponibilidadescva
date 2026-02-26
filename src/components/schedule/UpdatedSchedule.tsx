@@ -9,11 +9,13 @@ import * as XLSX from 'xlsx';
 
 interface ExcelCell {
   value: any;
-  isGray: boolean;
-  isHeader: boolean;
-  isMergedSlave: boolean; // cell covered by a merge (hidden)
+  bgColor: string | null; // actual CSS color from Excel
+  fontColor: string | null;
+  fontBold: boolean;
+  isMergedSlave: boolean;
   mergeRowSpan?: number;
   mergeColSpan?: number;
+  isModified?: boolean;
 }
 
 interface AcceptedExchange {
@@ -28,12 +30,14 @@ interface AcceptedExchange {
   offered_shift: string;
 }
 
+// Columns to hide (0-indexed from sheet start): D=3, G=6
+const HIDDEN_COLS = new Set([3, 6]);
+
 const UpdatedSchedule: React.FC = () => {
   const [grid, setGrid] = useState<ExcelCell[][]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exchanges, setExchanges] = useState<AcceptedExchange[]>([]);
-  const [modifiedCells, setModifiedCells] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -44,7 +48,6 @@ const UpdatedSchedule: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      // Load accepted exchanges and XLSX in parallel
       const [exchangeResult, xlsxUrl] = await Promise.all([
         supabase
           .from('shift_exchange_requests')
@@ -85,9 +88,6 @@ const UpdatedSchedule: React.FC = () => {
     const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
     const merges: XLSX.Range[] = (sheet['!merges'] || []) as XLSX.Range[];
 
-    const totalRows = range.e.r - range.s.r + 1;
-    const totalCols = range.e.c - range.s.c + 1;
-
     // Build merge map
     const mergeMap = new Map<string, { master: boolean; rowSpan: number; colSpan: number }>();
     for (const m of merges) {
@@ -105,13 +105,12 @@ const UpdatedSchedule: React.FC = () => {
       }
     }
 
-    // Helper: check gray fill
-    const isCellGray = (cell: any): boolean => {
-      if (!cell?.s) return false;
+    // Extract actual cell background color as CSS
+    const getCellBgColor = (cell: any): string | null => {
+      if (!cell?.s) return null;
       const style = cell.s;
-      const extractRgb = (color: any) => {
-        if (!color) return null;
-        const hex = typeof color === 'string' ? color : color.rgb;
+      
+      const hexToRgb = (hex: string): string | null => {
         if (!hex || typeof hex !== 'string') return null;
         const clean = hex.replace(/^#/, '').toUpperCase();
         const rgbHex = clean.length === 8 ? clean.slice(2) : clean.length === 6 ? clean : '';
@@ -120,26 +119,76 @@ const UpdatedSchedule: React.FC = () => {
         const g = parseInt(rgbHex.slice(2, 4), 16);
         const b = parseInt(rgbHex.slice(4, 6), 16);
         if (isNaN(r)) return null;
-        return { r, g, b };
+        return `rgb(${r},${g},${b})`;
       };
-      const isGrayish = (c: { r: number; g: number; b: number }) => {
-        const delta = Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b);
-        return delta <= 20 && Math.max(c.r, c.g, c.b) >= 40 && Math.max(c.r, c.g, c.b) <= 245;
+
+      const extractColor = (color: any): string | null => {
+        if (!color) return null;
+        if (typeof color === 'string') return hexToRgb(color);
+        if (typeof color.rgb === 'string') return hexToRgb(color.rgb);
+        return null;
       };
-      const rgb = extractRgb(style.fgColor) || extractRgb(style.bgColor) || extractRgb(style.fill?.fgColor) || extractRgb(style.fill?.bgColor);
-      if (rgb) return isGrayish(rgb);
-      // Fallback for theme fills
-      const hasTheme = [style.fgColor, style.bgColor, style.fill?.fgColor, style.fill?.bgColor]
+
+      // Try fgColor first (Excel uses fgColor for solid fills)
+      const fg = extractColor(style.fgColor) || extractColor(style.fill?.fgColor);
+      if (fg) return fg;
+      const bg = extractColor(style.bgColor) || extractColor(style.fill?.bgColor);
+      if (bg) return bg;
+
+      // Theme/indexed fallback - common gray tones
+      const hasFill = [style.fgColor, style.bgColor, style.fill?.fgColor, style.fill?.bgColor]
         .some(c => c && (c.theme !== undefined || c.indexed !== undefined));
-      if (hasTheme && (style.patternType ?? style.fill?.patternType) !== 'none') return true;
-      return false;
+      if (hasFill && (style.patternType ?? style.fill?.patternType) !== 'none') {
+        // Excel indexed grays
+        const indexed = style.fgColor?.indexed ?? style.fill?.fgColor?.indexed ?? 
+                       style.bgColor?.indexed ?? style.fill?.bgColor?.indexed;
+        if (indexed === 22) return 'rgb(192,192,192)'; // Silver
+        if (indexed === 23) return 'rgb(128,128,128)'; // Gray
+        if (indexed === 55) return 'rgb(153,153,153)';
+        // Theme-based - common theme+tint combos for grays
+        const theme = style.fgColor?.theme ?? style.fill?.fgColor?.theme;
+        const tint = style.fgColor?.tint ?? style.fill?.fgColor?.tint;
+        if (theme === 0 && tint && tint < 0) {
+          // White with negative tint = gray
+          const gray = Math.round(255 * (1 + tint));
+          return `rgb(${gray},${gray},${gray})`;
+        }
+        if (theme === 1 && tint && tint > 0) {
+          // Black with positive tint = gray
+          const gray = Math.round(255 * tint);
+          return `rgb(${gray},${gray},${gray})`;
+        }
+        // Generic fallback for unknown theme fills
+        return 'rgb(217,217,217)';
+      }
+
+      return null;
     };
 
-    // Build date mapping from column A for exchange matching
+    const getCellFontColor = (cell: any): string | null => {
+      if (!cell?.s?.font?.color) return null;
+      const color = cell.s.font.color;
+      if (typeof color.rgb === 'string') {
+        const clean = color.rgb.replace(/^#/, '');
+        const rgbHex = clean.length === 8 ? clean.slice(2) : clean;
+        if (rgbHex.length === 6) {
+          const r = parseInt(rgbHex.slice(0, 2), 16);
+          const g = parseInt(rgbHex.slice(2, 4), 16);
+          const b = parseInt(rgbHex.slice(4, 6), 16);
+          return `rgb(${r},${g},${b})`;
+        }
+      }
+      return null;
+    };
+
+    const isCellBold = (cell: any): boolean => {
+      return cell?.s?.font?.bold === true;
+    };
+
+    // Date parsing helpers
     const datePattern = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/;
     const pad2 = (n: number) => String(n).padStart(2, '0');
     
-    // Detect header month/year
     let headerMonth: number | undefined;
     let headerYear: number | undefined;
     const monthMap: Record<string, number> = {
@@ -147,7 +196,6 @@ const UpdatedSchedule: React.FC = () => {
       'junho': 6, 'julho': 7, 'agosto': 8, 'setembro': 9, 'outubro': 10, 'novembro': 11, 'dezembro': 12
     };
 
-    // Scan first rows for month/year
     for (let r = range.s.r; r <= Math.min(range.s.r + 20, range.e.r); r++) {
       for (let c = range.s.c; c <= range.e.c; c++) {
         const addr = XLSX.utils.encode_cell({ r, c });
@@ -170,7 +218,6 @@ const UpdatedSchedule: React.FC = () => {
       }
     }
 
-    // Build date by row from col A
     const dateByRow: Record<number, string> = {};
     const parseDateVal = (val: any, formatted?: string): string => {
       if (formatted && datePattern.test(formatted)) {
@@ -226,7 +273,17 @@ const UpdatedSchedule: React.FC = () => {
       if (parsed) dateByRow[r] = parsed;
     }
 
-    // Build user lookup: email -> {name, mech_number}
+    // Find first row with a date (skip headers above it)
+    let firstDateRow = range.s.r;
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      if (dateByRow[r]) {
+        firstDateRow = r;
+        break;
+      }
+    }
+    console.log('First date row:', firstDateRow, 'Date:', dateByRow[firstDateRow]);
+
+    // Build user lookup
     const { data: usersData } = await supabase.from('users').select('email, name, mechanographic_number');
     const usersByEmail = new Map<string, { name: string; mech: string }>();
     const usersByMech = new Map<string, { email: string; name: string }>();
@@ -235,7 +292,6 @@ const UpdatedSchedule: React.FC = () => {
       usersByMech.set(u.mechanographic_number, { email: u.email, name: u.name });
     }
 
-    // Convert exchange dates (YYYY-MM-DD) to PT format (DD/MM/YYYY)
     const toExcelDate = (isoDate: string): string => {
       if (!isoDate) return '';
       const parts = isoDate.split('-');
@@ -243,60 +299,55 @@ const UpdatedSchedule: React.FC = () => {
       return `${parts[2]}/${parts[1]}/${parts[0]}`;
     };
 
-    // Build grid and apply exchanges
-    const newModified = new Set<string>();
+    // Build grid starting from firstDateRow, skipping hidden columns
     const resultGrid: ExcelCell[][] = [];
 
-    for (let r = range.s.r; r <= range.e.r; r++) {
+    for (let r = firstDateRow; r <= range.e.r; r++) {
       const rowCells: ExcelCell[] = [];
       for (let c = range.s.c; c <= range.e.c; c++) {
+        const colIdx = c - range.s.c;
+        // Skip hidden columns
+        if (HIDDEN_COLS.has(colIdx)) continue;
+
         const key = `${r},${c}`;
         const mergeInfo = mergeMap.get(key);
         
         if (mergeInfo && !mergeInfo.master) {
-          rowCells.push({ value: null, isGray: false, isHeader: false, isMergedSlave: true });
+          // Adjust colSpan for hidden cols in merge
+          rowCells.push({ value: null, bgColor: null, fontColor: null, fontBold: false, isMergedSlave: true });
           continue;
         }
 
         const addr = XLSX.utils.encode_cell({ r, c });
         const cell = (sheet as any)[addr];
         let displayValue = cell?.w || (cell?.v !== undefined && cell?.v !== null ? String(cell.v) : '');
-        const gray = isCellGray(cell);
-        const isHeader = r <= range.s.r + 2; // First 3 rows as headers
+        const bgColor = getCellBgColor(cell);
+        const fontColor = getCellFontColor(cell);
+        const fontBold = isCellBold(cell);
 
-        // Check if this cell contains a mech number that should be swapped
+        // Apply exchange swaps
+        let isModified = false;
         const cellStr = String(displayValue).trim();
         const rowDate = dateByRow[r];
         
-        if (rowDate && cellStr && !isHeader) {
+        if (rowDate && cellStr) {
           const userInfo = usersByMech.get(cellStr);
           if (userInfo) {
-            // Check if there's an accepted exchange affecting this cell
             for (const ex of acceptedExchanges) {
               const exReqDate = toExcelDate(ex.requested_date);
               const exOffDate = toExcelDate(ex.offered_date);
               
-              // If this cell shows the requester on the requested_date, swap to target
               if (rowDate === exReqDate && userInfo.email === ex.requester_email) {
                 const targetInfo = usersByEmail.get(ex.target_email);
-                if (targetInfo) {
-                  displayValue = targetInfo.mech;
-                  newModified.add(`${r - range.s.r},${c - range.s.c}`);
-                }
+                if (targetInfo) { displayValue = targetInfo.mech; isModified = true; }
               }
-              // If this cell shows the target on the offered_date, swap to requester
               if (exOffDate && rowDate === exOffDate && userInfo.email === ex.target_email) {
                 const reqInfo = usersByEmail.get(ex.requester_email);
-                if (reqInfo) {
-                  displayValue = reqInfo.mech;
-                  newModified.add(`${r - range.s.r},${c - range.s.c}`);
-                }
+                if (reqInfo) { displayValue = reqInfo.mech; isModified = true; }
               }
             }
           }
 
-          // Also check name cells (column after mech number might have the name)
-          // Check if cell contains a user name
           const userByName = Array.from(usersByEmail.entries()).find(([, info]) => 
             info.name.toLowerCase() === cellStr.toLowerCase()
           );
@@ -307,30 +358,40 @@ const UpdatedSchedule: React.FC = () => {
               const exOffDate = toExcelDate(ex.offered_date);
               
               if (rowDate === exReqDate && email === ex.requester_email) {
-                displayValue = ex.target_name;
-                newModified.add(`${r - range.s.r},${c - range.s.c}`);
+                displayValue = ex.target_name; isModified = true;
               }
               if (exOffDate && rowDate === exOffDate && email === ex.target_email) {
-                displayValue = ex.requester_name;
-                newModified.add(`${r - range.s.r},${c - range.s.c}`);
+                displayValue = ex.requester_name; isModified = true;
               }
             }
           }
         }
 
+        // Adjust merge spans for hidden columns
+        let adjustedColSpan = mergeInfo?.colSpan;
+        if (mergeInfo?.master && adjustedColSpan && adjustedColSpan > 1) {
+          let hidden = 0;
+          for (let cc = c; cc < c + mergeInfo.colSpan; cc++) {
+            if (HIDDEN_COLS.has(cc - range.s.c)) hidden++;
+          }
+          adjustedColSpan = adjustedColSpan - hidden;
+          if (adjustedColSpan < 1) adjustedColSpan = 1;
+        }
+
         rowCells.push({
           value: displayValue,
-          isGray: gray,
-          isHeader,
+          bgColor,
+          fontColor,
+          fontBold,
           isMergedSlave: false,
           mergeRowSpan: mergeInfo?.rowSpan,
-          mergeColSpan: mergeInfo?.colSpan,
+          mergeColSpan: adjustedColSpan,
+          isModified,
         });
       }
       resultGrid.push(rowCells);
     }
 
-    setModifiedCells(newModified);
     setGrid(resultGrid);
   };
 
@@ -354,9 +415,9 @@ const UpdatedSchedule: React.FC = () => {
             </Button>
           </div>
           {exchanges.length > 0 && (
-            <div className="mt-2 text-sm text-muted-foreground">
-              {exchanges.length} troca(s) aceite(s) aplicada(s). Células modificadas destacadas em{' '}
-              <span className="inline-block w-3 h-3 bg-green-200 border border-green-400 rounded-sm align-middle" />.
+            <div className="mt-2 text-sm text-muted-foreground flex items-center gap-1.5">
+              {exchanges.length} troca(s) aceite(s) aplicada(s). Células modificadas:{' '}
+              <span className="inline-block w-3 h-3 rounded-sm align-middle" style={{ backgroundColor: '#c6efce', border: '1px solid #006100' }} />
             </div>
           )}
         </CardHeader>
@@ -380,29 +441,37 @@ const UpdatedSchedule: React.FC = () => {
             </div>
           ) : (
             <div className="overflow-x-auto border rounded-md">
-              <table className="w-full text-xs border-collapse">
+              <table className="w-full text-xs border-collapse" style={{ borderSpacing: 0 }}>
                 <tbody>
                   {grid.map((row, ri) => (
                     <tr key={ri}>
                       {row.map((cell, ci) => {
                         if (cell.isMergedSlave) return null;
-                        const isModified = modifiedCells.has(`${ri},${ci}`);
-                        const Tag = cell.isHeader ? 'th' : 'td';
+                        
+                        const cellStyle: React.CSSProperties = {
+                          backgroundColor: cell.isModified 
+                            ? '#c6efce' 
+                            : cell.bgColor || undefined,
+                          color: cell.fontColor || undefined,
+                          fontWeight: cell.fontBold ? 'bold' : undefined,
+                          border: cell.isModified 
+                            ? '2px solid #006100' 
+                            : '1px solid #d0d0d0',
+                          padding: '2px 4px',
+                          whiteSpace: 'nowrap',
+                          fontSize: '11px',
+                        };
+
                         return (
-                          <Tag
+                          <td
                             key={ci}
                             rowSpan={cell.mergeRowSpan || undefined}
                             colSpan={cell.mergeColSpan || undefined}
-                            className={`
-                              border border-gray-300 px-1.5 py-1 whitespace-nowrap
-                              ${cell.isHeader ? 'bg-gray-100 font-semibold text-center sticky top-0 z-10' : ''}
-                              ${cell.isGray && !cell.isHeader ? 'bg-blue-100' : ''}
-                              ${isModified ? 'bg-green-200 border-green-400 font-bold' : ''}
-                            `}
-                            title={isModified ? 'Alterado por troca aceite' : undefined}
+                            style={cellStyle}
+                            title={cell.isModified ? 'Alterado por troca aceite' : undefined}
                           >
                             {cell.value || ''}
-                          </Tag>
+                          </td>
                         );
                       })}
                     </tr>
