@@ -112,11 +112,13 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
   };
 
   const tabKeyMap: Record<string, string> = {
+    '/dashboard': 'dashboard',
     '/dashboard/my-services': 'my-services',
     '/dashboard/exchanges': 'exchanges',
     '/dashboard/updated-schedule': 'updated-schedule',
-    '/dashboard/current-schedule': 'schedule',
+    '/dashboard/current-schedule': 'current-schedule',
     '/dashboard/schedule': 'schedule',
+    '/dashboard/profile': 'profile',
   };
 
   const allUserNavItems = [

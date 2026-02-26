@@ -39,16 +39,21 @@ const TabVisibilityConfig: React.FC = () => {
 
   const toggleVisibility = async (tab: TabVisibility) => {
     const newVisible = !tab.visible;
+    
+    // Optimistic update
+    setTabs(prev => prev.map(t => t.id === tab.id ? { ...t, visible: newVisible } : t));
+    
     const { error } = await supabase
       .from('tab_visibility')
-      .update({ visible: newVisible, updated_at: new Date().toISOString() })
+      .update({ visible: newVisible })
       .eq('id', tab.id);
 
     if (error) {
       console.error('Error updating tab:', error);
+      // Revert on error
+      setTabs(prev => prev.map(t => t.id === tab.id ? { ...t, visible: !newVisible } : t));
       toast({ title: "Erro ao atualizar", variant: "destructive" });
     } else {
-      setTabs(prev => prev.map(t => t.id === tab.id ? { ...t, visible: newVisible } : t));
       toast({ title: `Aba "${tab.tab_label}" ${newVisible ? 'visível' : 'oculta'}` });
     }
   };
