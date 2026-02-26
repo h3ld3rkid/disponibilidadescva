@@ -374,7 +374,19 @@ const UpdatedSchedule: React.FC = () => {
           }
         }
         
-        let displayValue = cell?.w || (cell?.v !== undefined && cell?.v !== null ? String(cell.v) : '');
+        // For formula cells (PROCV/PROCX), prefer cached value (cell.v) or formatted (cell.w)
+        // Skip error values like #N/A, #REF!, #VALUE!
+        let displayValue = '';
+        if (cell) {
+          const isError = cell.t === 'e' || (typeof cell.v === 'string' && /^#(N\/A|REF!|VALUE!|NAME\?|NULL!|NUM!|DIV\/0!)/.test(cell.v));
+          if (isError) {
+            displayValue = '';
+          } else if (cell.w !== undefined && cell.w !== null && cell.w !== '') {
+            displayValue = cell.w;
+          } else if (cell.v !== undefined && cell.v !== null) {
+            displayValue = String(cell.v);
+          }
+        }
         const bgColor = getCellBgColor(cell);
         const fontColor = getCellFontColor(cell);
         const fontBold = isCellBold(cell);
