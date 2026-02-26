@@ -42,6 +42,21 @@ const UpdatedSchedule: React.FC = () => {
 
   useEffect(() => {
     loadData();
+
+    // Realtime: auto-refresh when exchanges change
+    const channel = supabase
+      .channel('exchange-updates')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'shift_exchange_requests',
+        filter: 'status=eq.accepted',
+      }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const loadData = async () => {

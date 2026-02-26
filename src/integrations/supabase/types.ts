@@ -254,6 +254,30 @@ export type Database = {
         }
         Relationships: []
       }
+      tab_visibility: {
+        Row: {
+          id: string
+          tab_key: string
+          tab_label: string
+          updated_at: string
+          visible: boolean
+        }
+        Insert: {
+          id?: string
+          tab_key: string
+          tab_label: string
+          updated_at?: string
+          visible?: boolean
+        }
+        Update: {
+          id?: string
+          tab_key?: string
+          tab_label?: string
+          updated_at?: string
+          visible?: boolean
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           active: boolean

@@ -38,6 +38,7 @@ import { PushNotificationManager } from '@/components/push/PushNotificationManag
 import { userService } from "@/services/supabase/userService";
 import { sessionManager } from '@/services/sessionManager';
 import { roleService } from '@/services/supabase/roleService';
+import { useTabVisibility } from '@/hooks/useTabVisibility';
 
 interface NavbarProps {
   email: string;
@@ -51,6 +52,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isTabVisible } = useTabVisibility();
 
   // Verificar role na BD ao montar o componente
   useEffect(() => {
@@ -109,7 +111,15 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
-  const userNavItems = [
+  const tabKeyMap: Record<string, string> = {
+    '/dashboard/my-services': 'my-services',
+    '/dashboard/exchanges': 'exchanges',
+    '/dashboard/updated-schedule': 'updated-schedule',
+    '/dashboard/current-schedule': 'schedule',
+    '/dashboard/schedule': 'schedule',
+  };
+
+  const allUserNavItems = [
     { path: '/dashboard', icon: Home, label: 'Início' },
     { path: '/dashboard/schedule', icon: Calendar, label: 'Disponibilidade' },
     { path: '/dashboard/current-schedule', icon: CalendarCheck, label: 'Escala' },
@@ -118,6 +128,13 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
     { path: '/dashboard/updated-schedule', icon: FileSpreadsheet, label: 'Escala Atualizada' },
     { path: '/dashboard/profile', icon: User, label: 'Perfil' },
   ];
+
+  const userNavItems = isAdmin 
+    ? allUserNavItems 
+    : allUserNavItems.filter(item => {
+        const tabKey = tabKeyMap[item.path];
+        return !tabKey || isTabVisible(tabKey);
+      });
 
   const adminNavItems = [
     { path: '/dashboard/users', icon: Users, label: 'Utilizadores' },
