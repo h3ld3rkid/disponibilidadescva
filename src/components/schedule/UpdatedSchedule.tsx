@@ -135,31 +135,33 @@ const UpdatedSchedule: React.FC = () => {
       const bg = extractColor(style.bgColor) || extractColor(style.fill?.bgColor);
       if (bg) return bg;
 
-      // Theme/indexed fallback - common gray tones
+      // Theme/indexed fallback - only apply when we can resolve the actual color
       const hasFill = [style.fgColor, style.bgColor, style.fill?.fgColor, style.fill?.bgColor]
         .some(c => c && (c.theme !== undefined || c.indexed !== undefined));
       if (hasFill && (style.patternType ?? style.fill?.patternType) !== 'none') {
-        // Excel indexed grays
         const indexed = style.fgColor?.indexed ?? style.fill?.fgColor?.indexed ?? 
                        style.bgColor?.indexed ?? style.fill?.bgColor?.indexed;
-        if (indexed === 22) return 'rgb(192,192,192)'; // Silver
-        if (indexed === 23) return 'rgb(128,128,128)'; // Gray
+        // Excel indexed colors
+        if (indexed === 22) return 'rgb(192,192,192)';
+        if (indexed === 23) return 'rgb(128,128,128)';
         if (indexed === 55) return 'rgb(153,153,153)';
-        // Theme-based - common theme+tint combos for grays
+        if (indexed === 9 || indexed === 64) return null; // white / auto = no fill
+        
         const theme = style.fgColor?.theme ?? style.fill?.fgColor?.theme;
         const tint = style.fgColor?.tint ?? style.fill?.fgColor?.tint;
+        
+        // Theme 0 = white base, theme 1 = black base
+        if (theme === 0 && !tint) return null; // Pure white = no fill
         if (theme === 0 && tint && tint < 0) {
-          // White with negative tint = gray
           const gray = Math.round(255 * (1 + tint));
           return `rgb(${gray},${gray},${gray})`;
         }
         if (theme === 1 && tint && tint > 0) {
-          // Black with positive tint = gray
           const gray = Math.round(255 * tint);
           return `rgb(${gray},${gray},${gray})`;
         }
-        // Generic fallback for unknown theme fills
-        return 'rgb(217,217,217)';
+        // Don't apply generic fallback - return null to avoid coloring white cells gray
+        return null;
       }
 
       return null;
@@ -273,7 +275,7 @@ const UpdatedSchedule: React.FC = () => {
       if (parsed) dateByRow[r] = parsed;
     }
 
-    // Find first row with a date (skip headers above it)
+    // Find first row with a date, then include the header row above it (DIA, Nº, etc.)
     let firstDateRow = range.s.r;
     for (let r = range.s.r; r <= range.e.r; r++) {
       if (dateByRow[r]) {
@@ -281,7 +283,9 @@ const UpdatedSchedule: React.FC = () => {
         break;
       }
     }
-    console.log('First date row:', firstDateRow, 'Date:', dateByRow[firstDateRow]);
+    // Include the header row just above the first date row (DIA, Nº, Nome, etc.)
+    const startRow = firstDateRow > range.s.r ? firstDateRow - 1 : firstDateRow;
+    console.log('Header row:', startRow, 'First date row:', firstDateRow, 'Date:', dateByRow[firstDateRow]);
 
     // Build user lookup
     const { data: usersData } = await supabase.from('users').select('email, name, mechanographic_number');
@@ -299,27 +303,62 @@ const UpdatedSchedule: React.FC = () => {
       return `${parts[2]}/${parts[1]}/${parts[0]}`;
     };
 
-    // Build grid starting from firstDateRow, skipping hidden columns
+    // Build adjusted merge map for visible rows (startRow onwards)
+    // Merges that start before startRow need adjustment
+    const visibleMergeMap = new Map<string, { master: boolean; rowSpan: number; colSpan: number }>();
+    for (const m of merges) {
+      const effectiveStartR = Math.max(m.s.r, startRow);
+      const rowSpan = m.e.r - effectiveStartR + 1;
+      if (rowSpan <= 0) continue; // entire merge is above visible area
+      const colSpan = m.e.c - m.s.c + 1;
+      
+      for (let r = effectiveStartR; r <= m.e.r; r++) {
+        for (let c = m.s.c; c <= m.e.c; c++) {
+          const key = `${r},${c}`;
+          if (r === effectiveStartR && c === m.s.c) {
+            // This is the visible master
+            visibleMergeMap.set(key, { master: true, rowSpan, colSpan });
+          } else {
+            visibleMergeMap.set(key, { master: false, rowSpan: 0, colSpan: 0 });
+          }
+        }
+      }
+    }
+
+    // Build grid starting from startRow, skipping hidden columns
     const resultGrid: ExcelCell[][] = [];
 
-    for (let r = firstDateRow; r <= range.e.r; r++) {
+    for (let r = startRow; r <= range.e.r; r++) {
       const rowCells: ExcelCell[] = [];
       for (let c = range.s.c; c <= range.e.c; c++) {
         const colIdx = c - range.s.c;
-        // Skip hidden columns
         if (HIDDEN_COLS.has(colIdx)) continue;
 
         const key = `${r},${c}`;
-        const mergeInfo = mergeMap.get(key);
+        const mergeInfo = visibleMergeMap.get(key);
         
         if (mergeInfo && !mergeInfo.master) {
-          // Adjust colSpan for hidden cols in merge
           rowCells.push({ value: null, bgColor: null, fontColor: null, fontBold: false, isMergedSlave: true });
           continue;
         }
 
-        const addr = XLSX.utils.encode_cell({ r, c });
-        const cell = (sheet as any)[addr];
+        // For visible masters that were originally merge slaves (master was above startRow),
+        // read cell value from the original master cell
+        let addr = XLSX.utils.encode_cell({ r, c });
+        let cell = (sheet as any)[addr];
+        
+        // If this cell is empty and it's a visible merge master, find the original master
+        if (mergeInfo?.master && (!cell || cell.v === undefined || cell.v === null)) {
+          // Find the original merge that contains this cell
+          for (const m of merges) {
+            if (r >= m.s.r && r <= m.e.r && c >= m.s.c && c <= m.e.c) {
+              const origAddr = XLSX.utils.encode_cell({ r: m.s.r, c: m.s.c });
+              const origCell = (sheet as any)[origAddr];
+              if (origCell) { cell = origCell; break; }
+            }
+          }
+        }
+        
         let displayValue = cell?.w || (cell?.v !== undefined && cell?.v !== null ? String(cell.v) : '');
         const bgColor = getCellBgColor(cell);
         const fontColor = getCellFontColor(cell);
@@ -448,6 +487,7 @@ const UpdatedSchedule: React.FC = () => {
                       {row.map((cell, ci) => {
                         if (cell.isMergedSlave) return null;
                         
+                        const isMergedVertical = (cell.mergeRowSpan || 1) > 1;
                         const cellStyle: React.CSSProperties = {
                           backgroundColor: cell.isModified 
                             ? '#c6efce' 
@@ -460,6 +500,8 @@ const UpdatedSchedule: React.FC = () => {
                           padding: '2px 4px',
                           whiteSpace: 'nowrap',
                           fontSize: '11px',
+                          verticalAlign: isMergedVertical ? 'middle' : undefined,
+                          textAlign: isMergedVertical ? 'center' : undefined,
                         };
 
                         return (
