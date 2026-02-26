@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { 
+import {
   Menu, 
   X, 
   Home, 
@@ -17,7 +17,8 @@ import {
   ArrowLeftRight,
   CalendarCheck,
   ChevronDown,
-  CalendarDays
+  CalendarDays,
+  FileSpreadsheet
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -114,6 +115,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
     { path: '/dashboard/current-schedule', icon: CalendarCheck, label: 'Escala' },
     { path: '/dashboard/my-services', icon: CalendarDays, label: 'Meus Serviços' },
     { path: '/dashboard/exchanges', icon: ArrowLeftRight, label: 'Trocas' },
+    { path: '/dashboard/updated-schedule', icon: FileSpreadsheet, label: 'Escala Atualizada' },
     { path: '/dashboard/profile', icon: User, label: 'Perfil' },
   ];
 

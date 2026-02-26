@@ -16,6 +16,7 @@ import AnnouncementBanner from '@/components/announcements/AnnouncementBanner';
 import ShiftExchange from '@/components/schedule/ShiftExchange';
 import ExchangeSplashScreen from '@/components/schedule/ExchangeSplashScreen';
 import MyServices from '@/components/schedule/MyServices';
+import UpdatedSchedule from '@/components/schedule/UpdatedSchedule';
 import Footer from '@/components/ui/footer';
 import SessionTimer from '@/components/auth/SessionTimer';
 import PDFAdditionalConfig from '@/pages/PDFAdditionalConfig';
@@ -185,6 +186,7 @@ const Dashboard = () => {
             <Route path="/my-services" element={<MyServices />} />
             <Route path="/profile" element={<ProfileEdit />} />
             <Route path="/exchanges" element={<ShiftExchange />} />
+            <Route path="/updated-schedule" element={<UpdatedSchedule />} />
             
             <Route path="/users" element={checkAdminRoute(<UserManagement key={`user-management-${forceUpdate}`} />)} />
             <Route path="/user-schedules" element={checkAdminRoute(<UserSchedules key={`user-schedules-${forceUpdate}`} />)} />
