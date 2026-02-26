@@ -391,13 +391,15 @@ const UpdatedSchedule: React.FC = () => {
               const exReqDate = toExcelDate(ex.requested_date);
               const exOffDate = toExcelDate(ex.offered_date);
               
-              if (rowDate === exReqDate && userInfo.email === ex.requester_email) {
-                const targetInfo = usersByEmail.get(ex.target_email);
-                if (targetInfo) { displayValue = targetInfo.mech; isModified = true; }
-              }
-              if (exOffDate && rowDate === exOffDate && userInfo.email === ex.target_email) {
+              // On requested_date: the target was working, requester takes over
+              if (rowDate === exReqDate && userInfo.email === ex.target_email) {
                 const reqInfo = usersByEmail.get(ex.requester_email);
                 if (reqInfo) { displayValue = reqInfo.mech; isModified = true; }
+              }
+              // On offered_date: the requester was working, target takes over
+              if (exOffDate && rowDate === exOffDate && userInfo.email === ex.requester_email) {
+                const targetInfo = usersByEmail.get(ex.target_email);
+                if (targetInfo) { displayValue = targetInfo.mech; isModified = true; }
               }
             }
           }
@@ -411,11 +413,13 @@ const UpdatedSchedule: React.FC = () => {
               const exReqDate = toExcelDate(ex.requested_date);
               const exOffDate = toExcelDate(ex.offered_date);
               
-              if (rowDate === exReqDate && email === ex.requester_email) {
-                displayValue = ex.target_name; isModified = true;
-              }
-              if (exOffDate && rowDate === exOffDate && email === ex.target_email) {
+              // On requested_date: target's name replaced by requester's name
+              if (rowDate === exReqDate && email === ex.target_email) {
                 displayValue = ex.requester_name; isModified = true;
+              }
+              // On offered_date: requester's name replaced by target's name
+              if (exOffDate && rowDate === exOffDate && email === ex.requester_email) {
+                displayValue = ex.target_name; isModified = true;
               }
             }
           }
