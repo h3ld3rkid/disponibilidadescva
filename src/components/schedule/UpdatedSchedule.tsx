@@ -35,6 +35,7 @@ const HIDDEN_COLS = new Set([3, 6]);
 
 const UpdatedSchedule: React.FC = () => {
   const [grid, setGrid] = useState<ExcelCell[][]>([]);
+  const [groupStarts, setGroupStarts] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exchanges, setExchanges] = useState<AcceptedExchange[]>([]);
@@ -350,8 +351,17 @@ const UpdatedSchedule: React.FC = () => {
         .toUpperCase();
 
     const resultGrid: ExcelCell[][] = [];
+    const groupStartSet = new Set<number>();
+    let prevDate: string | undefined;
 
     for (let r = startRow; r <= range.e.r; r++) {
+      const gridRowIdx = r - startRow;
+      const curDate = dateByRow[r];
+      // Mark group start when date changes (or first data row after header)
+      if (curDate && curDate !== prevDate) {
+        groupStartSet.add(gridRowIdx);
+        prevDate = curDate;
+      }
       const rowCells: ExcelCell[] = [];
       // Track name swaps in this row so PROCV columns also get updated
       const rowSwapMap = new Map<string, string>(); // oldName(upper) -> newName(upper)
@@ -493,6 +503,7 @@ const UpdatedSchedule: React.FC = () => {
     }
 
     setGrid(resultGrid);
+    setGroupStarts(groupStartSet);
   };
 
   return (
@@ -548,11 +559,25 @@ const UpdatedSchedule: React.FC = () => {
                         if (cell.isMergedSlave) return null;
                         
                         const isMergedVertical = (cell.mergeRowSpan || 1) > 1;
+                        const isColA = ci === 0;
+                        const isGroupStart = groupStarts.has(ri);
+
+                        // Column A: no internal borders, just top on group start
+                        // Other columns: thin borders, thick top on group start
+                        const topBorder = isGroupStart && ri > 0
+                          ? '3px solid #333'
+                          : isColA
+                            ? 'none'
+                            : '1px solid #d0d0d0';
+
                         const cellStyle: React.CSSProperties = {
                           backgroundColor: cell.bgColor || undefined,
                           color: cell.fontColor || undefined,
                           fontWeight: cell.fontBold ? 'bold' : undefined,
-                          border: '1px solid #d0d0d0',
+                          borderTop: topBorder,
+                          borderBottom: isColA ? 'none' : '1px solid #d0d0d0',
+                          borderLeft: isColA ? 'none' : '1px solid #d0d0d0',
+                          borderRight: isColA ? 'none' : '1px solid #d0d0d0',
                           padding: '2px 4px',
                           whiteSpace: 'nowrap',
                           fontSize: '11px',
