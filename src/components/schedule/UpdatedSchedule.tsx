@@ -341,6 +341,14 @@ const UpdatedSchedule: React.FC = () => {
     }
 
     // Build grid starting from startRow, skipping hidden columns
+    const normalizeNameKey = (value: string) =>
+      value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toUpperCase();
+
     const resultGrid: ExcelCell[][] = [];
 
     for (let r = startRow; r <= range.e.r; r++) {
@@ -448,9 +456,9 @@ const UpdatedSchedule: React.FC = () => {
 
           // PROCV/PROCX columns: if mech was swapped in this row, also swap the cached name
           if (!isModified && rowSwapMap.size > 0 && cellStr) {
-            const upperCell = cellStr.toUpperCase();
+            const normalizedCell = normalizeNameKey(cellStr);
             for (const [oldName, newName] of rowSwapMap) {
-              if (upperCell === oldName || upperCell === oldName.replace(/\s+/g, ' ').trim()) {
+              if (normalizedCell === normalizeNameKey(oldName)) {
                 displayValue = newName;
                 isModified = true;
                 break;
