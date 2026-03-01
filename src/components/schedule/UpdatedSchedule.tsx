@@ -562,8 +562,11 @@ const UpdatedSchedule: React.FC = () => {
                         const isColA = ci === 0;
                         const isGroupStart = groupStarts.has(ri);
 
-                        // Column A: no internal borders, just top on group start
+                        // Column A: no internal borders, just thick top on group start
                         // Other columns: thin borders, thick top on group start
+                        // Check if NEXT row is a group start (to remove bottom border)
+                        const nextRowIsGroupStart = groupStarts.has(ri + 1);
+                        
                         const topBorder = isGroupStart && ri > 0
                           ? '3px solid #333'
                           : isColA
@@ -575,7 +578,7 @@ const UpdatedSchedule: React.FC = () => {
                           color: cell.fontColor || undefined,
                           fontWeight: cell.fontBold ? 'bold' : undefined,
                           borderTop: topBorder,
-                          borderBottom: isColA ? 'none' : '1px solid #d0d0d0',
+                          borderBottom: (isColA || nextRowIsGroupStart) ? 'none' : '1px solid #d0d0d0',
                           borderLeft: isColA ? 'none' : '1px solid #d0d0d0',
                           borderRight: isColA ? 'none' : '1px solid #d0d0d0',
                           padding: '2px 4px',
