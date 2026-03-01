@@ -345,6 +345,8 @@ const UpdatedSchedule: React.FC = () => {
 
     for (let r = startRow; r <= range.e.r; r++) {
       const rowCells: ExcelCell[] = [];
+      // Track name swaps in this row so PROCV columns also get updated
+      const rowSwapMap = new Map<string, string>(); // oldName(upper) -> newName(upper)
       for (let c = range.s.c; c <= range.e.c; c++) {
         const colIdx = c - range.s.c;
         if (HIDDEN_COLS.has(colIdx)) continue;
@@ -406,12 +408,20 @@ const UpdatedSchedule: React.FC = () => {
               // On requested_date: the target was working, requester takes over
               if (rowDate === exReqDate && userInfo.email === ex.target_email) {
                 const reqInfo = usersByEmail.get(ex.requester_email);
-                if (reqInfo) { displayValue = reqInfo.mech; isModified = true; }
+                if (reqInfo) {
+                  displayValue = reqInfo.mech;
+                  isModified = true;
+                  rowSwapMap.set(userInfo.name.toUpperCase(), ex.requester_name.toUpperCase());
+                }
               }
               // On offered_date: the requester was working, target takes over
               if (exOffDate && rowDate === exOffDate && userInfo.email === ex.requester_email) {
                 const targetInfo = usersByEmail.get(ex.target_email);
-                if (targetInfo) { displayValue = targetInfo.mech; isModified = true; }
+                if (targetInfo) {
+                  displayValue = targetInfo.mech;
+                  isModified = true;
+                  rowSwapMap.set(userInfo.name.toUpperCase(), ex.target_name.toUpperCase());
+                }
               }
             }
           }
@@ -427,11 +437,23 @@ const UpdatedSchedule: React.FC = () => {
               
               // On requested_date: target's name replaced by requester's name
               if (rowDate === exReqDate && email === ex.target_email) {
-                displayValue = ex.requester_name; isModified = true;
+                displayValue = ex.requester_name.toUpperCase(); isModified = true;
               }
               // On offered_date: requester's name replaced by target's name
               if (exOffDate && rowDate === exOffDate && email === ex.requester_email) {
-                displayValue = ex.target_name; isModified = true;
+                displayValue = ex.target_name.toUpperCase(); isModified = true;
+              }
+            }
+          }
+
+          // PROCV/PROCX columns: if mech was swapped in this row, also swap the cached name
+          if (!isModified && rowSwapMap.size > 0 && cellStr) {
+            const upperCell = cellStr.toUpperCase();
+            for (const [oldName, newName] of rowSwapMap) {
+              if (upperCell === oldName || upperCell === oldName.replace(/\s+/g, ' ').trim()) {
+                displayValue = newName;
+                isModified = true;
+                break;
               }
             }
           }
@@ -485,9 +507,8 @@ const UpdatedSchedule: React.FC = () => {
             </Button>
           </div>
           {exchanges.length > 0 && (
-            <div className="mt-2 text-sm text-muted-foreground flex items-center gap-1.5">
-              {exchanges.length} troca(s) aceite(s) aplicada(s). Células modificadas:{' '}
-              <span className="inline-block w-3 h-3 rounded-sm align-middle" style={{ backgroundColor: '#c6efce', border: '1px solid #006100' }} />
+            <div className="mt-2 text-sm text-muted-foreground">
+              {exchanges.length} troca(s) aceite(s) aplicada(s)
             </div>
           )}
         </CardHeader>
@@ -520,14 +541,10 @@ const UpdatedSchedule: React.FC = () => {
                         
                         const isMergedVertical = (cell.mergeRowSpan || 1) > 1;
                         const cellStyle: React.CSSProperties = {
-                          backgroundColor: cell.isModified 
-                            ? '#c6efce' 
-                            : cell.bgColor || undefined,
+                          backgroundColor: cell.bgColor || undefined,
                           color: cell.fontColor || undefined,
                           fontWeight: cell.fontBold ? 'bold' : undefined,
-                          border: cell.isModified 
-                            ? '2px solid #006100' 
-                            : '1px solid #d0d0d0',
+                          border: '1px solid #d0d0d0',
                           padding: '2px 4px',
                           whiteSpace: 'nowrap',
                           fontSize: '11px',
