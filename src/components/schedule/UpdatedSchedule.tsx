@@ -51,8 +51,8 @@ const UpdatedSchedule: React.FC = () => {
         event: '*',
         schema: 'public',
         table: 'shift_exchange_requests',
-        filter: 'status=eq.accepted',
       }, () => {
+        console.log('Exchange table changed, reloading...');
         loadData();
       })
       .subscribe();
@@ -562,23 +562,15 @@ const UpdatedSchedule: React.FC = () => {
                         const isColA = ci === 0;
                         const isGroupStart = groupStarts.has(ri);
 
-                        // Column A: no internal borders, just thick top on group start
-                        // Other columns: thin borders, thick top on group start
-                        // Check if NEXT row is a group start (to remove bottom border)
-                        const nextRowIsGroupStart = groupStarts.has(ri + 1);
-                        
-                        const topBorder = isGroupStart && ri > 0
-                          ? '3px solid #333'
-                          : isColA
-                            ? 'none'
-                            : '1px solid #d0d0d0';
+                        // Use box-shadow for thick top separator (unaffected by border-collapse)
+                        const showThickTop = isGroupStart && ri > 0;
 
                         const cellStyle: React.CSSProperties = {
                           backgroundColor: cell.bgColor || undefined,
                           color: cell.fontColor || undefined,
                           fontWeight: cell.fontBold ? 'bold' : undefined,
-                          borderTop: topBorder,
-                          borderBottom: (isColA || nextRowIsGroupStart) ? 'none' : '1px solid #d0d0d0',
+                          borderTop: isColA ? 'none' : '1px solid #d0d0d0',
+                          borderBottom: isColA ? 'none' : '1px solid #d0d0d0',
                           borderLeft: isColA ? 'none' : '1px solid #d0d0d0',
                           borderRight: isColA ? 'none' : '1px solid #d0d0d0',
                           padding: '2px 4px',
@@ -586,6 +578,8 @@ const UpdatedSchedule: React.FC = () => {
                           fontSize: '11px',
                           verticalAlign: isMergedVertical ? 'middle' : undefined,
                           textAlign: isMergedVertical ? 'center' : undefined,
+                          ...(showThickTop ? { boxShadow: 'inset 0 3px 0 0 #333' } : {}),
+                          position: showThickTop ? 'relative' as const : undefined,
                         };
 
                         return (
