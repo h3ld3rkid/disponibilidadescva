@@ -35,7 +35,8 @@ const HIDDEN_COLS = new Set([3, 6]);
 
 const UpdatedSchedule: React.FC = () => {
   const [grid, setGrid] = useState<ExcelCell[][]>([]);
-  const [opcomDividerRows, setOpcomDividerRows] = useState<Set<number>>(new Set());
+  const [thickBottomRows, setThickBottomRows] = useState<Set<number>>(new Set());
+  const [thickTopRows, setThickTopRows] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exchanges, setExchanges] = useState<AcceptedExchange[]>([]);
@@ -374,12 +375,14 @@ const UpdatedSchedule: React.FC = () => {
         .toUpperCase();
 
     const resultGrid: ExcelCell[][] = [];
-    const opcomDividerSet = new Set<number>();
+    const opcomRows = new Set<number>();
+    const yellowRows = new Set<number>();
 
     for (let r = startRow; r <= range.e.r; r++) {
       const gridRowIdx = r - startRow;
       const rowCells: ExcelCell[] = [];
       let rowHasOpcom = false;
+      let rowIsYellow = false;
       // Track name swaps in this row so PROCV columns also get updated
       const rowSwapMap = new Map<string, string>(); // oldName(upper) -> newName(upper)
       for (let c = range.s.c; c <= range.e.c; c++) {
@@ -510,6 +513,16 @@ const UpdatedSchedule: React.FC = () => {
           rowHasOpcom = true;
         }
 
+        // Detect yellow background (hue ~60, high saturation)
+        if (bgColor) {
+          const m = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+          if (m) {
+            const rr = Number(m[1]), gg = Number(m[2]), bb = Number(m[3]);
+            if (rr > 200 && gg > 200 && bb < 100) rowIsYellow = true;
+            if (rr > 200 && gg > 180 && bb < 120 && gg > bb * 2) rowIsYellow = true;
+          }
+        }
+
         rowCells.push({
           value: displayValue,
           bgColor,
@@ -522,13 +535,26 @@ const UpdatedSchedule: React.FC = () => {
         });
       }
       resultGrid.push(rowCells);
-      if (rowHasOpcom) {
-        opcomDividerSet.add(gridRowIdx);
-      }
+      if (rowHasOpcom) opcomRows.add(gridRowIdx);
+      if (rowIsYellow) yellowRows.add(gridRowIdx);
+    }
+
+    // Build thick border sets
+    const bottomSet = new Set<number>();
+    const topSet = new Set<number>();
+
+    // OPCOM rows: thick bottom
+    for (const ri of opcomRows) bottomSet.add(ri);
+
+    // Yellow rows: thick top (before) and thick bottom (after)
+    for (const ri of yellowRows) {
+      topSet.add(ri);        // thick top on the yellow row itself
+      bottomSet.add(ri);     // thick bottom on the yellow row itself
     }
 
     setGrid(resultGrid);
-    setOpcomDividerRows(opcomDividerSet);
+    setThickBottomRows(bottomSet);
+    setThickTopRows(topSet);
   };
 
   return (
@@ -585,18 +611,15 @@ const UpdatedSchedule: React.FC = () => {
                         
                         const isMergedVertical = (cell.mergeRowSpan || 1) > 1;
                         const isColA = ci === 0;
-                        const isOpcomDividerRow = opcomDividerRows.has(ri);
+                        const hasThickBottom = thickBottomRows.has(ri);
+                        const hasThickTop = thickTopRows.has(ri);
 
                         const cellStyle: React.CSSProperties = {
                           backgroundColor: cell.bgColor || undefined,
                           color: cell.fontColor || undefined,
                           fontWeight: cell.fontBold ? 'bold' : undefined,
-                          borderTop: isColA ? 'none' : '1px solid hsl(var(--border))',
-                          borderBottom: isColA
-                            ? 'none'
-                            : isOpcomDividerRow
-                              ? '3px solid hsl(var(--foreground))'
-                              : '1px solid hsl(var(--border))',
+                          borderTop: hasThickTop ? '3px solid #333' : (isColA ? 'none' : '1px solid hsl(var(--border))'),
+                          borderBottom: hasThickBottom ? '3px solid #333' : (isColA ? 'none' : '1px solid hsl(var(--border))'),
                           borderLeft: isColA ? 'none' : '1px solid hsl(var(--border))',
                           borderRight: isColA ? 'none' : '1px solid hsl(var(--border))',
                           padding: '2px 4px',
