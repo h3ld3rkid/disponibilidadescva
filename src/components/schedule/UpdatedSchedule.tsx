@@ -35,7 +35,7 @@ const HIDDEN_COLS = new Set([3, 6]);
 
 const UpdatedSchedule: React.FC = () => {
   const [grid, setGrid] = useState<ExcelCell[][]>([]);
-  const [groupStarts, setGroupStarts] = useState<Set<number>>(new Set());
+  const [opcomDividerRows, setOpcomDividerRows] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exchanges, setExchanges] = useState<AcceptedExchange[]>([]);
@@ -304,19 +304,42 @@ const UpdatedSchedule: React.FC = () => {
     console.log('Header row:', startRow, 'First date row:', firstDateRow, 'Date:', dateByRow[firstDateRow]);
 
     // Build user lookup
+    const normalizeMechKey = (value: string | number | null | undefined): string => {
+      if (value === null || value === undefined) return '';
+      const raw = String(value).trim();
+      if (!raw) return '';
+      const noSpaces = raw.replace(/\s+/g, '');
+      const noTrailingDecimal = noSpaces.replace(/\.0+$/, '');
+      const digitsOnly = noTrailingDecimal.replace(/\D/g, '');
+      return digitsOnly || noTrailingDecimal.toUpperCase();
+    };
+
     const { data: usersData } = await supabase.from('users').select('email, name, mechanographic_number');
     const usersByEmail = new Map<string, { name: string; mech: string }>();
     const usersByMech = new Map<string, { email: string; name: string }>();
     for (const u of (usersData || [])) {
       usersByEmail.set(u.email, { name: u.name, mech: u.mechanographic_number });
-      usersByMech.set(u.mechanographic_number, { email: u.email, name: u.name });
+      const mechKey = normalizeMechKey(u.mechanographic_number);
+      if (mechKey) {
+        usersByMech.set(mechKey, { email: u.email, name: u.name });
+      }
     }
 
-    const toExcelDate = (isoDate: string): string => {
-      if (!isoDate) return '';
-      const parts = isoDate.split('-');
-      if (parts.length !== 3) return isoDate;
-      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    const toExcelDate = (rawDate: string): string => {
+      if (!rawDate) return '';
+
+      const iso = rawDate.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (iso) {
+        return `${pad2(Number(iso[3]))}/${pad2(Number(iso[2]))}/${iso[1]}`;
+      }
+
+      const dmy = rawDate.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+      if (dmy) {
+        const fullYear = dmy[3].length === 2 ? `20${dmy[3]}` : dmy[3];
+        return `${pad2(Number(dmy[1]))}/${pad2(Number(dmy[2]))}/${fullYear}`;
+      }
+
+      return rawDate;
     };
 
     // Build adjusted merge map for visible rows (startRow onwards)
@@ -351,18 +374,12 @@ const UpdatedSchedule: React.FC = () => {
         .toUpperCase();
 
     const resultGrid: ExcelCell[][] = [];
-    const groupStartSet = new Set<number>();
-    let prevDate: string | undefined;
+    const opcomDividerSet = new Set<number>();
 
     for (let r = startRow; r <= range.e.r; r++) {
       const gridRowIdx = r - startRow;
-      const curDate = dateByRow[r];
-      // Mark group start when date changes (or first data row after header)
-      if (curDate && curDate !== prevDate) {
-        groupStartSet.add(gridRowIdx);
-        prevDate = curDate;
-      }
       const rowCells: ExcelCell[] = [];
+      let rowHasOpcom = false;
       // Track name swaps in this row so PROCV columns also get updated
       const rowSwapMap = new Map<string, string>(); // oldName(upper) -> newName(upper)
       for (let c = range.s.c; c <= range.e.c; c++) {
@@ -414,10 +431,11 @@ const UpdatedSchedule: React.FC = () => {
         // Apply exchange swaps
         let isModified = false;
         const cellStr = String(displayValue).trim();
+        const cellMechKey = normalizeMechKey(cellStr);
         const rowDate = dateByRow[r];
         
         if (rowDate && cellStr) {
-          const userInfo = usersByMech.get(cellStr);
+          const userInfo = cellMechKey ? usersByMech.get(cellMechKey) : undefined;
           if (userInfo) {
             for (const ex of acceptedExchanges) {
               const exReqDate = toExcelDate(ex.requested_date);
@@ -488,6 +506,10 @@ const UpdatedSchedule: React.FC = () => {
           if (adjustedColSpan < 1) adjustedColSpan = 1;
         }
 
+        if (typeof displayValue === 'string' && displayValue.toUpperCase().includes('OPCOM')) {
+          rowHasOpcom = true;
+        }
+
         rowCells.push({
           value: displayValue,
           bgColor,
@@ -500,10 +522,13 @@ const UpdatedSchedule: React.FC = () => {
         });
       }
       resultGrid.push(rowCells);
+      if (rowHasOpcom) {
+        opcomDividerSet.add(gridRowIdx);
+      }
     }
 
     setGrid(resultGrid);
-    setGroupStarts(groupStartSet);
+    setOpcomDividerRows(opcomDividerSet);
   };
 
   return (
@@ -560,26 +585,25 @@ const UpdatedSchedule: React.FC = () => {
                         
                         const isMergedVertical = (cell.mergeRowSpan || 1) > 1;
                         const isColA = ci === 0;
-                        const isGroupStart = groupStarts.has(ri);
-
-                        // Use box-shadow for thick top separator (unaffected by border-collapse)
-                        const showThickTop = isGroupStart && ri > 0;
+                        const isOpcomDividerRow = opcomDividerRows.has(ri);
 
                         const cellStyle: React.CSSProperties = {
                           backgroundColor: cell.bgColor || undefined,
                           color: cell.fontColor || undefined,
                           fontWeight: cell.fontBold ? 'bold' : undefined,
-                          borderTop: isColA ? 'none' : '1px solid #d0d0d0',
-                          borderBottom: isColA ? 'none' : '1px solid #d0d0d0',
-                          borderLeft: isColA ? 'none' : '1px solid #d0d0d0',
-                          borderRight: isColA ? 'none' : '1px solid #d0d0d0',
+                          borderTop: isColA ? 'none' : '1px solid hsl(var(--border))',
+                          borderBottom: isColA
+                            ? 'none'
+                            : isOpcomDividerRow
+                              ? '3px solid hsl(var(--foreground))'
+                              : '1px solid hsl(var(--border))',
+                          borderLeft: isColA ? 'none' : '1px solid hsl(var(--border))',
+                          borderRight: isColA ? 'none' : '1px solid hsl(var(--border))',
                           padding: '2px 4px',
                           whiteSpace: 'nowrap',
                           fontSize: '11px',
                           verticalAlign: isMergedVertical ? 'middle' : undefined,
                           textAlign: isMergedVertical ? 'center' : undefined,
-                          ...(showThickTop ? { boxShadow: 'inset 0 3px 0 0 #333' } : {}),
-                          position: showThickTop ? 'relative' as const : undefined,
                         };
 
                         return (
