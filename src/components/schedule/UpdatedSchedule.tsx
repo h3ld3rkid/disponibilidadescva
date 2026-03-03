@@ -28,6 +28,7 @@ interface AcceptedExchange {
   requested_shift: string;
   offered_date: string;
   offered_shift: string;
+  responded_at?: string | null;
 }
 
 // Columns to hide (0-indexed from sheet start): D=3, G=6
@@ -315,14 +316,30 @@ const UpdatedSchedule: React.FC = () => {
       return digitsOnly || noTrailingDecimal.toUpperCase();
     };
 
+    const normalizeNameKey = (value: string) =>
+      value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toUpperCase();
+
     const { data: usersData } = await supabase.from('users').select('email, name, mechanographic_number');
     const usersByEmail = new Map<string, { name: string; mech: string }>();
     const usersByMech = new Map<string, { email: string; name: string }>();
+    const usersByNameKey = new Map<string, { email: string; name: string; mech: string }>();
+
     for (const u of (usersData || [])) {
       usersByEmail.set(u.email, { name: u.name, mech: u.mechanographic_number });
+
       const mechKey = normalizeMechKey(u.mechanographic_number);
       if (mechKey) {
         usersByMech.set(mechKey, { email: u.email, name: u.name });
+      }
+
+      const nameKey = normalizeNameKey(u.name);
+      if (nameKey) {
+        usersByNameKey.set(nameKey, { email: u.email, name: u.name, mech: u.mechanographic_number });
       }
     }
 
@@ -366,13 +383,11 @@ const UpdatedSchedule: React.FC = () => {
     }
 
     // Build grid starting from startRow, skipping hidden columns
-    const normalizeNameKey = (value: string) =>
-      value
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .toUpperCase();
+    const exchangesChronological = [...acceptedExchanges].sort((a, b) => {
+      const ta = a.responded_at ? new Date(a.responded_at).getTime() : 0;
+      const tb = b.responded_at ? new Date(b.responded_at).getTime() : 0;
+      return ta - tb;
+    });
 
     const resultGrid: ExcelCell[][] = [];
     const opcomRows = new Set<number>();
@@ -433,54 +448,48 @@ const UpdatedSchedule: React.FC = () => {
 
         // Apply exchange swaps
         let isModified = false;
-        const cellStr = String(displayValue).trim();
-        const cellMechKey = normalizeMechKey(cellStr);
+        let cellStr = String(displayValue).trim();
         const rowDate = dateByRow[r];
-        
+
         if (rowDate && cellStr) {
-          const userInfo = cellMechKey ? usersByMech.get(cellMechKey) : undefined;
-          if (userInfo) {
-            for (const ex of acceptedExchanges) {
-              const exReqDate = toExcelDate(ex.requested_date);
-              const exOffDate = toExcelDate(ex.offered_date);
-              
-              // On requested_date: the target was working, requester takes over
-              if (rowDate === exReqDate && userInfo.email === ex.target_email) {
+          for (const ex of exchangesChronological) {
+            const exReqDate = toExcelDate(ex.requested_date);
+            const exOffDate = toExcelDate(ex.offered_date);
+
+            // Mechanographic cells: evaluate current value at each step (chronological replay)
+            const currentMechKey = normalizeMechKey(cellStr);
+            const currentMechUser = currentMechKey ? usersByMech.get(currentMechKey) : undefined;
+            if (currentMechUser) {
+              if (rowDate === exReqDate && currentMechUser.email === ex.target_email) {
                 const reqInfo = usersByEmail.get(ex.requester_email);
                 if (reqInfo) {
                   displayValue = reqInfo.mech;
+                  cellStr = String(displayValue).trim();
                   isModified = true;
-                  rowSwapMap.set(userInfo.name.toUpperCase(), ex.requester_name.toUpperCase());
+                  rowSwapMap.set(normalizeNameKey(currentMechUser.name), ex.requester_name.toUpperCase());
                 }
-              }
-              // On offered_date: the requester was working, target takes over
-              if (exOffDate && rowDate === exOffDate && userInfo.email === ex.requester_email) {
+              } else if (exOffDate && rowDate === exOffDate && currentMechUser.email === ex.requester_email) {
                 const targetInfo = usersByEmail.get(ex.target_email);
                 if (targetInfo) {
                   displayValue = targetInfo.mech;
+                  cellStr = String(displayValue).trim();
                   isModified = true;
-                  rowSwapMap.set(userInfo.name.toUpperCase(), ex.target_name.toUpperCase());
+                  rowSwapMap.set(normalizeNameKey(currentMechUser.name), ex.target_name.toUpperCase());
                 }
               }
             }
-          }
 
-          const userByName = Array.from(usersByEmail.entries()).find(([, info]) => 
-            info.name.toLowerCase() === cellStr.toLowerCase()
-          );
-          if (userByName) {
-            const [email] = userByName;
-            for (const ex of acceptedExchanges) {
-              const exReqDate = toExcelDate(ex.requested_date);
-              const exOffDate = toExcelDate(ex.offered_date);
-              
-              // On requested_date: target's name replaced by requester's name
-              if (rowDate === exReqDate && email === ex.target_email) {
-                displayValue = ex.requester_name.toUpperCase(); isModified = true;
-              }
-              // On offered_date: requester's name replaced by target's name
-              if (exOffDate && rowDate === exOffDate && email === ex.requester_email) {
-                displayValue = ex.target_name.toUpperCase(); isModified = true;
+            // Name cells: also replay with current value to support chained exchanges
+            const currentNameUser = usersByNameKey.get(normalizeNameKey(cellStr));
+            if (currentNameUser) {
+              if (rowDate === exReqDate && currentNameUser.email === ex.target_email) {
+                displayValue = ex.requester_name.toUpperCase();
+                cellStr = String(displayValue).trim();
+                isModified = true;
+              } else if (exOffDate && rowDate === exOffDate && currentNameUser.email === ex.requester_email) {
+                displayValue = ex.target_name.toUpperCase();
+                cellStr = String(displayValue).trim();
+                isModified = true;
               }
             }
           }
@@ -488,8 +497,8 @@ const UpdatedSchedule: React.FC = () => {
           // PROCV/PROCX columns: if mech was swapped in this row, also swap the cached name
           if (!isModified && rowSwapMap.size > 0 && cellStr) {
             const normalizedCell = normalizeNameKey(cellStr);
-            for (const [oldName, newName] of rowSwapMap) {
-              if (normalizedCell === normalizeNameKey(oldName)) {
+            for (const [oldNameKey, newName] of rowSwapMap) {
+              if (normalizedCell === oldNameKey) {
                 displayValue = newName;
                 isModified = true;
                 break;
@@ -513,13 +522,32 @@ const UpdatedSchedule: React.FC = () => {
           rowHasOpcom = true;
         }
 
-        // Detect yellow background (hue ~60, high saturation)
+        // Detect yellow background (robust for vivid and pale yellow)
         if (bgColor) {
           const m = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
           if (m) {
-            const rr = Number(m[1]), gg = Number(m[2]), bb = Number(m[3]);
-            if (rr > 200 && gg > 200 && bb < 100) rowIsYellow = true;
-            if (rr > 200 && gg > 180 && bb < 120 && gg > bb * 2) rowIsYellow = true;
+            const rr = Number(m[1]);
+            const gg = Number(m[2]);
+            const bb = Number(m[3]);
+
+            const max = Math.max(rr, gg, bb);
+            const min = Math.min(rr, gg, bb);
+            const delta = max - min;
+            const sat = max === 0 ? 0 : delta / max;
+            let hue = 0;
+
+            if (delta !== 0) {
+              if (max === rr) hue = ((gg - bb) / delta) % 6;
+              else if (max === gg) hue = (bb - rr) / delta + 2;
+              else hue = (rr - gg) / delta + 4;
+              hue = Math.round(hue * 60);
+              if (hue < 0) hue += 360;
+            }
+
+            const isYellowHue = hue >= 38 && hue <= 72;
+            const isYellowLike = isYellowHue && sat >= 0.15 && max >= 150;
+
+            if (isYellowLike) rowIsYellow = true;
           }
         }
 
@@ -613,15 +641,21 @@ const UpdatedSchedule: React.FC = () => {
                         const isColA = ci === 0;
                         const hasThickBottom = thickBottomRows.has(ri);
                         const hasThickTop = thickTopRows.has(ri);
+                        const thickLineColor = 'hsl(var(--foreground))';
+                        const thickShadow = [
+                          hasThickTop ? `inset 0 3px 0 0 ${thickLineColor}` : '',
+                          hasThickBottom ? `inset 0 -3px 0 0 ${thickLineColor}` : '',
+                        ].filter(Boolean).join(', ');
 
                         const cellStyle: React.CSSProperties = {
                           backgroundColor: cell.bgColor || undefined,
                           color: cell.fontColor || undefined,
                           fontWeight: cell.fontBold ? 'bold' : undefined,
-                          borderTop: hasThickTop ? '3px solid #333' : (isColA ? 'none' : '1px solid hsl(var(--border))'),
-                          borderBottom: hasThickBottom ? '3px solid #333' : (isColA ? 'none' : '1px solid hsl(var(--border))'),
+                          borderTop: isColA ? 'none' : '1px solid hsl(var(--border))',
+                          borderBottom: isColA ? 'none' : '1px solid hsl(var(--border))',
                           borderLeft: isColA ? 'none' : '1px solid hsl(var(--border))',
                           borderRight: isColA ? 'none' : '1px solid hsl(var(--border))',
+                          boxShadow: thickShadow || undefined,
                           padding: '2px 4px',
                           whiteSpace: 'nowrap',
                           fontSize: '11px',
