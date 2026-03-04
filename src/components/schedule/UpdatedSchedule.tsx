@@ -452,6 +452,15 @@ const UpdatedSchedule: React.FC = () => {
         let cellStr = String(displayValue).trim();
         const rowDate = dateByRow[r];
 
+        // Debug logging for date 14 rows
+        const isDebugRow = rowDate && rowDate.startsWith('14/');
+        if (isDebugRow && cellStr) {
+          const mechKey = normalizeMechKey(cellStr);
+          const mechUser = mechKey ? usersByMech.get(mechKey) : undefined;
+          const nameUser = usersByNameKey.get(normalizeNameKey(cellStr));
+          console.log(`[SWAP-DEBUG] Row ${r}, Col ${c}: cellStr="${cellStr}", rowDate="${rowDate}", mechKey="${mechKey}", mechUser=${mechUser?.email || 'none'}, nameUser=${nameUser?.email || 'none'}`);
+        }
+
         if (rowDate && cellStr) {
           for (const ex of exchangesChronological) {
             const exReqDate = toExcelDate(ex.requested_date);
@@ -464,6 +473,7 @@ const UpdatedSchedule: React.FC = () => {
               if (rowDate === exReqDate && currentMechUser.email === ex.target_email) {
                 const reqInfo = usersByEmail.get(ex.requester_email);
                 if (reqInfo) {
+                  if (isDebugRow) console.log(`[SWAP-DEBUG]   MECH SWAP (req): ${cellStr} -> ${reqInfo.mech} (ex: ${ex.requester_name} <-> ${ex.target_name}, reqDate=${exReqDate})`);
                   displayValue = reqInfo.mech;
                   cellStr = String(displayValue).trim();
                   isModified = true;
@@ -472,6 +482,7 @@ const UpdatedSchedule: React.FC = () => {
               } else if (exOffDate && rowDate === exOffDate && currentMechUser.email === ex.requester_email) {
                 const targetInfo = usersByEmail.get(ex.target_email);
                 if (targetInfo) {
+                  if (isDebugRow) console.log(`[SWAP-DEBUG]   MECH SWAP (off): ${cellStr} -> ${targetInfo.mech} (ex: ${ex.requester_name} <-> ${ex.target_name}, offDate=${exOffDate})`);
                   displayValue = targetInfo.mech;
                   cellStr = String(displayValue).trim();
                   isModified = true;
@@ -481,13 +492,16 @@ const UpdatedSchedule: React.FC = () => {
             }
 
             // Name cells: also replay with current value to support chained exchanges
-            const currentNameUser = usersByNameKey.get(normalizeNameKey(cellStr));
+            const currentNameKey = normalizeNameKey(cellStr);
+            const currentNameUser = usersByNameKey.get(currentNameKey);
             if (currentNameUser) {
               if (rowDate === exReqDate && currentNameUser.email === ex.target_email) {
+                if (isDebugRow) console.log(`[SWAP-DEBUG]   NAME SWAP (req): ${cellStr} -> ${ex.requester_name.toUpperCase()} (ex: ${ex.requester_name} <-> ${ex.target_name})`);
                 displayValue = ex.requester_name.toUpperCase();
                 cellStr = String(displayValue).trim();
                 isModified = true;
               } else if (exOffDate && rowDate === exOffDate && currentNameUser.email === ex.requester_email) {
+                if (isDebugRow) console.log(`[SWAP-DEBUG]   NAME SWAP (off): ${cellStr} -> ${ex.target_name.toUpperCase()} (ex: ${ex.requester_name} <-> ${ex.target_name})`);
                 displayValue = ex.target_name.toUpperCase();
                 cellStr = String(displayValue).trim();
                 isModified = true;
@@ -500,6 +514,7 @@ const UpdatedSchedule: React.FC = () => {
             const normalizedCell = normalizeNameKey(cellStr);
             for (const [oldNameKey, newName] of rowSwapMap) {
               if (normalizedCell === oldNameKey) {
+                if (isDebugRow) console.log(`[SWAP-DEBUG]   PROCV SWAP: ${cellStr} -> ${newName}`);
                 displayValue = newName;
                 isModified = true;
                 break;
