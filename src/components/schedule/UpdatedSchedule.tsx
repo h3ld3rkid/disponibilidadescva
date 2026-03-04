@@ -305,7 +305,7 @@ const UpdatedSchedule: React.FC = () => {
     const startRow = firstDateRow > range.s.r ? firstDateRow - 1 : firstDateRow;
     console.log('Header row:', startRow, 'First date row:', firstDateRow, 'Date:', dateByRow[firstDateRow]);
 
-    // Build user lookup
+    // Build user lookup and shift helpers
     const normalizeMechKey = (value: string | number | null | undefined): string => {
       if (value === null || value === undefined) return '';
       const raw = String(value).trim();
@@ -324,6 +324,80 @@ const UpdatedSchedule: React.FC = () => {
         .replace(/\s+/g, ' ')
         .trim()
         .toUpperCase();
+
+    type ExchangeShiftKey = 'day' | 'overnight' | 'morning' | 'afternoon' | 'night';
+
+    const normalizeShiftKey = (value: string | null | undefined): ExchangeShiftKey | '' => {
+      if (!value) return '';
+      const normalized = normalizeNameKey(value);
+
+      if (normalized === 'M' || normalized.includes('MANHA')) return 'morning';
+      if (normalized === 'T' || normalized.includes('TARDE')) return 'afternoon';
+      if (normalized === 'N' || normalized.includes('NOITE')) return 'night';
+      if (normalized === 'P' || normalized.includes('PERNOITE')) return 'overnight';
+      if (normalized === 'D' || normalized.includes('DIURNO') || normalized.includes('DIA')) return 'day';
+
+      return '';
+    };
+
+    const shiftMatchesRow = (
+      exchangeShift: string | null | undefined,
+      rowShift: ExchangeShiftKey | ''
+    ): boolean => {
+      const normalizedExchange = normalizeShiftKey(exchangeShift);
+      if (!normalizedExchange) return true;
+      return !!rowShift && rowShift === normalizedExchange;
+    };
+
+    const resolveCell = (row: number, col: number) => {
+      const addr = XLSX.utils.encode_cell({ r: row, c: col });
+      let resolvedCell = (sheet as any)[addr];
+
+      if (resolvedCell && resolvedCell.v !== undefined && resolvedCell.v !== null && resolvedCell.v !== '') {
+        return resolvedCell;
+      }
+
+      for (const m of merges) {
+        if (row >= m.s.r && row <= m.e.r && col >= m.s.c && col <= m.e.c) {
+          const masterAddr = XLSX.utils.encode_cell({ r: m.s.r, c: m.s.c });
+          const masterCell = (sheet as any)[masterAddr];
+          if (masterCell) return masterCell;
+        }
+      }
+
+      return resolvedCell;
+    };
+
+    const getCellDisplayText = (row: number, col: number): string => {
+      const cell = resolveCell(row, col);
+      if (!cell) return '';
+
+      const isError = cell.t === 'e' || (typeof cell.v === 'string' && /^#(N\/A|REF!|VALUE!|NAME\?|NULL!|NUM!|DIV\/0!)/.test(cell.v));
+      if (isError) return '';
+
+      if (cell.w !== undefined && cell.w !== null && cell.w !== '') return String(cell.w).trim();
+      if (cell.v !== undefined && cell.v !== null) return String(cell.v).trim();
+      return '';
+    };
+
+    const shiftColIndex = range.s.c + 3; // Coluna D no ficheiro original
+    const rowShiftByRow: Record<number, ExchangeShiftKey> = {};
+
+    for (let r = startRow; r <= range.e.r; r++) {
+      const fromHiddenShiftCol = normalizeShiftKey(getCellDisplayText(r, shiftColIndex));
+      if (fromHiddenShiftCol) {
+        rowShiftByRow[r] = fromHiddenShiftCol;
+        continue;
+      }
+
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const detectedShift = normalizeShiftKey(getCellDisplayText(r, c));
+        if (detectedShift) {
+          rowShiftByRow[r] = detectedShift;
+          break;
+        }
+      }
+    }
 
     const { data: usersData } = await supabase.from('users').select('email, name, mechanographic_number');
     const usersByEmail = new Map<string, { name: string; mech: string }>();
@@ -451,15 +525,7 @@ const UpdatedSchedule: React.FC = () => {
         let isModified = false;
         let cellStr = String(displayValue).trim();
         const rowDate = dateByRow[r];
-
-        // Debug logging for date 14 rows
-        const isDebugRow = rowDate && rowDate.startsWith('14/');
-        if (isDebugRow && cellStr) {
-          const mechKey = normalizeMechKey(cellStr);
-          const mechUser = mechKey ? usersByMech.get(mechKey) : undefined;
-          const nameUser = usersByNameKey.get(normalizeNameKey(cellStr));
-          console.log(`[SWAP-DEBUG] Row ${r}, Col ${c}: cellStr="${cellStr}", rowDate="${rowDate}", mechKey="${mechKey}", mechUser=${mechUser?.email || 'none'}, nameUser=${nameUser?.email || 'none'}`);
-        }
+        const rowShift = rowShiftByRow[r] || '';
 
         if (rowDate && cellStr) {
           for (const ex of exchangesChronological) {
@@ -470,19 +536,26 @@ const UpdatedSchedule: React.FC = () => {
             const currentMechKey = normalizeMechKey(cellStr);
             const currentMechUser = currentMechKey ? usersByMech.get(currentMechKey) : undefined;
             if (currentMechUser) {
-              if (rowDate === exReqDate && currentMechUser.email === ex.target_email) {
+              if (
+                rowDate === exReqDate &&
+                shiftMatchesRow(ex.requested_shift, rowShift) &&
+                currentMechUser.email === ex.target_email
+              ) {
                 const reqInfo = usersByEmail.get(ex.requester_email);
                 if (reqInfo) {
-                  if (isDebugRow) console.log(`[SWAP-DEBUG]   MECH SWAP (req): ${cellStr} -> ${reqInfo.mech} (ex: ${ex.requester_name} <-> ${ex.target_name}, reqDate=${exReqDate})`);
                   displayValue = reqInfo.mech;
                   cellStr = String(displayValue).trim();
                   isModified = true;
                   rowSwapMap.set(normalizeNameKey(currentMechUser.name), ex.requester_name.toUpperCase());
                 }
-              } else if (exOffDate && rowDate === exOffDate && currentMechUser.email === ex.requester_email) {
+              } else if (
+                exOffDate &&
+                rowDate === exOffDate &&
+                shiftMatchesRow(ex.offered_shift, rowShift) &&
+                currentMechUser.email === ex.requester_email
+              ) {
                 const targetInfo = usersByEmail.get(ex.target_email);
                 if (targetInfo) {
-                  if (isDebugRow) console.log(`[SWAP-DEBUG]   MECH SWAP (off): ${cellStr} -> ${targetInfo.mech} (ex: ${ex.requester_name} <-> ${ex.target_name}, offDate=${exOffDate})`);
                   displayValue = targetInfo.mech;
                   cellStr = String(displayValue).trim();
                   isModified = true;
@@ -495,13 +568,20 @@ const UpdatedSchedule: React.FC = () => {
             const currentNameKey = normalizeNameKey(cellStr);
             const currentNameUser = usersByNameKey.get(currentNameKey);
             if (currentNameUser) {
-              if (rowDate === exReqDate && currentNameUser.email === ex.target_email) {
-                if (isDebugRow) console.log(`[SWAP-DEBUG]   NAME SWAP (req): ${cellStr} -> ${ex.requester_name.toUpperCase()} (ex: ${ex.requester_name} <-> ${ex.target_name})`);
+              if (
+                rowDate === exReqDate &&
+                shiftMatchesRow(ex.requested_shift, rowShift) &&
+                currentNameUser.email === ex.target_email
+              ) {
                 displayValue = ex.requester_name.toUpperCase();
                 cellStr = String(displayValue).trim();
                 isModified = true;
-              } else if (exOffDate && rowDate === exOffDate && currentNameUser.email === ex.requester_email) {
-                if (isDebugRow) console.log(`[SWAP-DEBUG]   NAME SWAP (off): ${cellStr} -> ${ex.target_name.toUpperCase()} (ex: ${ex.requester_name} <-> ${ex.target_name})`);
+              } else if (
+                exOffDate &&
+                rowDate === exOffDate &&
+                shiftMatchesRow(ex.offered_shift, rowShift) &&
+                currentNameUser.email === ex.requester_email
+              ) {
                 displayValue = ex.target_name.toUpperCase();
                 cellStr = String(displayValue).trim();
                 isModified = true;
@@ -514,7 +594,6 @@ const UpdatedSchedule: React.FC = () => {
             const normalizedCell = normalizeNameKey(cellStr);
             for (const [oldNameKey, newName] of rowSwapMap) {
               if (normalizedCell === oldNameKey) {
-                if (isDebugRow) console.log(`[SWAP-DEBUG]   PROCV SWAP: ${cellStr} -> ${newName}`);
                 displayValue = newName;
                 isModified = true;
                 break;
