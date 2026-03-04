@@ -313,7 +313,8 @@ const UpdatedSchedule: React.FC = () => {
       const noSpaces = raw.replace(/\s+/g, '');
       const noTrailingDecimal = noSpaces.replace(/\.0+$/, '');
       const digitsOnly = noTrailingDecimal.replace(/\D/g, '');
-      return digitsOnly || noTrailingDecimal.toUpperCase();
+      if (digitsOnly) return digitsOnly.replace(/^0+/, '') || '0';
+      return noTrailingDecimal.toUpperCase();
     };
 
     const normalizeNameKey = (value: string) =>
