@@ -346,7 +346,19 @@ const UpdatedSchedule: React.FC = () => {
     ): boolean => {
       const normalizedExchange = normalizeShiftKey(exchangeShift);
       if (!normalizedExchange) return true;
-      return !!rowShift && rowShift === normalizedExchange;
+      if (!rowShift) return false;
+
+      if (normalizedExchange === rowShift) return true;
+
+      const compatibleShiftMap: Record<ExchangeShiftKey, ExchangeShiftKey[]> = {
+        morning: ['day'],
+        day: ['morning'],
+        night: ['overnight'],
+        overnight: ['night'],
+        afternoon: [],
+      };
+
+      return compatibleShiftMap[normalizedExchange].includes(rowShift);
     };
 
     const resolveCell = (row: number, col: number) => {
