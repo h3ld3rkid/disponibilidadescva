@@ -293,6 +293,27 @@ const UpdatedSchedule: React.FC = () => {
       if (parsed) dateByRow[r] = parsed;
     }
 
+    // Preencher datas em linhas sem data explícita (layout com "dia da semana" e data em linhas separadas)
+    // 1) Forward fill: usa a última data conhecida acima
+    let lastKnownDate = '';
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      if (dateByRow[r]) {
+        lastKnownDate = dateByRow[r];
+      } else if (lastKnownDate) {
+        dateByRow[r] = lastKnownDate;
+      }
+    }
+
+    // 2) Backward fill: cobre linhas imediatamente acima da primeira ocorrência de data do bloco
+    let nextKnownDate = '';
+    for (let r = range.e.r; r >= range.s.r; r--) {
+      if (dateByRow[r]) {
+        nextKnownDate = dateByRow[r];
+      } else if (nextKnownDate) {
+        dateByRow[r] = nextKnownDate;
+      }
+    }
+
     // Find first row with a date, then include the header row above it (DIA, Nº, etc.)
     let firstDateRow = range.s.r;
     for (let r = range.s.r; r <= range.e.r; r++) {
