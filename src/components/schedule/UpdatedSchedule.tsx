@@ -702,10 +702,16 @@ const UpdatedSchedule: React.FC = () => {
     // OPCOM rows: thick bottom
     for (const ri of opcomRows) bottomSet.add(ri);
 
-    // Yellow rows: thick top (before) and thick bottom (after)
+    // Yellow rows: thick top and bottom, but NOT between consecutive yellow rows
     for (const ri of yellowRows) {
-      topSet.add(ri);        // thick top on the yellow row itself
-      bottomSet.add(ri);     // thick bottom on the yellow row itself
+      // Only add thick top if the row above is NOT yellow
+      if (!yellowRows.has(ri - 1)) {
+        topSet.add(ri);
+      }
+      // Only add thick bottom if the row below is NOT yellow
+      if (!yellowRows.has(ri + 1)) {
+        bottomSet.add(ri);
+      }
     }
 
     setGrid(resultGrid);
