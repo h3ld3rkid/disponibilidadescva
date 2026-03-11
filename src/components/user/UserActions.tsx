@@ -83,6 +83,44 @@ const UserActions: React.FC<UserActionsProps> = ({
           <Button
             variant="outline"
             size="sm"
+            title={user.manually_blocked ? "Desbloquear utilizador" : "Bloquear utilizador manualmente"}
+          >
+            {user.manually_blocked ? (
+              <Lock className="h-4 w-4 text-red-600" />
+            ) : (
+              <Unlock className="h-4 w-4 text-green-600" />
+            )}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {user.manually_blocked ? "Desbloquear utilizador" : "Bloquear utilizador"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {user.manually_blocked 
+                ? `Tem a certeza que deseja desbloquear o utilizador "${user.name}"? O utilizador poderá voltar a iniciar sessão.`
+                : `Tem a certeza que deseja bloquear manualmente o utilizador "${user.name}"? O utilizador não poderá iniciar sessão nem recuperar a password.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => onToggleManualBlock(user.id)}
+              className={user.manually_blocked ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
+            >
+              {user.manually_blocked ? "Desbloquear" : "Bloquear"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
             title="Repor password"
           >
             <RotateCcw className="h-4 w-4 text-blue-600" />

@@ -36,7 +36,7 @@ serve(async (req) => {
     // Check user exists and has telegram_chat_id
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, name, email, telegram_chat_id, active')
+      .select('id, name, email, telegram_chat_id, active, manually_blocked')
       .eq('email', normalizedEmail)
       .single();
 
@@ -48,9 +48,9 @@ serve(async (req) => {
       );
     }
 
-    if (!user.active) {
+    if (!user.active || user.manually_blocked) {
       return new Response(
-        JSON.stringify({ success: true, message: 'Se o email existir e tiver Telegram configurado, receberá a nova password.' }),
+        JSON.stringify({ success: false, message: 'Esta conta está bloqueada. Contacte o administrador.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
