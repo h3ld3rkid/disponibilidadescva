@@ -23,6 +23,7 @@ interface User {
   active: boolean;
   needs_password_change?: boolean;
   allow_late_submission?: boolean;
+  manually_blocked?: boolean;
 }
 
 interface UserActionsProps {
@@ -30,6 +31,7 @@ interface UserActionsProps {
   onEdit: (user: User) => void;
   onToggleStatus: (userId: string) => void;
   onToggleLateSubmission: (userId: string) => void;
+  onToggleManualBlock: (userId: string) => void;
   onResetPassword: (userEmail: string) => void;
   onDelete: (userId: string) => void;
 }
