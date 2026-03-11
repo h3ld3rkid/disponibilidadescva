@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Edit, ToggleLeft, ToggleRight, RotateCcw, Trash2 } from 'lucide-react';
+import { Edit, ToggleLeft, ToggleRight, RotateCcw, Trash2, Lock, Unlock } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
