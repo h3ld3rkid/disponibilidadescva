@@ -19,6 +19,7 @@ interface User {
   active: boolean;
   needs_password_change?: boolean;
   allow_late_submission?: boolean;
+  manually_blocked?: boolean;
 }
 
 interface UserListProps {
