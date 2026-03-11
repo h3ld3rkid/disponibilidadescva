@@ -118,6 +118,7 @@ const UserItem: React.FC<UserItemProps> = ({
           onEdit={onEdit}
           onToggleStatus={onToggleStatus}
           onToggleLateSubmission={onToggleLateSubmission}
+          onToggleManualBlock={onToggleManualBlock}
           onResetPassword={onResetPassword}
           onDelete={onDelete}
         />
