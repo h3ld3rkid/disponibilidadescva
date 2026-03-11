@@ -41,6 +41,7 @@ const UserActions: React.FC<UserActionsProps> = ({
   onEdit,
   onToggleStatus,
   onToggleLateSubmission,
+  onToggleManualBlock,
   onResetPassword,
   onDelete
 }) => {
