@@ -176,7 +176,8 @@ export const userService = {
       needs_password_change: data.needs_password_change,
       allow_late_submission: userData.allow_late_submission,
       telegram_chat_id: data.telegram_chat_id,
-      categoria: data.categoria as 'Condutor' | 'Socorrista' | 'Estagiario' | null
+      categoria: data.categoria as 'Condutor' | 'Socorrista' | 'Estagiario' | null,
+      manually_blocked: data.manually_blocked ?? false
     };
   },
   
