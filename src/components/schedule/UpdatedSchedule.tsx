@@ -794,7 +794,7 @@ const UpdatedSchedule: React.FC = () => {
                           whiteSpace: 'nowrap',
                           fontSize: '11px',
                           verticalAlign: isMergedVertical ? 'middle' : undefined,
-                          textAlign: isMergedVertical ? 'center' : undefined,
+                          textAlign: (isMergedVertical || isColA) ? 'center' : undefined,
                         };
 
                         return (
