@@ -135,6 +135,7 @@ export const userService = {
       ...(userData.needs_password_change !== undefined && { needs_password_change: userData.needs_password_change }),
       ...(userData.telegram_chat_id !== undefined && { telegram_chat_id: userData.telegram_chat_id }),
       ...(userData.categoria !== undefined && { categoria: userData.categoria }),
+      ...(userData.manually_blocked !== undefined && { manually_blocked: userData.manually_blocked }),
       updated_at: new Date().toISOString()
     };
     
