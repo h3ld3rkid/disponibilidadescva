@@ -13,6 +13,7 @@ interface User {
   allow_late_submission?: boolean;
   telegram_chat_id?: string;
   categoria?: 'Condutor' | 'Socorrista' | 'Estagiario' | null;
+  manually_blocked?: boolean;
 }
 
 // Define types for Supabase tables to help TypeScript understand our database schema
