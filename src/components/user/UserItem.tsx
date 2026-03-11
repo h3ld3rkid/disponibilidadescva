@@ -88,6 +88,11 @@ const UserItem: React.FC<UserItemProps> = ({
                 Submissão Tardia
               </Badge>
             )}
+            {user.manually_blocked && (
+              <Badge variant="destructive">
+                Bloqueado
+              </Badge>
+            )}
             {/* Telegram indicator */}
             <Button
               variant="ghost"
