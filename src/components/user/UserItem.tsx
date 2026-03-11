@@ -17,6 +17,7 @@ interface User {
   needs_password_change?: boolean;
   allow_late_submission?: boolean;
   telegram_chat_id?: string;
+  manually_blocked?: boolean;
 }
 
 interface UserItemProps {
@@ -24,6 +25,7 @@ interface UserItemProps {
   onEdit: (user: User) => void;
   onToggleStatus: (userId: string) => void;
   onToggleLateSubmission: (userId: string) => void;
+  onToggleManualBlock: (userId: string) => void;
   onResetPassword: (userEmail: string) => void;
   onDelete: (userId: string) => void;
 }
