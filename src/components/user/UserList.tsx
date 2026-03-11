@@ -19,6 +19,7 @@ interface User {
   active: boolean;
   needs_password_change?: boolean;
   allow_late_submission?: boolean;
+  manually_blocked?: boolean;
 }
 
 interface UserListProps {
@@ -151,6 +152,32 @@ const UserList: React.FC<UserListProps> = ({
     }
   };
 
+  const handleToggleManualBlock = async (userId: string) => {
+    try {
+      const user = users.find(u => u.id === userId);
+      if (!user) return;
+
+      await userService.updateUser(userId, {
+        manually_blocked: !user.manually_blocked
+      });
+
+      onUserUpdated();
+      toast({
+        title: user.manually_blocked ? "Utilizador desbloqueado" : "Utilizador bloqueado",
+        description: user.manually_blocked 
+          ? "O utilizador pode voltar a iniciar sessão."
+          : "O utilizador está bloqueado e não pode iniciar sessão.",
+      });
+    } catch (error) {
+      console.error('Error toggling manual block:', error);
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível alterar o estado de bloqueio.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleResetPassword = async (userEmail: string) => {
     try {
       const result = await authService.resetPassword(userEmail);
@@ -220,6 +247,7 @@ const UserList: React.FC<UserListProps> = ({
                   onEdit={handleEditUser}
                   onToggleStatus={handleToggleUserStatus}
                   onToggleLateSubmission={handleToggleLateSubmission}
+                  onToggleManualBlock={handleToggleManualBlock}
                   onResetPassword={handleResetPassword}
                   onDelete={handleDeleteUser}
                 />

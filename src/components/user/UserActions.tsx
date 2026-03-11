@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Edit, ToggleLeft, ToggleRight, RotateCcw, Trash2 } from 'lucide-react';
+import { Edit, ToggleLeft, ToggleRight, RotateCcw, Trash2, Lock, Unlock } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +23,7 @@ interface User {
   active: boolean;
   needs_password_change?: boolean;
   allow_late_submission?: boolean;
+  manually_blocked?: boolean;
 }
 
 interface UserActionsProps {
@@ -30,6 +31,7 @@ interface UserActionsProps {
   onEdit: (user: User) => void;
   onToggleStatus: (userId: string) => void;
   onToggleLateSubmission: (userId: string) => void;
+  onToggleManualBlock: (userId: string) => void;
   onResetPassword: (userEmail: string) => void;
   onDelete: (userId: string) => void;
 }
@@ -39,6 +41,7 @@ const UserActions: React.FC<UserActionsProps> = ({
   onEdit,
   onToggleStatus,
   onToggleLateSubmission,
+  onToggleManualBlock,
   onResetPassword,
   onDelete
 }) => {
@@ -74,6 +77,44 @@ const UserActions: React.FC<UserActionsProps> = ({
           15+
         </span>
       </Button>
+
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            title={user.manually_blocked ? "Desbloquear utilizador" : "Bloquear utilizador manualmente"}
+          >
+            {user.manually_blocked ? (
+              <Lock className="h-4 w-4 text-red-600" />
+            ) : (
+              <Unlock className="h-4 w-4 text-green-600" />
+            )}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {user.manually_blocked ? "Desbloquear utilizador" : "Bloquear utilizador"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {user.manually_blocked 
+                ? `Tem a certeza que deseja desbloquear o utilizador "${user.name}"? O utilizador poderá voltar a iniciar sessão.`
+                : `Tem a certeza que deseja bloquear manualmente o utilizador "${user.name}"? O utilizador não poderá iniciar sessão nem recuperar a password.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => onToggleManualBlock(user.id)}
+              className={user.manually_blocked ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
+            >
+              {user.manually_blocked ? "Desbloquear" : "Bloquear"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog>
         <AlertDialogTrigger asChild>

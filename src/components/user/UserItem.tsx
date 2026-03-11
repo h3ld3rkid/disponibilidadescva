@@ -17,6 +17,7 @@ interface User {
   needs_password_change?: boolean;
   allow_late_submission?: boolean;
   telegram_chat_id?: string;
+  manually_blocked?: boolean;
 }
 
 interface UserItemProps {
@@ -24,6 +25,7 @@ interface UserItemProps {
   onEdit: (user: User) => void;
   onToggleStatus: (userId: string) => void;
   onToggleLateSubmission: (userId: string) => void;
+  onToggleManualBlock: (userId: string) => void;
   onResetPassword: (userEmail: string) => void;
   onDelete: (userId: string) => void;
 }
@@ -33,6 +35,7 @@ const UserItem: React.FC<UserItemProps> = ({
   onEdit,
   onToggleStatus,
   onToggleLateSubmission,
+  onToggleManualBlock,
   onResetPassword,
   onDelete
 }) => {
@@ -64,9 +67,11 @@ const UserItem: React.FC<UserItemProps> = ({
 
   return (
     <div className={`flex flex-col md:flex-row md:items-center justify-between p-4 border rounded-lg gap-4 ${
-      !user.active 
-        ? 'bg-orange-50 border-orange-300 hover:bg-orange-100' 
-        : 'hover:bg-gray-50'
+      user.manually_blocked
+        ? 'bg-red-50 border-red-300 hover:bg-red-100'
+        : !user.active 
+          ? 'bg-orange-50 border-orange-300 hover:bg-orange-100' 
+          : 'hover:bg-gray-50'
     }`}>
       <div className="flex-1 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
@@ -81,6 +86,11 @@ const UserItem: React.FC<UserItemProps> = ({
             {user.allow_late_submission && (
               <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
                 Submissão Tardia
+              </Badge>
+            )}
+            {user.manually_blocked && (
+              <Badge variant="destructive">
+                Bloqueado
               </Badge>
             )}
             {/* Telegram indicator */}
@@ -108,6 +118,7 @@ const UserItem: React.FC<UserItemProps> = ({
           onEdit={onEdit}
           onToggleStatus={onToggleStatus}
           onToggleLateSubmission={onToggleLateSubmission}
+          onToggleManualBlock={onToggleManualBlock}
           onResetPassword={onResetPassword}
           onDelete={onDelete}
         />

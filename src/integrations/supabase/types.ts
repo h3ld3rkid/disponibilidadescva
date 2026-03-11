@@ -288,6 +288,7 @@ export type Database = {
           id: string
           is_admin: boolean | null
           locked_at: string | null
+          manually_blocked: boolean
           mechanographic_number: string
           name: string
           needs_password_change: boolean
@@ -305,6 +306,7 @@ export type Database = {
           id?: string
           is_admin?: boolean | null
           locked_at?: string | null
+          manually_blocked?: boolean
           mechanographic_number: string
           name: string
           needs_password_change?: boolean
@@ -322,6 +324,7 @@ export type Database = {
           id?: string
           is_admin?: boolean | null
           locked_at?: string | null
+          manually_blocked?: boolean
           mechanographic_number?: string
           name?: string
           needs_password_change?: boolean

@@ -13,6 +13,7 @@ interface User {
   allow_late_submission?: boolean;
   telegram_chat_id?: string;
   categoria?: 'Condutor' | 'Socorrista' | 'Estagiario' | null;
+  manually_blocked?: boolean;
 }
 
 // Define types for Supabase tables to help TypeScript understand our database schema
@@ -134,6 +135,7 @@ export const userService = {
       ...(userData.needs_password_change !== undefined && { needs_password_change: userData.needs_password_change }),
       ...(userData.telegram_chat_id !== undefined && { telegram_chat_id: userData.telegram_chat_id }),
       ...(userData.categoria !== undefined && { categoria: userData.categoria }),
+      ...(userData.manually_blocked !== undefined && { manually_blocked: userData.manually_blocked }),
       updated_at: new Date().toISOString()
     };
     
@@ -174,7 +176,8 @@ export const userService = {
       needs_password_change: data.needs_password_change,
       allow_late_submission: userData.allow_late_submission,
       telegram_chat_id: data.telegram_chat_id,
-      categoria: data.categoria as 'Condutor' | 'Socorrista' | 'Estagiario' | null
+      categoria: data.categoria as 'Condutor' | 'Socorrista' | 'Estagiario' | null,
+      manually_blocked: data.manually_blocked ?? false
     };
   },
   
@@ -262,7 +265,8 @@ export const userService = {
             needs_password_change: user.needs_password_change,
             allow_late_submission: setting === 'true',
             telegram_chat_id: user.telegram_chat_id,
-            categoria: user.categoria as 'Condutor' | 'Socorrista' | 'Estagiario' | null
+            categoria: user.categoria as 'Condutor' | 'Socorrista' | 'Estagiario' | null,
+            manually_blocked: user.manually_blocked ?? false
           };
         } catch (error) {
           return {
@@ -275,7 +279,8 @@ export const userService = {
             needs_password_change: user.needs_password_change,
             allow_late_submission: false,
             telegram_chat_id: user.telegram_chat_id,
-            categoria: user.categoria as 'Condutor' | 'Socorrista' | 'Estagiario' | null
+            categoria: user.categoria as 'Condutor' | 'Socorrista' | 'Estagiario' | null,
+            manually_blocked: user.manually_blocked ?? false
           };
         }
       })
