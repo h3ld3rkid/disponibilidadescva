@@ -247,6 +247,7 @@ const UserList: React.FC<UserListProps> = ({
                   onEdit={handleEditUser}
                   onToggleStatus={handleToggleUserStatus}
                   onToggleLateSubmission={handleToggleLateSubmission}
+                  onToggleManualBlock={handleToggleManualBlock}
                   onResetPassword={handleResetPassword}
                   onDelete={handleDeleteUser}
                 />
