@@ -265,7 +265,8 @@ export const userService = {
             needs_password_change: user.needs_password_change,
             allow_late_submission: setting === 'true',
             telegram_chat_id: user.telegram_chat_id,
-            categoria: user.categoria as 'Condutor' | 'Socorrista' | 'Estagiario' | null
+            categoria: user.categoria as 'Condutor' | 'Socorrista' | 'Estagiario' | null,
+            manually_blocked: user.manually_blocked ?? false
           };
         } catch (error) {
           return {
