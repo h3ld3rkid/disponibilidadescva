@@ -255,9 +255,6 @@ const SimpleScheduleForm: React.FC<SimpleScheduleFormProps> = ({ userEmail: prop
         onContinue={doSubmit}
       />
     </div>
-        </div>
-      </div>
-    </div>
   );
 };
 
