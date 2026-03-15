@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { scheduleService } from "@/services/supabase/scheduleService";
 import { Save, Calendar } from 'lucide-react';
+import NoSelectionWarning from './NoSelectionWarning';
 
 interface SimpleScheduleFormProps {
   userEmail?: string;
