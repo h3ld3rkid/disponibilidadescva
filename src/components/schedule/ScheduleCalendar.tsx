@@ -172,11 +172,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     }
 
     if (selectedDates.length === 0 && selectedOvernights.length === 0) {
-      toast({
-        title: "Erro",
-        description: "Selecione pelo menos um turno ou pernoite.",
-        variant: "destructive",
-      });
+      setShowNoSelectionWarning(true);
       return;
     }
 
