@@ -227,8 +227,8 @@ const SimpleScheduleForm: React.FC<SimpleScheduleFormProps> = ({ userEmail: prop
               </div>
               
               <Button 
-                onClick={handleSubmit}
-                disabled={isLoading || (selectedShifts.length === 0 && selectedOvernights.length === 0)}
+                onClick={handleSubmitClick}
+                disabled={isLoading}
                 className="w-full"
               >
                 {isLoading ? (
