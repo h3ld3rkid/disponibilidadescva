@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import WeekdayCheckboxCalendar from './WeekdayCheckboxCalendar';
 import ScheduleSummary from './ScheduleSummary';
 import SingleShiftWarning from './SingleShiftWarning';
+import NoSelectionWarning from './NoSelectionWarning';
 import SubmissionDeadlineAlert from './SubmissionDeadlineAlert';
 import { scheduleService } from "@/services/supabase/scheduleService";
 import { systemSettingsService } from "@/services/supabase/systemSettingsService";
@@ -23,6 +24,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const [isLoading, setIsLoading] = useState(false);
   const [hasExistingSchedule, setHasExistingSchedule] = useState(false);
   const [showSingleShiftWarning, setShowSingleShiftWarning] = useState(false);
+  const [showNoSelectionWarning, setShowNoSelectionWarning] = useState(false);
   const [hasSpecialPermission, setHasSpecialPermission] = useState(false);
   const { toast } = useToast();
 
@@ -170,11 +172,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     }
 
     if (selectedDates.length === 0 && selectedOvernights.length === 0) {
-      toast({
-        title: "Erro",
-        description: "Selecione pelo menos um turno ou pernoite.",
-        variant: "destructive",
-      });
+      setShowNoSelectionWarning(true);
       return;
     }
 
@@ -255,7 +253,15 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     setShowSingleShiftWarning(false);
   };
 
-  const canSubmitSchedule = (selectedDates.length > 0 || selectedOvernights.length > 0) && isSubmissionAllowed();
+  const handleNoSelectionContinue = () => {
+    setShowNoSelectionWarning(false);
+    const currentUserEmail = userEmail || userInfo?.email;
+    if (currentUserEmail) {
+      submitSchedule(currentUserEmail);
+    }
+  };
+
+  const canSubmitSchedule = isSubmissionAllowed();
   const submissionBlocked = editCount >= 2 || !isSubmissionAllowed();
 
   console.log('=== RENDER DEBUG ===');
@@ -313,6 +319,12 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         isOpen={showSingleShiftWarning}
         onClose={handleWarningClose}
         onContinue={handleWarningContinue}
+      />
+
+      <NoSelectionWarning
+        isOpen={showNoSelectionWarning}
+        onClose={() => setShowNoSelectionWarning(false)}
+        onContinue={handleNoSelectionContinue}
       />
     </div>
   );
