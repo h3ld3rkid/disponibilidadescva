@@ -24,6 +24,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
   const [isLoading, setIsLoading] = useState(false);
   const [hasExistingSchedule, setHasExistingSchedule] = useState(false);
   const [showSingleShiftWarning, setShowSingleShiftWarning] = useState(false);
+  const [showNoSelectionWarning, setShowNoSelectionWarning] = useState(false);
   const [hasSpecialPermission, setHasSpecialPermission] = useState(false);
   const { toast } = useToast();
 
