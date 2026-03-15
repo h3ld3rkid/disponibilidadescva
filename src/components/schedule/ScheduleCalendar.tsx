@@ -253,7 +253,15 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
     setShowSingleShiftWarning(false);
   };
 
-  const canSubmitSchedule = (selectedDates.length > 0 || selectedOvernights.length > 0) && isSubmissionAllowed();
+  const handleNoSelectionContinue = () => {
+    setShowNoSelectionWarning(false);
+    const currentUserEmail = userEmail || userInfo?.email;
+    if (currentUserEmail) {
+      submitSchedule(currentUserEmail);
+    }
+  };
+
+  const canSubmitSchedule = isSubmissionAllowed();
   const submissionBlocked = editCount >= 2 || !isSubmissionAllowed();
 
   console.log('=== RENDER DEBUG ===');
@@ -311,6 +319,12 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         isOpen={showSingleShiftWarning}
         onClose={handleWarningClose}
         onContinue={handleWarningContinue}
+      />
+
+      <NoSelectionWarning
+        isOpen={showNoSelectionWarning}
+        onClose={() => setShowNoSelectionWarning(false)}
+        onContinue={handleNoSelectionContinue}
       />
     </div>
   );
