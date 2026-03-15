@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import WeekdayCheckboxCalendar from './WeekdayCheckboxCalendar';
 import ScheduleSummary from './ScheduleSummary';
 import SingleShiftWarning from './SingleShiftWarning';
+import NoSelectionWarning from './NoSelectionWarning';
 import SubmissionDeadlineAlert from './SubmissionDeadlineAlert';
 import { scheduleService } from "@/services/supabase/scheduleService";
 import { systemSettingsService } from "@/services/supabase/systemSettingsService";
