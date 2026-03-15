@@ -244,13 +244,17 @@ const SimpleScheduleForm: React.FC<SimpleScheduleFormProps> = ({ userEmail: prop
                 )}
               </Button>
               
-              {selectedShifts.length === 0 && selectedOvernights.length === 0 && (
-                <p className="text-sm text-gray-500 text-center">
-                  Selecione pelo menos uma opção
-                </p>
-              )}
             </CardContent>
           </Card>
+        </div>
+      </div>
+
+      <NoSelectionWarning
+        isOpen={showNoSelectionWarning}
+        onClose={() => setShowNoSelectionWarning(false)}
+        onContinue={doSubmit}
+      />
+    </div>
         </div>
       </div>
     </div>
