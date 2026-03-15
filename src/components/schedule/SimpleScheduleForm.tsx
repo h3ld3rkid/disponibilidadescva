@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { scheduleService } from "@/services/supabase/scheduleService";
 import { Save, Calendar } from 'lucide-react';
+import NoSelectionWarning from './NoSelectionWarning';
 
 interface SimpleScheduleFormProps {
   userEmail?: string;
@@ -18,6 +19,7 @@ const SimpleScheduleForm: React.FC<SimpleScheduleFormProps> = ({ userEmail: prop
   const [selectedOvernights, setSelectedOvernights] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showNoSelectionWarning, setShowNoSelectionWarning] = useState(false);
   const { toast } = useToast();
 
   const shifts = [
@@ -50,7 +52,7 @@ const SimpleScheduleForm: React.FC<SimpleScheduleFormProps> = ({ userEmail: prop
     });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmitClick = () => {
     const currentUserEmail = propUserEmail || userInfo?.email;
     
     if (!currentUserEmail) {
@@ -63,13 +65,17 @@ const SimpleScheduleForm: React.FC<SimpleScheduleFormProps> = ({ userEmail: prop
     }
 
     if (selectedShifts.length === 0 && selectedOvernights.length === 0) {
-      toast({
-        title: "Erro",
-        description: "Selecione pelo menos um turno ou pernoite.",
-        variant: "destructive",
-      });
+      setShowNoSelectionWarning(true);
       return;
     }
+
+    doSubmit();
+  };
+
+  const doSubmit = async () => {
+    setShowNoSelectionWarning(false);
+    const currentUserEmail = propUserEmail || userInfo?.email;
+    if (!currentUserEmail) return;
 
     setIsLoading(true);
     
@@ -221,8 +227,8 @@ const SimpleScheduleForm: React.FC<SimpleScheduleFormProps> = ({ userEmail: prop
               </div>
               
               <Button 
-                onClick={handleSubmit}
-                disabled={isLoading || (selectedShifts.length === 0 && selectedOvernights.length === 0)}
+                onClick={handleSubmitClick}
+                disabled={isLoading}
                 className="w-full"
               >
                 {isLoading ? (
@@ -238,15 +244,16 @@ const SimpleScheduleForm: React.FC<SimpleScheduleFormProps> = ({ userEmail: prop
                 )}
               </Button>
               
-              {selectedShifts.length === 0 && selectedOvernights.length === 0 && (
-                <p className="text-sm text-gray-500 text-center">
-                  Selecione pelo menos uma opção
-                </p>
-              )}
             </CardContent>
           </Card>
         </div>
       </div>
+
+      <NoSelectionWarning
+        isOpen={showNoSelectionWarning}
+        onClose={() => setShowNoSelectionWarning(false)}
+        onContinue={doSubmit}
+      />
     </div>
   );
 };
