@@ -52,7 +52,7 @@ const SimpleScheduleForm: React.FC<SimpleScheduleFormProps> = ({ userEmail: prop
     });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmitClick = () => {
     const currentUserEmail = propUserEmail || userInfo?.email;
     
     if (!currentUserEmail) {
@@ -65,13 +65,17 @@ const SimpleScheduleForm: React.FC<SimpleScheduleFormProps> = ({ userEmail: prop
     }
 
     if (selectedShifts.length === 0 && selectedOvernights.length === 0) {
-      toast({
-        title: "Erro",
-        description: "Selecione pelo menos um turno ou pernoite.",
-        variant: "destructive",
-      });
+      setShowNoSelectionWarning(true);
       return;
     }
+
+    doSubmit();
+  };
+
+  const doSubmit = async () => {
+    setShowNoSelectionWarning(false);
+    const currentUserEmail = propUserEmail || userInfo?.email;
+    if (!currentUserEmail) return;
 
     setIsLoading(true);
     
