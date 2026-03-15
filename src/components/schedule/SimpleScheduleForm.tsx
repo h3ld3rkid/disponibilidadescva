@@ -19,6 +19,7 @@ const SimpleScheduleForm: React.FC<SimpleScheduleFormProps> = ({ userEmail: prop
   const [selectedOvernights, setSelectedOvernights] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showNoSelectionWarning, setShowNoSelectionWarning] = useState(false);
   const { toast } = useToast();
 
   const shifts = [
