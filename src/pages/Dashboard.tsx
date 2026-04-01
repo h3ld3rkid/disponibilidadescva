@@ -21,6 +21,7 @@ import Footer from '@/components/ui/footer';
 import SessionTimer from '@/components/auth/SessionTimer';
 import PDFAdditionalConfig from '@/pages/PDFAdditionalConfig';
 import XLSXConfig from '@/pages/XLSXConfig';
+import MonthlyScheduleConfig from '@/pages/MonthlyScheduleConfig';
 import { sessionManager } from '@/services/sessionManager';
 import { roleService } from '@/services/supabase/roleService';
 
@@ -195,6 +196,7 @@ const Dashboard = () => {
             <Route path="/config/database" element={checkAdminRoute(<DatabaseConfigInternal />)} />
             <Route path="/config/pdf-additional" element={checkAdminRoute(<PDFAdditionalConfig />)} />
             <Route path="/config/xlsx" element={checkAdminRoute(<XLSXConfig />)} />
+            <Route path="/config/monthly-schedule" element={checkAdminRoute(<MonthlyScheduleConfig />)} />
             
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
