@@ -720,7 +720,7 @@ const UpdatedSchedule: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -763,8 +763,8 @@ const UpdatedSchedule: React.FC = () => {
               <p className="text-muted-foreground">Nenhum dado disponível.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto border rounded-md">
-              <table className="w-full text-xs border-collapse" style={{ borderSpacing: 0 }}>
+            <div className="overflow-x-auto border rounded-md -mx-2 sm:mx-0">
+              <table className="text-xs border-collapse min-w-[500px] w-full" style={{ borderSpacing: 0 }}>
                 <tbody>
                   {grid.map((row, ri) => (
                     <tr key={ri}>
@@ -790,9 +790,9 @@ const UpdatedSchedule: React.FC = () => {
                           borderLeft: isColA ? 'none' : '1px solid hsl(var(--border))',
                           borderRight: isColA ? 'none' : '1px solid hsl(var(--border))',
                           boxShadow: thickShadow || undefined,
-                          padding: '2px 4px',
+                          padding: '2px 3px',
                           whiteSpace: 'nowrap',
-                          fontSize: '11px',
+                          fontSize: '10px',
                           verticalAlign: isMergedVertical ? 'middle' : undefined,
                           textAlign: (isMergedVertical || isColA) ? 'center' : undefined,
                         };

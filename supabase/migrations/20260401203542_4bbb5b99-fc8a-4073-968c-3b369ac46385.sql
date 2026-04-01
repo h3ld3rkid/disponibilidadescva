@@ -1,0 +1,1 @@
+UPDATE tab_visibility SET tab_label = 'Disponibilidade' WHERE tab_key = 'schedule';
