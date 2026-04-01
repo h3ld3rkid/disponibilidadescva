@@ -790,9 +790,9 @@ const UpdatedSchedule: React.FC = () => {
                           borderLeft: isColA ? 'none' : '1px solid hsl(var(--border))',
                           borderRight: isColA ? 'none' : '1px solid hsl(var(--border))',
                           boxShadow: thickShadow || undefined,
-                          padding: '2px 4px',
+                          padding: '2px 3px',
                           whiteSpace: 'nowrap',
-                          fontSize: '11px',
+                          fontSize: '10px',
                           verticalAlign: isMergedVertical ? 'middle' : undefined,
                           textAlign: (isMergedVertical || isColA) ? 'center' : undefined,
                         };
