@@ -720,7 +720,7 @@ const UpdatedSchedule: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-2">
