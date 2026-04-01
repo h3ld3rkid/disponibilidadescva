@@ -763,8 +763,8 @@ const UpdatedSchedule: React.FC = () => {
               <p className="text-muted-foreground">Nenhum dado disponível.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto border rounded-md">
-              <table className="w-full text-xs border-collapse" style={{ borderSpacing: 0 }}>
+            <div className="overflow-x-auto border rounded-md -mx-2 sm:mx-0">
+              <table className="text-xs border-collapse min-w-[500px] w-full" style={{ borderSpacing: 0 }}>
                 <tbody>
                   {grid.map((row, ri) => (
                     <tr key={ri}>
