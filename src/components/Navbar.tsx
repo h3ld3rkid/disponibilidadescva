@@ -124,10 +124,10 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
   const allUserNavItems = [
     { path: '/dashboard', icon: Home, label: 'Início' },
     { path: '/dashboard/schedule', icon: Calendar, label: 'Disponibilidade' },
-    { path: '/dashboard/current-schedule', icon: CalendarCheck, label: 'Escala' },
-    { path: '/dashboard/my-services', icon: CalendarDays, label: 'Meus Serviços' },
-    { path: '/dashboard/exchanges', icon: ArrowLeftRight, label: 'Trocas' },
     { path: '/dashboard/updated-schedule', icon: FileSpreadsheet, label: 'Escala Atualizada' },
+    { path: '/dashboard/my-services', icon: CalendarDays, label: 'Meus Serviços' },
+    { path: '/dashboard/current-schedule', icon: CalendarCheck, label: 'Escala' },
+    { path: '/dashboard/exchanges', icon: ArrowLeftRight, label: 'Trocas' },
     { path: '/dashboard/profile', icon: User, label: 'Perfil' },
   ];
 
@@ -147,8 +147,6 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
 
   const scheduleFileSubmenu = [
     { path: '/dashboard/config/monthly-schedule', icon: CalendarCheck, label: 'Links Escala Ano (Jan-Dez)' },
-    { path: '/dashboard/schedule-upload', icon: Upload, label: 'Upload Escala Atual' },
-    { path: '/dashboard/config/pdf-additional', icon: Settings, label: 'Configuração do Link PDF Adicional' },
     { path: '/dashboard/config/xlsx', icon: Settings, label: 'Configuração XLSX' },
   ];
 
