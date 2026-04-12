@@ -7,25 +7,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, Info } from 'lucide-react';
 import { getDayType } from '@/utils/dateUtils';
+import { ParsedServiceDate } from '@/services/scheduleParsingService';
 
 interface BroadcastExchangeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (offeredDate: string, offeredShift: string, message: string) => void;
   isSubmitting: boolean;
+  userServiceDates: ParsedServiceDate[];
 }
 
 const BroadcastExchangeDialog: React.FC<BroadcastExchangeDialogProps> = ({
   open,
   onOpenChange,
   onSubmit,
-  isSubmitting
+  isSubmitting,
+  userServiceDates
 }) => {
   const [offeredDate, setOfferedDate] = useState('');
   const [offeredShift, setOfferedShift] = useState('');
@@ -93,17 +95,31 @@ const BroadcastExchangeDialog: React.FC<BroadcastExchangeDialogProps> = ({
             <div className="grid grid-cols-1 gap-3">
               <div>
                 <Label htmlFor="broadcastOfferedDate">Data</Label>
-                <Input
-                  id="broadcastOfferedDate"
-                  type="date"
-                  value={offeredDate}
-                  onChange={(e) => {
-                    setOfferedDate(e.target.value);
+                <Select 
+                  value={offeredDate} 
+                  onValueChange={(val) => {
+                    setOfferedDate(val);
                     setOfferedShift('');
                   }}
-                />
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={userServiceDates.length === 0 ? "Sem datas disponíveis" : "Selecionar data"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {userServiceDates.map((d) => (
+                      <SelectItem key={d.dateISO} value={d.dateISO}>
+                        {d.date} ({getDayTypeLabel(d.dateISO)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {userServiceDates.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Não foram encontrados serviços seus na escala.
+                  </p>
+                )}
                 {offeredDate && (
-                  <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                  <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                     <Info className="h-3 w-3" />
                     {getDayTypeLabel(offeredDate)}
                   </div>

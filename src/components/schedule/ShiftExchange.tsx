@@ -10,9 +10,10 @@ import { useToast } from "@/hooks/use-toast";
 import { shiftExchangeService, ShiftExchangeRequest } from "@/services/supabase/shiftExchangeService";
 import { userService } from "@/services/supabase/userService";
 import { ArrowLeftRight, Send, Check, X, Search, Info, Users, Ban } from 'lucide-react';
-import { isWeekendOrHoliday, getDayType } from '@/utils/dateUtils';
+import { getDayType } from '@/utils/dateUtils';
 import ExchangeSuccessSplash from './ExchangeSuccessSplash';
 import BroadcastExchangeDialog from './BroadcastExchangeDialog';
+import { parseScheduleXlsx, ParsedServiceDate } from '@/services/scheduleParsingService';
 
 interface User {
   id: string;
@@ -36,7 +37,26 @@ const ShiftExchange = () => {
   const [exchangeRequests, setExchangeRequests] = useState<ShiftExchangeRequest[]>([]);
   const [showSuccessSplash, setShowSuccessSplash] = useState(false);
   const [showBroadcastDialog, setShowBroadcastDialog] = useState(false);
+  const [allScheduleDates, setAllScheduleDates] = useState<Record<string, ParsedServiceDate[]>>({});
+  const [isLoadingSchedule, setIsLoadingSchedule] = useState(true);
   const { toast } = useToast();
+
+  // Load schedule dates for all users
+  useEffect(() => {
+    const loadScheduleDates = async () => {
+      setIsLoadingSchedule(true);
+      try {
+        const dates = await parseScheduleXlsx();
+        setAllScheduleDates(dates);
+        console.log('Loaded schedule dates for', Object.keys(dates).length, 'users');
+      } catch (error) {
+        console.error('Error loading schedule dates:', error);
+      } finally {
+        setIsLoadingSchedule(false);
+      }
+    };
+    loadScheduleDates();
+  }, []);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('mysqlConnection');
@@ -47,7 +67,8 @@ const ShiftExchange = () => {
         const currentUser = allUsers.find(u => u.email === parsedUserInfo.email);
         setUserInfo({
           ...parsedUserInfo,
-          categoria: currentUser?.categoria || null
+          categoria: currentUser?.categoria || null,
+          mechanographic_number: currentUser?.mechanographic_number || parsedUserInfo.mechanographic_number
         });
         setUsers(allUsers.filter(user => user.active));
       }).catch(error => {
@@ -57,6 +78,16 @@ const ShiftExchange = () => {
       loadExchangeRequests(parsedUserInfo.email);
     }
   }, []);
+
+  // Get service dates for current user (what they can offer)
+  const currentUserDates = userInfo?.mechanographic_number 
+    ? (allScheduleDates[userInfo.mechanographic_number] || [])
+    : [];
+
+  // Get service dates for target user (what requester can ask for)
+  const targetUserDates = selectedUser?.mechanographic_number
+    ? (allScheduleDates[selectedUser.mechanographic_number] || [])
+    : [];
 
   const loadUsers = async () => {
     try {
@@ -372,6 +403,7 @@ const ShiftExchange = () => {
         onOpenChange={setShowBroadcastDialog}
         onSubmit={handleBroadcastRequest}
         isSubmitting={isSubmitting}
+        userServiceDates={currentUserDates}
       />
       
       <div className="container mx-auto px-4 py-8">
@@ -433,6 +465,8 @@ const ShiftExchange = () => {
                       onClick={() => {
                         setSelectedUser(user);
                         setSearchTerm(user.name);
+                        setRequestedDate('');
+                        setRequestedShift('');
                       }}
                     >
                       <div className="font-medium">{user.name}</div>
@@ -460,17 +494,31 @@ const ShiftExchange = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <Label htmlFor="requestedDate">Data</Label>
-                      <Input
-                        id="requestedDate"
-                        type="date"
-                        value={requestedDate}
-                        onChange={(e) => {
-                          setRequestedDate(e.target.value);
-                          setRequestedShift(''); // Reset shift when date changes
+                      <Select 
+                        value={requestedDate} 
+                        onValueChange={(val) => {
+                          setRequestedDate(val);
+                          setRequestedShift('');
                         }}
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={targetUserDates.length === 0 ? "Sem datas disponíveis" : "Selecionar data"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {targetUserDates.map((d) => (
+                            <SelectItem key={d.dateISO} value={d.dateISO}>
+                              {d.date} ({getDayTypeLabel(d.dateISO)})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {targetUserDates.length === 0 && selectedUser && !isLoadingSchedule && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          Não foram encontrados serviços para {selectedUser.name} na escala.
+                        </p>
+                      )}
                       {requestedDate && (
-                        <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                           <Info className="h-3 w-3" />
                           {getDayTypeLabel(requestedDate)}
                         </div>
@@ -500,17 +548,31 @@ const ShiftExchange = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <Label htmlFor="offeredDate">Data</Label>
-                      <Input
-                        id="offeredDate"
-                        type="date"
-                        value={offeredDate}
-                        onChange={(e) => {
-                          setOfferedDate(e.target.value);
-                          setOfferedShift(''); // Reset shift when date changes
+                      <Select 
+                        value={offeredDate} 
+                        onValueChange={(val) => {
+                          setOfferedDate(val);
+                          setOfferedShift('');
                         }}
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={currentUserDates.length === 0 ? "Sem datas disponíveis" : "Selecionar data"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {currentUserDates.map((d) => (
+                            <SelectItem key={d.dateISO} value={d.dateISO}>
+                              {d.date} ({getDayTypeLabel(d.dateISO)})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {currentUserDates.length === 0 && !isLoadingSchedule && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          Não foram encontrados serviços seus na escala.
+                        </p>
+                      )}
                       {offeredDate && (
-                        <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                           <Info className="h-3 w-3" />
                           {getDayTypeLabel(offeredDate)}
                         </div>
