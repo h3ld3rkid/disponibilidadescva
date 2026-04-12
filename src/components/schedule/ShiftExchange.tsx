@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { shiftExchangeService, ShiftExchangeRequest } from "@/services/supabase/shiftExchangeService";
 import { userService } from "@/services/supabase/userService";
-import { ArrowLeftRight, Send, Check, X, Search, Info, Users, Ban } from 'lucide-react';
+import { ArrowLeftRight, Send, Check, X, Search, Info, Users, Ban, Loader2 } from 'lucide-react';
 import { isWeekendOrHoliday, getDayType } from '@/utils/dateUtils';
 import ExchangeSuccessSplash from './ExchangeSuccessSplash';
 import BroadcastExchangeDialog from './BroadcastExchangeDialog';
+import { parseScheduleXlsx, ParsedServiceDate } from '@/services/scheduleParsingService';
 
 interface User {
   id: string;
