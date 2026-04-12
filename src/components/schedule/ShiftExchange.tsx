@@ -545,17 +545,31 @@ const ShiftExchange = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <Label htmlFor="offeredDate">Data</Label>
-                      <Input
-                        id="offeredDate"
-                        type="date"
-                        value={offeredDate}
-                        onChange={(e) => {
-                          setOfferedDate(e.target.value);
-                          setOfferedShift(''); // Reset shift when date changes
+                      <Select 
+                        value={offeredDate} 
+                        onValueChange={(val) => {
+                          setOfferedDate(val);
+                          setOfferedShift('');
                         }}
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={currentUserDates.length === 0 ? "Sem datas disponíveis" : "Selecionar data"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {currentUserDates.map((d) => (
+                            <SelectItem key={d.dateISO} value={d.dateISO}>
+                              {d.date} ({getDayTypeLabel(d.dateISO)})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {currentUserDates.length === 0 && !isLoadingSchedule && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          Não foram encontrados serviços seus na escala.
+                        </p>
+                      )}
                       {offeredDate && (
-                        <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                           <Info className="h-3 w-3" />
                           {getDayTypeLabel(offeredDate)}
                         </div>
