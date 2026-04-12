@@ -491,17 +491,31 @@ const ShiftExchange = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <Label htmlFor="requestedDate">Data</Label>
-                      <Input
-                        id="requestedDate"
-                        type="date"
-                        value={requestedDate}
-                        onChange={(e) => {
-                          setRequestedDate(e.target.value);
-                          setRequestedShift(''); // Reset shift when date changes
+                      <Select 
+                        value={requestedDate} 
+                        onValueChange={(val) => {
+                          setRequestedDate(val);
+                          setRequestedShift('');
                         }}
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={targetUserDates.length === 0 ? "Sem datas disponíveis" : "Selecionar data"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {targetUserDates.map((d) => (
+                            <SelectItem key={d.dateISO} value={d.dateISO}>
+                              {d.date} ({getDayTypeLabel(d.dateISO)})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {targetUserDates.length === 0 && selectedUser && !isLoadingSchedule && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          Não foram encontrados serviços para {selectedUser.name} na escala.
+                        </p>
+                      )}
                       {requestedDate && (
-                        <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                           <Info className="h-3 w-3" />
                           {getDayTypeLabel(requestedDate)}
                         </div>
