@@ -465,6 +465,8 @@ const ShiftExchange = () => {
                       onClick={() => {
                         setSelectedUser(user);
                         setSearchTerm(user.name);
+                        setRequestedDate('');
+                        setRequestedShift('');
                       }}
                     >
                       <div className="font-medium">{user.name}</div>
