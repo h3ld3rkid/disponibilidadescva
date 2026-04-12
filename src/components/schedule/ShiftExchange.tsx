@@ -37,7 +37,26 @@ const ShiftExchange = () => {
   const [exchangeRequests, setExchangeRequests] = useState<ShiftExchangeRequest[]>([]);
   const [showSuccessSplash, setShowSuccessSplash] = useState(false);
   const [showBroadcastDialog, setShowBroadcastDialog] = useState(false);
+  const [allScheduleDates, setAllScheduleDates] = useState<Record<string, ParsedServiceDate[]>>({});
+  const [isLoadingSchedule, setIsLoadingSchedule] = useState(true);
   const { toast } = useToast();
+
+  // Load schedule dates for all users
+  useEffect(() => {
+    const loadScheduleDates = async () => {
+      setIsLoadingSchedule(true);
+      try {
+        const dates = await parseScheduleXlsx();
+        setAllScheduleDates(dates);
+        console.log('Loaded schedule dates for', Object.keys(dates).length, 'users');
+      } catch (error) {
+        console.error('Error loading schedule dates:', error);
+      } finally {
+        setIsLoadingSchedule(false);
+      }
+    };
+    loadScheduleDates();
+  }, []);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('mysqlConnection');
@@ -48,7 +67,8 @@ const ShiftExchange = () => {
         const currentUser = allUsers.find(u => u.email === parsedUserInfo.email);
         setUserInfo({
           ...parsedUserInfo,
-          categoria: currentUser?.categoria || null
+          categoria: currentUser?.categoria || null,
+          mechanographic_number: currentUser?.mechanographic_number || parsedUserInfo.mechanographic_number
         });
         setUsers(allUsers.filter(user => user.active));
       }).catch(error => {
@@ -58,6 +78,16 @@ const ShiftExchange = () => {
       loadExchangeRequests(parsedUserInfo.email);
     }
   }, []);
+
+  // Get service dates for current user (what they can offer)
+  const currentUserDates = userInfo?.mechanographic_number 
+    ? (allScheduleDates[userInfo.mechanographic_number] || [])
+    : [];
+
+  // Get service dates for target user (what requester can ask for)
+  const targetUserDates = selectedUser?.mechanographic_number
+    ? (allScheduleDates[selectedUser.mechanographic_number] || [])
+    : [];
 
   const loadUsers = async () => {
     try {
