@@ -203,15 +203,99 @@ export const parseScheduleXlsx = async (): Promise<Record<string, ParsedServiceD
       result[key].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
     }
 
+    // Apply accepted shift exchanges so the dropdowns reflect actual schedule
+    await applyExchangesToParsedDates(result);
+
     // Cache results
     cachedDates = result;
     cacheTimestamp = Date.now();
 
-    console.log('Schedule parsing complete. Users found:', Object.keys(result).length);
+    console.log('Schedule parsing complete (with exchanges). Users found:', Object.keys(result).length);
     return result;
   } catch (error) {
     console.error('Error parsing schedule XLSX:', error);
     return {};
+  }
+};
+
+/**
+ * Mutates the parsed result map by removing dates the user gave away
+ * and adding dates the user received in accepted exchanges.
+ */
+const applyExchangesToParsedDates = async (
+  byMech: Record<string, ParsedServiceDate[]>
+): Promise<void> => {
+  try {
+    // Map mechanographic_number -> email (and vice versa)
+    const { data: users, error: usersError } = await supabase
+      .from('users_safe')
+      .select('email, mechanographic_number');
+
+    if (usersError || !users) return;
+
+    const emailToMech = new Map<string, string>();
+    for (const u of users) {
+      if (u.email && u.mechanographic_number) {
+        emailToMech.set(u.email, u.mechanographic_number);
+      }
+    }
+
+    const { data: exchanges, error: exError } = await supabase
+      .from('shift_exchange_requests')
+      .select('requester_email, target_email, requested_date, offered_date')
+      .eq('status', 'accepted');
+
+    if (exError || !exchanges || exchanges.length === 0) return;
+
+    const isoDate = (s: string) => (s ? s.split('T')[0] : '');
+    const isoToPt = (iso: string) => {
+      const p = iso.split('-');
+      return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : '';
+    };
+
+    // For each mech: dates to remove and add
+    const removeMap = new Map<string, Set<string>>(); // mech -> set of ISO
+    const addMap = new Map<string, Set<string>>();
+
+    const ensure = (m: Map<string, Set<string>>, k: string) => {
+      if (!m.has(k)) m.set(k, new Set());
+      return m.get(k)!;
+    };
+
+    for (const ex of exchanges) {
+      const reqIso = isoDate(ex.requested_date);
+      const offIso = isoDate(ex.offered_date);
+      const reqMech = emailToMech.get(ex.requester_email);
+      const tgtMech = emailToMech.get(ex.target_email);
+
+      if (reqMech) {
+        if (offIso) ensure(removeMap, reqMech).add(offIso);
+        if (reqIso) ensure(addMap, reqMech).add(reqIso);
+      }
+      if (tgtMech) {
+        if (reqIso) ensure(removeMap, tgtMech).add(reqIso);
+        if (offIso) ensure(addMap, tgtMech).add(offIso);
+      }
+    }
+
+    for (const [mech, removes] of removeMap.entries()) {
+      if (byMech[mech]) {
+        byMech[mech] = byMech[mech].filter(d => !removes.has(d.dateISO));
+      }
+    }
+
+    for (const [mech, adds] of addMap.entries()) {
+      if (!byMech[mech]) byMech[mech] = [];
+      const existing = new Set(byMech[mech].map(d => d.dateISO));
+      for (const iso of adds) {
+        if (!existing.has(iso)) {
+          byMech[mech].push({ date: isoToPt(iso), dateISO: iso });
+        }
+      }
+      byMech[mech].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    }
+  } catch (err) {
+    console.error('Error applying exchanges to parsed dates:', err);
   }
 };
 
