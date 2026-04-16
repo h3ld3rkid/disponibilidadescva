@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { PushNotificationService } from "@/services/pushNotificationService";
+import { clearScheduleCache } from "@/services/scheduleParsingService";
 
 export interface ShiftExchangeRequest {
   id: string;
