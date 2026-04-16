@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { PushNotificationService } from "@/services/pushNotificationService";
+import { clearScheduleCache } from "@/services/scheduleParsingService";
 
 export interface ShiftExchangeRequest {
   id: string;
@@ -248,6 +249,11 @@ export const shiftExchangeService = {
       }
       
       console.log('Exchange request response saved successfully');
+
+      // Invalidate schedule cache so dropdowns reflect the change immediately
+      if (status === 'accepted') {
+        clearScheduleCache();
+      }
 
       // Se aceite e faz parte de um broadcast, cancelar os outros pedidos pendentes
       if (status === 'accepted' && requestData.broadcast_id) {

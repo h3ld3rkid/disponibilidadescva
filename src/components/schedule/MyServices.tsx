@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import * as XLSX from 'xlsx';
+import { applyAcceptedExchangesToServices } from '@/services/exchangeApplyService';
 
 // Configure PDF.js worker
 
@@ -485,10 +486,15 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         console.log(`  [${i}] Date: "${e.date}" | Mech: ${e.mechanographicNumber}`);
       });
       
-      // No deduplication - show all services as found
-      setServices(entries);
+      // Apply accepted shift exchanges (add received, remove offered)
+      const finalEntries = await applyAcceptedExchangesToServices(
+        userInfo.email,
+        mechNumber,
+        entries
+      );
+      setServices(finalEntries);
       
-      if (entries.length === 0) {
+      if (finalEntries.length === 0) {
         toast({
           title: "Nenhum serviço encontrado",
           description: "Não foram encontrados serviços ativos para o seu número mecanográfico na escala.",
@@ -497,7 +503,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       } else {
         toast({
           title: "Escala carregada",
-          description: `Encontrados ${entries.length} serviço(s).`,
+          description: `Encontrados ${finalEntries.length} serviço(s).`,
         });
       }
     } catch (error) {
@@ -784,7 +790,12 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         setError(`Nenhum serviço encontrado para o número mecanográfico ${mechNumber}`);
       }
 
-      setServices(fallbackResults);
+      const adjustedResults = await applyAcceptedExchangesToServices(
+        userInfo.email,
+        mechNumber,
+        fallbackResults
+      );
+      setServices(adjustedResults);
       
     } catch (err: any) {
       console.error('Error loading/parsing PDF:', err);
