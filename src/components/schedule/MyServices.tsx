@@ -790,7 +790,12 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         setError(`Nenhum serviço encontrado para o número mecanográfico ${mechNumber}`);
       }
 
-      setServices(fallbackResults);
+      const adjustedResults = await applyAcceptedExchangesToServices(
+        userInfo.email,
+        mechNumber,
+        fallbackResults
+      );
+      setServices(adjustedResults);
       
     } catch (err: any) {
       console.error('Error loading/parsing PDF:', err);

@@ -1,4 +1,5 @@
 import { systemSettingsService } from "@/services/supabase/systemSettingsService";
+import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from 'xlsx';
 
 export interface ParsedServiceDate {
