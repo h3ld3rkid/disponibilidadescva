@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import * as XLSX from 'xlsx';
-import { applyAcceptedExchangesToServices } from '@/services/exchangeApplyService';
+import { getResolvedServicesForMech } from '@/services/scheduleGridService';
 
 // Configure PDF.js worker
 
