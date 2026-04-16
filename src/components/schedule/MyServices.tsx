@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import * as XLSX from 'xlsx';
-import { applyAcceptedExchangesToServices } from '@/services/exchangeApplyService';
+import { getResolvedServicesForMech } from '@/services/scheduleGridService';
 
 // Configure PDF.js worker
 
@@ -63,437 +63,30 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
   const loadAndParseXlsx = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      // Get user info to find mechanographic number
       const storedUser = localStorage.getItem('mysqlConnection');
-      if (!storedUser) {
-        throw new Error('Utilizador não encontrado');
-      }
-      
+      if (!storedUser) throw new Error('Utilizador não encontrado');
+
       const userInfo = JSON.parse(storedUser);
       const mechNumber = userMechanographicNumber || userInfo.mechanographic_number;
-      
-      if (!mechNumber) {
-        throw new Error('Número mecanográfico não encontrado');
-      }
 
-      // Get XLSX URL from system settings
-      const xlsxUrl = await systemSettingsService.getSystemSetting('schedule_xlsx_link');
-      
-      if (!xlsxUrl) {
-        setError('Nenhuma escala XLSX disponível');
-        setIsLoading(false);
-        return;
-      }
+      if (!mechNumber) throw new Error('Número mecanográfico não encontrado');
 
-      console.log('Fetching XLSX from:', xlsxUrl);
+      // Use unified schedule resolver — this is the same source of truth as
+      // the "Escala Atualizada" view, so trades are already applied with
+      // proper shift matching and chronological replay.
+      const resolved = await getResolvedServicesForMech(String(mechNumber));
 
-      // Fetch the XLSX file
-      const response = await fetch(xlsxUrl, {
-        mode: 'cors',
-        credentials: 'omit'
-      });
+      const finalEntries: ServiceEntry[] = resolved.map(r => ({
+        date: r.date,
+        mechanographicNumber: r.mechanographicNumber,
+        rawText: r.name + (r.isModified ? ' (atualizado por troca)' : ''),
+        isGray: false,
+      }));
 
-      if (!response.ok) {
-        throw new Error(`Erro ao carregar ficheiro XLSX: ${response.statusText}`);
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      
-      // Read with cellStyles to preserve formatting
-      const workbook = XLSX.read(arrayBuffer, { 
-        type: 'array', 
-        cellStyles: true,
-        cellNF: true,
-        cellDates: false // Keep as serial numbers to get proper formatting
-      });
-      
-      // Get the first sheet
-      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, blankrows: true, raw: true }) as any[][];;
-      
-      console.log('XLSX loaded, rows:', jsonData.length);
-      console.log('First 5 rows:', jsonData.slice(0, 5));
-
-      const range = XLSX.utils.decode_range(firstSheet['!ref'] || 'A1');
-      const startRow = range.s.r; // 0-based sheet start row
-      const endRow = range.e.r;
-
-      const datePattern = /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/;
-      
-      // Normalize 2-digit years to 4-digit (e.g., 25 -> 2025, 99 -> 1999)
-      const normalizeDateStr = (dateStr: string): string => {
-        const parts = dateStr.split(/[\/\-]/);
-        if (parts.length === 3) {
-          const [day, month, year] = parts;
-          if (year.length === 2) {
-            const yearNum = parseInt(year, 10);
-            const fullYear = yearNum >= 0 && yearNum <= 50 ? `20${year}` : `19${year}`;
-            return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${fullYear}`;
-          }
-          return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
-        }
-        return dateStr;
-      };
-
-      // Heurística para detetar Mês/Ano no topo (necessário para dias sem mês)
-      const monthMap: Record<string, number> = {
-        'janeiro': 1, 'fevereiro': 2, 'março': 3, 'marco': 3, 'abril': 4, 'maio': 5,
-        'junho': 6, 'julho': 7, 'agosto': 8, 'setembro': 9, 'outubro': 10, 'novembro': 11, 'dezembro': 12
-      };
-      let headerMonth: number | undefined;
-      let headerYear: number | undefined;
-
-      const excelSerialToDate = (serial: number) => {
-        // Excel (1900-date system) -> JS Date
-        const ms = Math.round((serial - 25569) * 86400 * 1000);
-        return new Date(ms);
-      };
-      const pad2 = (n: number) => String(n).padStart(2, '0');
-      const toPtDate = (d: Date) => `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`;
-
-      // Procurar mês e ano nas primeiras 100 linhas
-      for (let i = 0; i < Math.min(100, jsonData.length); i++) {
-        const row = jsonData[i] || [];
-        for (const cell of row) {
-          if (cell === null || cell === undefined) continue;
-          if (typeof cell === 'string') {
-            const s = cell.toLowerCase();
-            for (const [mName, mNum] of Object.entries(monthMap)) {
-              if (s.includes(mName)) headerMonth = headerMonth ?? mNum;
-            }
-            const yearMatch = s.match(/\b(20\d{2})\b/);
-            if (yearMatch) headerYear = headerYear ?? parseInt(yearMatch[1], 10);
-          } else if (typeof cell === 'number') {
-            if (cell > 40000 && cell < 60000) {
-              const dc = XLSX.SSF.parse_date_code(cell);
-              if (dc) {
-                headerMonth = headerMonth ?? dc.m;
-                headerYear = headerYear ?? dc.y;
-              }
-            } else if (cell >= 2020 && cell <= 2035) {
-              headerYear = headerYear ?? cell;
-            }
-          }
-        }
-      }
-
-      console.log('Header month/year detected:', { headerMonth, headerYear });
-
-      // Mapear datas da Coluna A considerando células mescladas
-      const merges: any[] = (firstSheet['!merges'] || []) as any[];
-      const dateByAbsRow: Record<number, string> = {};
-
-      const parseDateFromAny = (val: any, cellAddr?: string, formattedText?: string): string => {
-        if (val === null || val === undefined || val === '') return '';
-        // Ignore empty strings or whitespace
-        if (typeof val === 'string' && val.trim() === '') return '';
-        
-        console.log(`🔍 Parsing date at ${cellAddr}:`, { 
-          val, 
-          formattedText, 
-          valType: typeof val,
-          formattedType: typeof formattedText 
-        });
-        
-        // PRIORITY 1: Use formatted text (cell.w) if available - this is what user sees!
-        if (formattedText && typeof formattedText === 'string') {
-          const m = formattedText.match(datePattern);
-          if (m) {
-            const normalized = normalizeDateStr(m[1]);
-            console.log(`✅ Parsed formatted text "${formattedText}" at ${cellAddr}: ${normalized}`);
-            return normalized;
-          }
-        }
-        
-        // PRIORITY 2: Parse string values
-        if (typeof val === 'string') {
-          const m = val.match(datePattern);
-          if (m) {
-            const normalized = normalizeDateStr(m[1]);
-            console.log(`✅ Parsed string "${val}" at ${cellAddr}: ${normalized}`);
-            return normalized;
-          }
-        }
-        
-        // PRIORITY 3: Parse Excel serial numbers
-        if (typeof val === 'number') {
-          if (val > 40000 && val < 60000) {
-            const dc = XLSX.SSF.parse_date_code(val);
-            if (dc) {
-              const parsed = `${pad2(dc.d)}/${pad2(dc.m)}/${dc.y}`;
-              console.log(`⚠️ Parsed serial ${val} at ${cellAddr}: ${parsed} (from date code: d=${dc.d}, m=${dc.m}, y=${dc.y})`);
-              return parsed;
-            }
-          }
-          if (val >= 1 && val <= 31 && headerMonth && headerYear) {
-            const parsed = `${pad2(val)}/${pad2(headerMonth)}/${headerYear}`;
-            console.log(`✅ Parsed day number ${val} at ${cellAddr}: ${parsed}`);
-            return parsed;
-          }
-        }
-        
-        console.log(`❌ Could not parse date at ${cellAddr}`);
-        return '';
-      };
-
-      // 1) Propagar datas de merges na coluna A (c=0)
-      for (const m of merges) {
-        if (m.s.c === 0 && m.e.c === 0) {
-          const topAddr = XLSX.utils.encode_cell({ r: m.s.r, c: 0 });
-          const topCell = (firstSheet as any)[topAddr];
-          const parsed = parseDateFromAny(topCell?.v, topAddr, topCell?.w);
-          if (parsed) {
-            console.log(`📌 Merge detected at ${topAddr} (rows ${m.s.r}-${m.e.r}): ${parsed}`);
-            for (let r = m.s.r; r <= m.e.r; r++) dateByAbsRow[r] = parsed;
-          }
-        }
-      }
-
-      // 2) Linhas não cobertas por merge: ler A{linha} usando índices absolutos da folha
-      for (let rAbs = startRow; rAbs <= endRow; rAbs++) {
-        if (dateByAbsRow[rAbs]) continue;
-        const addr = XLSX.utils.encode_cell({ r: rAbs, c: 0 });
-        const cell = (firstSheet as any)[addr];
-        const parsed = parseDateFromAny(cell?.v, addr, cell?.w);
-        if (parsed) dateByAbsRow[rAbs] = parsed;
-      }
-
-      console.log(
-        'Exemplo datas Coluna A (primeiras 15 linhas visíveis):',
-        Array.from({ length: 15 }, (_, k) => ({
-          jsonIndex: k,
-          sheetRow: startRow + k,
-          date: dateByAbsRow[startRow + k]
-        }))
-      );
-
-      const isDayNumber = (v: unknown) => typeof v === 'number' && v >= 1 && v <= 31;
-      const isExcelSerial = (v: unknown) => typeof v === 'number' && v > 40000 && v < 60000;
-      const looksLikeDateStr = (v: unknown) => typeof v === 'string' && (datePattern.test(v) || v.includes('/') || v.includes('-'));
-
-      const buildDateFromDay = (day: number): string | '' => {
-        if (!headerMonth || !headerYear) return '';
-        const d = new Date(headerYear, headerMonth - 1, day);
-        return toPtDate(d);
-      };
-
-      // Helper to check if cell has gray-ish background (Excel may store it as different gray tones or theme colors)
-      const isCellGray = (cellAddr: string): boolean => {
-        type RGB = { r: number; g: number; b: number };
-
-        const parseRgbHex = (hex: string): RGB | null => {
-          if (!hex) return null;
-          const clean = hex.replace(/^#/, '').toUpperCase();
-          const rgbHex = clean.length === 8 ? clean.slice(2) : clean.length === 6 ? clean : '';
-          if (!rgbHex || rgbHex.length !== 6) return null;
-          const r = parseInt(rgbHex.slice(0, 2), 16);
-          const g = parseInt(rgbHex.slice(2, 4), 16);
-          const b = parseInt(rgbHex.slice(4, 6), 16);
-          if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
-          return { r, g, b };
-        };
-
-        const extractRgb = (color: any): RGB | null => {
-          if (!color) return null;
-          if (typeof color === 'string') return parseRgbHex(color);
-          if (typeof color.rgb === 'string') return parseRgbHex(color.rgb);
-          return null;
-        };
-
-        const isGrayish = ({ r, g, b }: RGB): boolean => {
-          const max = Math.max(r, g, b);
-          const min = Math.min(r, g, b);
-          const delta = max - min;
-          // Low chroma (near gray) and not too close to pure white
-          return delta <= 20 && max >= 40 && max <= 245;
-        };
-
-        const cell = (firstSheet as any)[cellAddr];
-        if (!cell) return false;
-        if (!cell.s) return false;
-
-        const style = cell.s;
-        const patternType = style.patternType ?? style.fill?.patternType;
-
-        const rgb =
-          extractRgb(style.fgColor) ||
-          extractRgb(style.bgColor) ||
-          extractRgb(style.fill?.fgColor) ||
-          extractRgb(style.fill?.bgColor);
-
-        if (rgb) {
-          const gray = isGrayish(rgb);
-          console.log(`🎨 ${cellAddr} fill RGB`, { ...rgb, gray });
-          return gray;
-        }
-
-        const hasThemeOrIndexedFill =
-          (style.fgColor && (style.fgColor.theme !== undefined || style.fgColor.indexed !== undefined)) ||
-          (style.bgColor && (style.bgColor.theme !== undefined || style.bgColor.indexed !== undefined)) ||
-          (style.fill?.fgColor && (style.fill.fgColor.theme !== undefined || style.fill.fgColor.indexed !== undefined)) ||
-          (style.fill?.bgColor && (style.fill.bgColor.theme !== undefined || style.fill.bgColor.indexed !== undefined));
-
-        // Fallback: if Excel stores fill as theme/indexed and we can't resolve RGB, treat filled cells as gray-highlight.
-        if (hasThemeOrIndexedFill && patternType !== 'none') {
-          console.log(`⚠️ ${cellAddr} has theme/indexed fill without RGB; treating as gray/highlight.`, {
-            patternType,
-            fgColor: style.fgColor,
-            bgColor: style.bgColor,
-          });
-          return true;
-        }
-
-        return false;
-      };
-
-      const entries: ServiceEntry[] = [];
-
-      for (let i = 0; i < jsonData.length; i++) {
-        const row = jsonData[i] || [];
-        if (row.length === 0) continue;
-
-        // Encontrar células que correspondem ao número mecanográfico
-        const mechIdxs: number[] = [];
-        for (let c = 0; c < row.length; c++) {
-          const cell = row[c];
-          if (cell === null || cell === undefined) continue;
-          const cellStr = String(cell).trim();
-          if (cellStr === String(mechNumber).trim()) mechIdxs.push(c);
-        }
-        if (mechIdxs.length === 0) continue;
-
-        // Para cada ocorrência, detetar data e nome
-        for (const mechCol of mechIdxs) {
-          const sheetRow = startRow + i;
-          let foundDate = dateByAbsRow[sheetRow] || '';
-          
-          const mechAddr = XLSX.utils.encode_cell({ r: sheetRow, c: mechCol });
-          const dateAddr = XLSX.utils.encode_cell({ r: sheetRow, c: 0 });
-
-          console.log(`\n📍 Found mech ${mechNumber} at ${mechAddr} (sheetRow ${sheetRow}, json idx ${i})`);
-          console.log(`   🗓️  Reading date from ${dateAddr} (same row)`);
-          console.log(`   📅 Date found in dateByAbsRow[${sheetRow}]: "${foundDate}"`);
-
-          // Usar APENAS a Coluna A (data) para determinar a data
-          if (!foundDate) {
-            const addrA = XLSX.utils.encode_cell({ r: sheetRow, c: 0 });
-            const cellA = (firstSheet as any)[addrA];
-            console.log(`   ⚠️  No date in dateByAbsRow, trying to parse from ${addrA}`);
-            foundDate = parseDateFromAny(cellA?.v, addrA, cellA?.w);
-            console.log(`   📅 Parsed date: "${foundDate}"`);
-          }
-          
-          // Try next row if current row has no date (formula case: A366 = A359+1)
-          if (!foundDate) {
-            const nextRow = sheetRow + 1;
-            const nextDateAddr = XLSX.utils.encode_cell({ r: nextRow, c: 0 });
-            const nextDateFromMap = dateByAbsRow[nextRow];
-            
-            console.log(`   🔽 Trying NEXT row ${nextDateAddr} (sheetRow ${nextRow})`);
-            console.log(`   📅 Date in dateByAbsRow[${nextRow}]: "${nextDateFromMap}"`);
-            
-            if (nextDateFromMap) {
-              foundDate = nextDateFromMap;
-              console.log(`   ✅ Using date from NEXT row: "${foundDate}"`);
-            } else {
-              const cellNextA = (firstSheet as any)[nextDateAddr];
-              const parsedNext = parseDateFromAny(cellNextA?.v, nextDateAddr, cellNextA?.w);
-              if (parsedNext) {
-                foundDate = parsedNext;
-                console.log(`   ✅ Parsed date from NEXT row: "${foundDate}"`);
-              }
-            }
-          }
-
-          // Fallback: procurar somente na Coluna A para cima (para casos de mesclagem não detectada)
-          if (!foundDate) {
-            for (let upAbs = sheetRow - 1; upAbs >= Math.max(startRow, sheetRow - 20); upAbs--) {
-              const addrUp = XLSX.utils.encode_cell({ r: upAbs, c: 0 });
-              const cellUp = (firstSheet as any)[addrUp];
-              const parsedUp = parseDateFromAny(cellUp?.v, addrUp, cellUp?.w);
-              if (parsedUp) { 
-                console.log(`🔼 Using date from ${addrUp} for row ${sheetRow}: ${parsedUp}`);
-                foundDate = parsedUp; 
-                break; 
-              }
-            }
-          }
-
-          // Log if mech number found but no date
-          if (!foundDate) {
-            console.warn(`⚠️ Found mech ${mechNumber} at row ${sheetRow} (json idx ${i}) but no date in col A`);
-          }
-
-          if (foundDate) {
-            // Extrair nome: preferir a 3ª coluna (Nome). Se vazia, procurar à direita do nº mecanográfico e por fim melhor string da linha
-            let name = '';
-            if (typeof row[2] === 'string' && row[2].trim()) {
-              name = row[2].trim();
-            } else {
-              const alphaScore = (s: string) => (s.match(/[A-Za-zÁ-ú]/g) || []).length;
-              // tentar à direita do nº mecanográfico
-              for (let c = mechCol + 1; c < row.length; c++) {
-                const v = row[c];
-                if (typeof v === 'string' && alphaScore(v) >= 2) { name = v.trim(); break; }
-              }
-              // fallback: melhor string da linha
-              if (!name) {
-                let best = '';
-                for (const v of row) if (typeof v === 'string' && alphaScore(v) >= 2 && v.trim() !== String(mechNumber)) {
-                  if (v.length > best.length) best = v.trim();
-                }
-                name = best;
-              }
-            }
-
-            // Check if the row has gray-ish background (Excel may apply formatting to a different column)
-            const mechAddr = XLSX.utils.encode_cell({ r: sheetRow, c: mechCol });
-            const dateAddr = XLSX.utils.encode_cell({ r: sheetRow, c: 0 });
-            const nameAddr = XLSX.utils.encode_cell({ r: sheetRow, c: 2 });
-            const isGray = isCellGray(mechAddr) || isCellGray(dateAddr) || isCellGray(nameAddr);
-            
-            console.log('✅ Found service (XLSX):', { 
-              foundDate, 
-              mechNumber, 
-              name, 
-              mechAddr, 
-              isGray,
-              sheetRow, 
-              mechCol,
-              dateRowInExcel: sheetRow + 1, // Excel row number (1-indexed)
-              mechColInExcel: String.fromCharCode(65 + mechCol) // Excel column letter
-            });
-            
-            const entryIndex = entries.length;
-            entries.push({ date: foundDate, mechanographicNumber: mechNumber, rawText: name, isGray });
-            console.log(`➕ Entry #${entryIndex} added:`, { date: foundDate, mech: mechNumber, isGray });
-          }
-        }
-      }
-
-      console.log('Total entries found:', entries.length);
-      console.log('📋 All entries found (raw):', entries.map((e, i) => ({ 
-        index: i,
-        date: e.date, 
-        mech: e.mechanographicNumber,
-        rawText: e.rawText 
-      })));
-      
-      console.log('\n🎯 FINAL ARRAY that will be shown in table:');
-      entries.forEach((e, i) => {
-        console.log(`  [${i}] Date: "${e.date}" | Mech: ${e.mechanographicNumber}`);
-      });
-      
-      // Apply accepted shift exchanges (add received, remove offered)
-      const finalEntries = await applyAcceptedExchangesToServices(
-        userInfo.email,
-        mechNumber,
-        entries
-      );
       setServices(finalEntries);
-      
+
       if (finalEntries.length === 0) {
         toast({
           title: "Nenhum serviço encontrado",
@@ -790,12 +383,8 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         setError(`Nenhum serviço encontrado para o número mecanográfico ${mechNumber}`);
       }
 
-      const adjustedResults = await applyAcceptedExchangesToServices(
-        userInfo.email,
-        mechNumber,
-        fallbackResults
-      );
-      setServices(adjustedResults);
+      setServices(fallbackResults);
+
       
     } catch (err: any) {
       console.error('Error loading/parsing PDF:', err);
