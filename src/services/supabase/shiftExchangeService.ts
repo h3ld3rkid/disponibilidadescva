@@ -250,6 +250,11 @@ export const shiftExchangeService = {
       
       console.log('Exchange request response saved successfully');
 
+      // Invalidate schedule cache so dropdowns reflect the change immediately
+      if (status === 'accepted') {
+        clearScheduleCache();
+      }
+
       // Se aceite e faz parte de um broadcast, cancelar os outros pedidos pendentes
       if (status === 'accepted' && requestData.broadcast_id) {
         console.log('Cancelling other broadcast requests with broadcast_id:', requestData.broadcast_id);
