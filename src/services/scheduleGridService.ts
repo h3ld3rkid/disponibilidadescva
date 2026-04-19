@@ -205,6 +205,47 @@ const isCellGray = (cell: any): boolean => {
   return true;
 };
 
+const getDirectSheetCell = (sheet: XLSX.WorkSheet, row: number, col: number) => {
+  const addr = XLSX.utils.encode_cell({ r: row, c: col });
+  return (sheet as any)[addr];
+};
+
+const resolveSheetCell = (
+  sheet: XLSX.WorkSheet,
+  merges: XLSX.Range[],
+  row: number,
+  col: number
+) => {
+  const direct = getDirectSheetCell(sheet, row, col);
+  if (direct && (direct.v !== undefined || direct.w !== undefined || direct.s)) {
+    return direct;
+  }
+
+  for (const m of merges) {
+    if (row >= m.s.r && row <= m.e.r && col >= m.s.c && col <= m.e.c) {
+      return getDirectSheetCell(sheet, m.s.r, m.s.c);
+    }
+  }
+
+  return direct;
+};
+
+const getCellFillKey = (cell: any): string => {
+  if (!cell?.s) return '';
+  const style = cell.s;
+  return [
+    style.patternType ?? style.fill?.patternType ?? '',
+    style.fgColor?.rgb ?? style.fill?.fgColor?.rgb ?? '',
+    style.bgColor?.rgb ?? style.fill?.bgColor?.rgb ?? '',
+    style.fgColor?.indexed ?? style.fill?.fgColor?.indexed ?? '',
+    style.bgColor?.indexed ?? style.fill?.bgColor?.indexed ?? '',
+    style.fgColor?.theme ?? style.fill?.fgColor?.theme ?? '',
+    style.bgColor?.theme ?? style.fill?.bgColor?.theme ?? '',
+    style.fgColor?.tint ?? style.fill?.fgColor?.tint ?? '',
+    style.bgColor?.tint ?? style.fill?.bgColor?.tint ?? '',
+  ].join('|');
+};
+
 /**
  * Resolve schedule with exchanges applied. Returns a map keyed by the
  * normalised mechanographic number (digits only, no leading zeros).
@@ -299,24 +340,45 @@ export const resolveScheduleByMech = async (
       return '';
     };
 
-    // Build dateByRow
-    const dateByRow: Record<number, string> = {};
-    for (const m of merges) {
-      if (m.s.c === range.s.c && m.e.c === range.s.c) {
-        const addr = XLSX.utils.encode_cell({ r: m.s.r, c: range.s.c });
-        const cell = (sheet as any)[addr];
-        const parsed = parseDateVal(cell?.v, cell?.w);
-        if (parsed) {
-          for (let r = m.s.r; r <= m.e.r; r++) dateByRow[r] = parsed;
-        }
-      }
-    }
+    // Build dateByRow from explicit date rows in column A, then expand within the
+    // same visual color block. This fixes gray overnight blocks whose weekday row
+    // sits above the actual date row inside the same merged-looking section.
+    const firstCol = range.s.c;
+    const explicitDateByRow: Record<number, string> = {};
+    const fillKeyByRow: Record<number, string> = {};
+
     for (let r = range.s.r; r <= range.e.r; r++) {
-      if (dateByRow[r]) continue;
-      const addr = XLSX.utils.encode_cell({ r, c: range.s.c });
-      const cell = (sheet as any)[addr];
-      const parsed = parseDateVal(cell?.v, cell?.w);
-      if (parsed) dateByRow[r] = parsed;
+      const directCell = getDirectSheetCell(sheet, r, firstCol);
+      const styleCell = resolveSheetCell(sheet, merges, r, firstCol);
+      fillKeyByRow[r] = getCellFillKey(styleCell);
+
+      const parsed = parseDateVal(directCell?.v, directCell?.w);
+      if (parsed) explicitDateByRow[r] = parsed;
+    }
+
+    const dateByRow: Record<number, string> = {};
+    const explicitRows = Object.keys(explicitDateByRow)
+      .map(Number)
+      .sort((a, b) => a - b);
+
+    for (const row of explicitRows) {
+      const parsedDate = explicitDateByRow[row];
+      const fillKey = fillKeyByRow[row];
+      dateByRow[row] = parsedDate;
+
+      if (!fillKey) continue;
+
+      for (let r = row - 1; r >= range.s.r; r--) {
+        if (explicitDateByRow[r]) break;
+        if (fillKeyByRow[r] !== fillKey) break;
+        dateByRow[r] = parsedDate;
+      }
+
+      for (let r = row + 1; r <= range.e.r; r++) {
+        if (explicitDateByRow[r]) break;
+        if (fillKeyByRow[r] !== fillKey) break;
+        dateByRow[r] = parsedDate;
+      }
     }
     // Forward fill
     let lastKnown = '';
@@ -333,23 +395,11 @@ export const resolveScheduleByMech = async (
 
     // Resolve cell value through merges
     const resolveCellValue = (row: number, col: number): string => {
-      const addr = XLSX.utils.encode_cell({ r: row, c: col });
-      let cell = (sheet as any)[addr];
+      const cell = resolveSheetCell(sheet, merges, row, col);
       if (cell && cell.v !== undefined && cell.v !== null && cell.v !== '') {
         if (cell.t === 'e') return '';
         if (cell.w !== undefined && cell.w !== null && cell.w !== '') return String(cell.w).trim();
         return String(cell.v).trim();
-      }
-      for (const m of merges) {
-        if (row >= m.s.r && row <= m.e.r && col >= m.s.c && col <= m.e.c) {
-          const masterAddr = XLSX.utils.encode_cell({ r: m.s.r, c: m.s.c });
-          const master = (sheet as any)[masterAddr];
-          if (master && master.v !== undefined && master.v !== null) {
-            if (master.t === 'e') return '';
-            if (master.w !== undefined && master.w !== null && master.w !== '') return String(master.w).trim();
-            return String(master.v).trim();
-          }
-        }
       }
       return '';
     };
