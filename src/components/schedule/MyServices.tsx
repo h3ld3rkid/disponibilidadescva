@@ -78,43 +78,20 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       // proper shift matching and chronological replay.
       const resolved = await getResolvedServicesForMech(String(mechNumber));
 
-      const addOneDayToPt = (dateStr: string) => {
-        const [day, month, year] = dateStr.split('/').map(Number);
-        const d = new Date(year, month - 1, day);
-        d.setDate(d.getDate() + 1);
-        const dd = String(d.getDate()).padStart(2, '0');
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const yyyy = d.getFullYear();
-        return `${dd}/${mm}/${yyyy}`;
-      };
-
-      const byDisplayDate = new Map<string, ServiceEntry>();
-      for (const r of resolved) {
-        const displayDate = r.isGray ? addOneDayToPt(r.date) : r.date;
-        const rawText = r.name + (r.isModified ? ' (atualizado por troca)' : '');
-        const existing = byDisplayDate.get(displayDate);
-
-        if (!existing) {
-          byDisplayDate.set(displayDate, {
-            date: displayDate,
-            mechanographicNumber: r.mechanographicNumber,
-            rawText,
-            isGray: r.isGray || false,
-          });
-          continue;
-        }
-
-        if (r.isGray) {
-          existing.isGray = true;
-          existing.rawText = rawText;
-        }
-      }
-
-      const finalEntries: ServiceEntry[] = Array.from(byDisplayDate.values()).sort((a, b) => {
-        const [da, ma, ya] = a.date.split('/').map(Number);
-        const [db, mb, yb] = b.date.split('/').map(Number);
-        return new Date(ya, ma - 1, da).getTime() - new Date(yb, mb - 1, db).getTime();
-      });
+      const finalEntries: ServiceEntry[] = resolved
+        .map(r => ({
+          date: r.date,
+          mechanographicNumber: r.mechanographicNumber,
+          rawText: r.name + (r.isModified ? ' (atualizado por troca)' : ''),
+          isGray: r.isGray || false,
+        }))
+        .sort((a, b) => {
+          const [da, ma, ya] = a.date.split('/').map(Number);
+          const [db, mb, yb] = b.date.split('/').map(Number);
+          const cmp = new Date(ya, ma - 1, da).getTime() - new Date(yb, mb - 1, db).getTime();
+          if (cmp !== 0) return cmp;
+          return Number(a.isGray) - Number(b.isGray);
+        });
 
       setServices(finalEntries);
 
