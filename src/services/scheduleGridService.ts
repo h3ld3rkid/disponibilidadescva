@@ -468,18 +468,17 @@ export const resolveScheduleByMech = async (
       const isGray = cellGrayByKey.get(key) || false;
 
       if (!result[mechKey]) result[mechKey] = [];
-      // Avoid duplicates within the same date+gray flag (a date may legitimately
-      // have BOTH a daytime entry and a pernoite continuation — keep both).
-      if (!result[mechKey].some(e => e.dateISO === iso && (e.isGray || false) === isGray)) {
-        result[mechKey].push({
-          date: rowDate,
-          dateISO: iso,
-          mechanographicNumber: userInfo.mech,
-          name: userInfo.name,
-          isModified,
-          isGray,
-        });
-      }
+      // Each cell with the user's mech = one entry. Do NOT deduplicate by date,
+      // because the same date may legitimately have multiple cells (e.g. a day
+      // shift AND a pernoite continuation).
+      result[mechKey].push({
+        date: rowDate,
+        dateISO: iso,
+        mechanographicNumber: userInfo.mech,
+        name: userInfo.name,
+        isModified,
+        isGray,
+      });
     }
 
     // Sort
