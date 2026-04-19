@@ -386,6 +386,7 @@ export const resolveScheduleByMech = async (
     // Build cell-level "current mech" map by replaying exchanges chronologically.
     // Key: `${row},${col}` -> current mechanographic number occupying that slot.
     const cellMechByKey = new Map<string, string>();
+    const cellGrayByKey = new Map<string, boolean>();
 
     // First pass: collect all original mech cells from XLSX
     for (let r = range.s.r; r <= range.e.r; r++) {
@@ -394,7 +395,11 @@ export const resolveScheduleByMech = async (
         if (!val) continue;
         const mk = normalizeMechKey(val);
         if (mk && usersByMech.has(mk)) {
-          cellMechByKey.set(`${r},${c}`, mk);
+          const key = `${r},${c}`;
+          cellMechByKey.set(key, mk);
+          const addr = XLSX.utils.encode_cell({ r, c });
+          const cell = (sheet as any)[addr];
+          cellGrayByKey.set(key, isCellGray(cell));
         }
       }
     }
