@@ -462,30 +462,34 @@ export const resolveScheduleByMech = async (
       if (!userInfo) continue;
 
       // Was this cell modified vs. its original value?
-      const origVal = (() => {
-        // re-read original cell to compare
-        const [rs, cs] = key.split(',').map(Number);
-        const orig = resolveCellValue(rs, cs);
-        return normalizeMechKey(orig);
-      })();
+      const [rs, cs] = key.split(',').map(Number);
+      const origVal = normalizeMechKey(resolveCellValue(rs, cs));
       const isModified = origVal !== mechKey;
+      const isGray = cellGrayByKey.get(key) || false;
 
       if (!result[mechKey]) result[mechKey] = [];
-      // Avoid duplicates (same date+shift)
-      if (!result[mechKey].some(e => e.dateISO === iso)) {
+      // Avoid duplicates within the same date+gray flag (a date may legitimately
+      // have BOTH a daytime entry and a pernoite continuation — keep both).
+      if (!result[mechKey].some(e => e.dateISO === iso && (e.isGray || false) === isGray)) {
         result[mechKey].push({
           date: rowDate,
           dateISO: iso,
           mechanographicNumber: userInfo.mech,
           name: userInfo.name,
           isModified,
+          isGray,
         });
       }
     }
 
     // Sort
     for (const k of Object.keys(result)) {
-      result[k].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+      result[k].sort((a, b) => {
+        const cmp = a.dateISO.localeCompare(b.dateISO);
+        if (cmp !== 0) return cmp;
+        // Day entries before gray (pernoite) entries within same date
+        return (a.isGray ? 1 : 0) - (b.isGray ? 1 : 0);
+      });
     }
 
     cachedByMech = result;
