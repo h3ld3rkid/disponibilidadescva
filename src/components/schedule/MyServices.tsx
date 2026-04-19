@@ -82,7 +82,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         date: r.date,
         mechanographicNumber: r.mechanographicNumber,
         rawText: r.name + (r.isModified ? ' (atualizado por troca)' : ''),
-        isGray: false,
+        isGray: r.isGray || false,
       }));
 
       setServices(finalEntries);
