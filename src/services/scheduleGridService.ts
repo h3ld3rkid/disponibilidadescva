@@ -205,6 +205,47 @@ const isCellGray = (cell: any): boolean => {
   return true;
 };
 
+const getDirectSheetCell = (sheet: XLSX.WorkSheet, row: number, col: number) => {
+  const addr = XLSX.utils.encode_cell({ r: row, c: col });
+  return (sheet as any)[addr];
+};
+
+const resolveSheetCell = (
+  sheet: XLSX.WorkSheet,
+  merges: XLSX.Range[],
+  row: number,
+  col: number
+) => {
+  const direct = getDirectSheetCell(sheet, row, col);
+  if (direct && (direct.v !== undefined || direct.w !== undefined || direct.s)) {
+    return direct;
+  }
+
+  for (const m of merges) {
+    if (row >= m.s.r && row <= m.e.r && col >= m.s.c && col <= m.e.c) {
+      return getDirectSheetCell(sheet, m.s.r, m.s.c);
+    }
+  }
+
+  return direct;
+};
+
+const getCellFillKey = (cell: any): string => {
+  if (!cell?.s) return '';
+  const style = cell.s;
+  return [
+    style.patternType ?? style.fill?.patternType ?? '',
+    style.fgColor?.rgb ?? style.fill?.fgColor?.rgb ?? '',
+    style.bgColor?.rgb ?? style.fill?.bgColor?.rgb ?? '',
+    style.fgColor?.indexed ?? style.fill?.fgColor?.indexed ?? '',
+    style.bgColor?.indexed ?? style.fill?.bgColor?.indexed ?? '',
+    style.fgColor?.theme ?? style.fill?.fgColor?.theme ?? '',
+    style.bgColor?.theme ?? style.fill?.bgColor?.theme ?? '',
+    style.fgColor?.tint ?? style.fill?.fgColor?.tint ?? '',
+    style.bgColor?.tint ?? style.fill?.bgColor?.tint ?? '',
+  ].join('|');
+};
+
 /**
  * Resolve schedule with exchanges applied. Returns a map keyed by the
  * normalised mechanographic number (digits only, no leading zeros).
