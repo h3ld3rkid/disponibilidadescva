@@ -27,6 +27,7 @@ export interface ResolvedServiceEntry extends ResolvedServiceDate {
   mechanographicNumber: string;
   name: string;
   isModified: boolean; // changed by an accepted exchange
+  isGray?: boolean;    // pernoite (gray-background cell in XLSX)
 }
 
 interface AcceptedExchange {
