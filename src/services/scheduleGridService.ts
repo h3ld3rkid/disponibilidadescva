@@ -27,6 +27,7 @@ export interface ResolvedServiceEntry extends ResolvedServiceDate {
   mechanographicNumber: string;
   name: string;
   isModified: boolean; // changed by an accepted exchange
+  isGray?: boolean;    // pernoite (gray-background cell in XLSX)
 }
 
 interface AcceptedExchange {
@@ -137,6 +138,71 @@ const toExcelDate = (rawDate: string): string => {
     return `${pad2(Number(dmy[1]))}/${pad2(Number(dmy[2]))}/${fullYear}`;
   }
   return rawDate;
+};
+
+/**
+ * Detect if a cell has a gray background (used to mark pernoite continuations).
+ * Mirrors the logic from UpdatedSchedule.tsx getCellBgColor + grayness test.
+ */
+const isCellGray = (cell: any): boolean => {
+  if (!cell?.s) return false;
+  const style = cell.s;
+
+  const hexToRgb = (hex: string): [number, number, number] | null => {
+    if (!hex || typeof hex !== 'string') return null;
+    const clean = hex.replace(/^#/, '').toUpperCase();
+    const rgbHex = clean.length === 8 ? clean.slice(2) : clean.length === 6 ? clean : '';
+    if (rgbHex.length !== 6) return null;
+    const r = parseInt(rgbHex.slice(0, 2), 16);
+    const g = parseInt(rgbHex.slice(2, 4), 16);
+    const b = parseInt(rgbHex.slice(4, 6), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return null;
+    return [r, g, b];
+  };
+
+  const extractRgb = (color: any): [number, number, number] | null => {
+    if (!color) return null;
+    if (typeof color === 'string') return hexToRgb(color);
+    if (typeof color.rgb === 'string') return hexToRgb(color.rgb);
+    return null;
+  };
+
+  let rgb: [number, number, number] | null =
+    extractRgb(style.fgColor) ||
+    extractRgb(style.fill?.fgColor) ||
+    extractRgb(style.bgColor) ||
+    extractRgb(style.fill?.bgColor);
+
+  if (!rgb) {
+    const indexed =
+      style.fgColor?.indexed ?? style.fill?.fgColor?.indexed ??
+      style.bgColor?.indexed ?? style.fill?.bgColor?.indexed;
+    if (indexed === 22) rgb = [192, 192, 192];
+    else if (indexed === 23) rgb = [128, 128, 128];
+    else if (indexed === 55) rgb = [153, 153, 153];
+
+    if (!rgb) {
+      const theme = style.fgColor?.theme ?? style.fill?.fgColor?.theme;
+      const tint = style.fgColor?.tint ?? style.fill?.fgColor?.tint;
+      if (theme === 0 && tint && tint < 0) {
+        const g = Math.round(255 * (1 + tint));
+        rgb = [g, g, g];
+      } else if (theme === 1 && tint && tint > 0) {
+        const g = Math.round(255 * tint);
+        rgb = [g, g, g];
+      }
+    }
+  }
+
+  if (!rgb) return false;
+  const [r, g, b] = rgb;
+  // Gray = R≈G≈B and not white
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max - min > 15) return false; // not a neutral tone
+  if (max >= 245) return false;     // white-ish, not gray
+  if (max < 80) return false;       // too dark (likely black)
+  return true;
 };
 
 /**
@@ -320,6 +386,7 @@ export const resolveScheduleByMech = async (
     // Build cell-level "current mech" map by replaying exchanges chronologically.
     // Key: `${row},${col}` -> current mechanographic number occupying that slot.
     const cellMechByKey = new Map<string, string>();
+    const cellGrayByKey = new Map<string, boolean>();
 
     // First pass: collect all original mech cells from XLSX
     for (let r = range.s.r; r <= range.e.r; r++) {
@@ -328,7 +395,11 @@ export const resolveScheduleByMech = async (
         if (!val) continue;
         const mk = normalizeMechKey(val);
         if (mk && usersByMech.has(mk)) {
-          cellMechByKey.set(`${r},${c}`, mk);
+          const key = `${r},${c}`;
+          cellMechByKey.set(key, mk);
+          const addr = XLSX.utils.encode_cell({ r, c });
+          const cell = (sheet as any)[addr];
+          cellGrayByKey.set(key, isCellGray(cell));
         }
       }
     }
@@ -391,30 +462,34 @@ export const resolveScheduleByMech = async (
       if (!userInfo) continue;
 
       // Was this cell modified vs. its original value?
-      const origVal = (() => {
-        // re-read original cell to compare
-        const [rs, cs] = key.split(',').map(Number);
-        const orig = resolveCellValue(rs, cs);
-        return normalizeMechKey(orig);
-      })();
+      const [rs, cs] = key.split(',').map(Number);
+      const origVal = normalizeMechKey(resolveCellValue(rs, cs));
       const isModified = origVal !== mechKey;
+      const isGray = cellGrayByKey.get(key) || false;
 
       if (!result[mechKey]) result[mechKey] = [];
-      // Avoid duplicates (same date+shift)
-      if (!result[mechKey].some(e => e.dateISO === iso)) {
+      // Avoid duplicates within the same date+gray flag (a date may legitimately
+      // have BOTH a daytime entry and a pernoite continuation — keep both).
+      if (!result[mechKey].some(e => e.dateISO === iso && (e.isGray || false) === isGray)) {
         result[mechKey].push({
           date: rowDate,
           dateISO: iso,
           mechanographicNumber: userInfo.mech,
           name: userInfo.name,
           isModified,
+          isGray,
         });
       }
     }
 
     // Sort
     for (const k of Object.keys(result)) {
-      result[k].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+      result[k].sort((a, b) => {
+        const cmp = a.dateISO.localeCompare(b.dateISO);
+        if (cmp !== 0) return cmp;
+        // Day entries before gray (pernoite) entries within same date
+        return (a.isGray ? 1 : 0) - (b.isGray ? 1 : 0);
+      });
     }
 
     cachedByMech = result;
