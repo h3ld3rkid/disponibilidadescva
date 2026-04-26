@@ -107,8 +107,8 @@ const BroadcastExchangeDialog: React.FC<BroadcastExchangeDialogProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     {userServiceDates.map((d) => (
-                      <SelectItem key={d.dateISO} value={d.dateISO}>
-                        {d.date} ({getDayTypeLabel(d.dateISO)})
+                      <SelectItem key={`${d.dateISO}-${d.isGray ? 'g' : 'n'}`} value={d.dateISO}>
+                        {d.date} ({getDayTypeLabel(d.dateISO)}){d.isGray ? ' 🌙 Pernoite' : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
