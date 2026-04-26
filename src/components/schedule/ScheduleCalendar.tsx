@@ -274,7 +274,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {!isAdmin && (
+      {!isAdmin ? (
         <div className="p-6 pb-0">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Escala mês de {getTargetMonth()}
@@ -283,6 +283,10 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
             Selecione os seus turnos para o próximo mês
           </p>
           <SubmissionDeadlineAlert userEmail={userEmail || userInfo?.email} />
+        </div>
+      ) : (
+        <div className="p-6 pb-0">
+          <SubmissionDeadlineAlert userEmail={userEmail || userInfo?.email} onlyPeriodBanner />
         </div>
       )}
       
