@@ -5,6 +5,7 @@ import { systemSettingsService } from "@/services/supabase/systemSettingsService
 
 interface SubmissionDeadlineAlertProps {
   userEmail?: string;
+  onlyPeriodBanner?: boolean;
 }
 
 const MONTH_NAMES = [
@@ -19,7 +20,7 @@ const formatPt = (iso: string) => {
   return `${d}/${m}/${y}`;
 };
 
-const SubmissionDeadlineAlert: React.FC<SubmissionDeadlineAlertProps> = ({ userEmail }) => {
+const SubmissionDeadlineAlert: React.FC<SubmissionDeadlineAlertProps> = ({ userEmail, onlyPeriodBanner }) => {
   const [hasSpecialPermission, setHasSpecialPermission] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [period, setPeriod] = useState<{ start: string; end: string } | null>(null);
