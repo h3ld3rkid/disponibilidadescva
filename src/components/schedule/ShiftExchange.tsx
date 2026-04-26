@@ -79,15 +79,31 @@ const ShiftExchange = () => {
     }
   }, []);
 
+  // Dedupe service dates by ISO date — if any entry for that date is overnight (gray cell),
+  // mark the merged entry as Pernoite so users can identify night shifts in the dropdowns.
+  const dedupeDates = (list: ParsedServiceDate[]): ParsedServiceDate[] => {
+    const map = new Map<string, ParsedServiceDate>();
+    for (const d of list) {
+      const existing = map.get(d.dateISO);
+      if (!existing) {
+        map.set(d.dateISO, { ...d });
+      } else if (d.isGray) {
+        existing.isGray = true;
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+  };
+
   // Get service dates for current user (what they can offer)
   const currentUserDates = userInfo?.mechanographic_number 
-    ? (allScheduleDates[userInfo.mechanographic_number] || [])
+    ? dedupeDates(allScheduleDates[userInfo.mechanographic_number] || [])
     : [];
 
   // Get service dates for target user (what requester can ask for)
   const targetUserDates = selectedUser?.mechanographic_number
-    ? (allScheduleDates[selectedUser.mechanographic_number] || [])
+    ? dedupeDates(allScheduleDates[selectedUser.mechanographic_number] || [])
     : [];
+
 
   const loadUsers = async () => {
     try {
