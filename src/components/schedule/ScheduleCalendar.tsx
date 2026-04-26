@@ -286,7 +286,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({ userEmail, isAdmin 
         </div>
       ) : (
         <div className="p-6 pb-0">
-          <SubmissionDeadlineAlert userEmail={userEmail || userInfo?.email} />
+          <SubmissionDeadlineAlert userEmail={userEmail || userInfo?.email} onlyPeriodBanner />
         </div>
       )}
       
