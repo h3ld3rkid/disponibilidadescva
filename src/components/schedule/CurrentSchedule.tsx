@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ExternalLink, FileText } from "lucide-react";
 import { systemSettingsService } from "@/services/supabase/systemSettingsService";
 
@@ -24,9 +25,39 @@ const MONTHS = [
   { key: 'december', label: 'Dezembro' },
 ];
 
+// Build an embeddable preview URL for Google Drive / Docs / Sheets links.
+// Falls back to the original URL for other providers.
+const toEmbedUrl = (url: string): string => {
+  try {
+    if (url.includes('drive.google.com')) {
+      // Convert /file/d/<id>/view to /file/d/<id>/preview
+      const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (fileMatch) {
+        return `https://drive.google.com/file/d/${fileMatch[1]}/preview`;
+      }
+      // Convert open?id= to preview
+      const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (idMatch) {
+        return `https://drive.google.com/file/d/${idMatch[1]}/preview`;
+      }
+    }
+    if (url.includes('docs.google.com')) {
+      // Force preview/embedded mode for docs/sheets
+      if (url.includes('/edit')) return url.replace('/edit', '/preview').split('#')[0];
+      if (!url.includes('/preview')) return url + (url.includes('?') ? '&' : '?') + 'embedded=true';
+    }
+    return url;
+  } catch {
+    return url;
+  }
+};
+
 const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) => {
   const [monthLinks, setMonthLinks] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState<string>('');
+  const [previewOriginalUrl, setPreviewOriginalUrl] = useState<string>('');
 
   useEffect(() => {
     const loadLinks = async () => {
@@ -49,6 +80,12 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
   }, []);
 
   const currentMonth = new Date().getMonth(); // 0-indexed
+
+  const openPreview = (label: string, link: string) => {
+    setPreviewTitle(`Escala de ${label}`);
+    setPreviewOriginalUrl(link);
+    setPreviewUrl(toEmbedUrl(link));
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -78,11 +115,11 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
                     } ${isCurrent ? 'ring-2 ring-primary ring-offset-2' : ''}`}
                     disabled={!link}
                     onClick={() => {
-                      if (link) window.open(link, '_blank', 'noopener,noreferrer');
+                      if (link) openPreview(month.label, link);
                     }}
                   >
                     {link ? (
-                      <ExternalLink className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
                     ) : (
                       <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
                     )}
@@ -100,6 +137,33 @@ const CurrentSchedule: React.FC<CurrentScheduleProps> = ({ isAdmin = false }) =>
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!previewUrl} onOpenChange={(open) => !open && setPreviewUrl(null)}>
+        <DialogContent className="max-w-6xl w-[95vw] h-[90vh] p-0 flex flex-col">
+          <DialogHeader className="px-4 py-3 border-b flex-row items-center justify-between space-y-0">
+            <DialogTitle className="text-base">{previewTitle}</DialogTitle>
+            {previewOriginalUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mr-8"
+                onClick={() => window.open(previewOriginalUrl, '_blank', 'noopener,noreferrer')}
+              >
+                <ExternalLink className="h-4 w-4 mr-1" />
+                Abrir em nova aba
+              </Button>
+            )}
+          </DialogHeader>
+          {previewUrl && (
+            <iframe
+              src={previewUrl}
+              title={previewTitle}
+              className="flex-1 w-full border-0"
+              allow="autoplay"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
