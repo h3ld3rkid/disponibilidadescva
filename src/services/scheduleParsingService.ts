@@ -3,6 +3,7 @@ import { resolveScheduleByMech, clearScheduleGridCache, ResolvedServiceEntry } f
 export interface ParsedServiceDate {
   date: string;    // DD/MM/YYYY
   dateISO: string; // YYYY-MM-DD
+  isGray?: boolean; // pernoite (gray cell in XLSX)
 }
 
 /**
@@ -20,6 +21,7 @@ export const parseScheduleXlsx = async (): Promise<Record<string, ParsedServiceD
     const dates: ParsedServiceDate[] = entries.map((e: ResolvedServiceEntry) => ({
       date: e.date,
       dateISO: e.dateISO,
+      isGray: e.isGray || false,
     }));
     out[mechKey] = dates;
     if (entries.length > 0) {
