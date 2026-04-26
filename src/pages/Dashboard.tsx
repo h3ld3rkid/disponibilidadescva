@@ -22,6 +22,7 @@ import SessionTimer from '@/components/auth/SessionTimer';
 import PDFAdditionalConfig from '@/pages/PDFAdditionalConfig';
 import XLSXConfig from '@/pages/XLSXConfig';
 import MonthlyScheduleConfig from '@/pages/MonthlyScheduleConfig';
+import SubmissionPeriodsConfig from '@/pages/SubmissionPeriodsConfig';
 import { sessionManager } from '@/services/sessionManager';
 import { roleService } from '@/services/supabase/roleService';
 
