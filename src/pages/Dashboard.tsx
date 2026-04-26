@@ -198,6 +198,7 @@ const Dashboard = () => {
             <Route path="/config/pdf-additional" element={checkAdminRoute(<PDFAdditionalConfig />)} />
             <Route path="/config/xlsx" element={checkAdminRoute(<XLSXConfig />)} />
             <Route path="/config/monthly-schedule" element={checkAdminRoute(<MonthlyScheduleConfig />)} />
+            <Route path="/config/submission-periods" element={checkAdminRoute(<SubmissionPeriodsConfig />)} />
             
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
