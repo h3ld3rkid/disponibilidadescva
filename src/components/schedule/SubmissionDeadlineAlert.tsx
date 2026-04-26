@@ -95,6 +95,10 @@ const SubmissionDeadlineAlert: React.FC<SubmissionDeadlineAlertProps> = ({ userE
   );
 
   let deadlineBanner: React.ReactNode = null;
+  if (onlyPeriodBanner) {
+    if (!periodBanner) return null;
+    return <>{periodBanner}</>;
+  }
   if (currentDay <= 15) {
     if (daysUntil15th === 0) {
       deadlineBanner = (
