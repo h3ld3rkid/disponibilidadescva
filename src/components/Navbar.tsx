@@ -160,7 +160,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
           <div className="flex items-center space-x-3 flex-shrink-0 min-w-0">
             <Link to="/dashboard" className="flex items-center space-x-3">
               <img 
-                src="https://amares.cruzvermelha.pt/images/site/Amares.webp" 
+                src={logoUrl} 
                 alt="Cruz Vermelha Portuguesa - Delegação de Amares" 
                 className="h-8 w-auto flex-shrink-0"
                 referrerPolicy="no-referrer-when-downgrade"
