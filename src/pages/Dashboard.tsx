@@ -25,6 +25,7 @@ import MonthlyScheduleConfig from '@/pages/MonthlyScheduleConfig';
 import SubmissionPeriodsConfig from '@/pages/SubmissionPeriodsConfig';
 import { sessionManager } from '@/services/sessionManager';
 import { roleService } from '@/services/supabase/roleService';
+import { useLogoUrl } from '@/hooks/useLogoUrl';
 
 interface UserInfo {
   email: string;
@@ -35,6 +36,7 @@ interface UserInfo {
 const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { logoUrl } = useLogoUrl();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [verifiedAdmin, setVerifiedAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
@@ -161,7 +163,7 @@ const Dashboard = () => {
       <div className="bg-white border-b border-gray-200 py-4">
         <div className="container mx-auto px-4 flex items-center">
           <img 
-            src="https://amares.cruzvermelha.pt/images/site/Amares.webp" 
+            src={logoUrl} 
             alt="Cruz Vermelha Amares" 
             className="h-8 object-contain mr-3" 
           />

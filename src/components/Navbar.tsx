@@ -40,6 +40,7 @@ import { userService } from "@/services/supabase/userService";
 import { sessionManager } from '@/services/sessionManager';
 import { roleService } from '@/services/supabase/roleService';
 import { useTabVisibility } from '@/hooks/useTabVisibility';
+import { useLogoUrl } from '@/hooks/useLogoUrl';
 
 interface NavbarProps {
   email: string;
@@ -54,6 +55,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isTabVisible } = useTabVisibility();
+  const { logoUrl } = useLogoUrl();
 
   // Verificar role na BD ao montar o componente
   useEffect(() => {
@@ -160,7 +162,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
           <div className="flex items-center space-x-3 flex-shrink-0 min-w-0">
             <Link to="/dashboard" className="flex items-center space-x-3">
               <img 
-                src="https://amares.cruzvermelha.pt/images/site/Amares.webp" 
+                src={logoUrl} 
                 alt="Cruz Vermelha Portuguesa - Delegação de Amares" 
                 className="h-8 w-auto flex-shrink-0"
                 referrerPolicy="no-referrer-when-downgrade"
