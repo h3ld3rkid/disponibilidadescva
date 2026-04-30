@@ -25,6 +25,7 @@ import MonthlyScheduleConfig from '@/pages/MonthlyScheduleConfig';
 import SubmissionPeriodsConfig from '@/pages/SubmissionPeriodsConfig';
 import { sessionManager } from '@/services/sessionManager';
 import { roleService } from '@/services/supabase/roleService';
+import { useLogoUrl } from '@/hooks/useLogoUrl';
 
 interface UserInfo {
   email: string;
@@ -35,6 +36,7 @@ interface UserInfo {
 const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { logoUrl } = useLogoUrl();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [verifiedAdmin, setVerifiedAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);

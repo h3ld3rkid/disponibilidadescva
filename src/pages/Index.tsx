@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLogoUrl } from '@/hooks/useLogoUrl';
 
 const Index = () => {
   const navigate = useNavigate();
+  const { logoUrl } = useLogoUrl();
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -15,7 +17,7 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 text-center px-4">
       <img 
-        src="https://amares.cruzvermelha.pt/images/site/Amares.webp" 
+        src={logoUrl} 
         alt="Cruz Vermelha Amares" 
         className="h-16 mb-6"
       />
