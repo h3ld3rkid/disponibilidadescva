@@ -17,9 +17,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { useLogoUrl } from '@/hooks/useLogoUrl';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { logoUrl } = useLogoUrl();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -155,7 +157,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
-      <img src="https://amares.cruzvermelha.pt/images/site/Amares.webp" alt="Cruz Vermelha Amares" className="h-16 mb-6" />
+      <img src={logoUrl} alt="Cruz Vermelha Amares" className="h-16 mb-6" />
       
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">

@@ -40,6 +40,7 @@ import { userService } from "@/services/supabase/userService";
 import { sessionManager } from '@/services/sessionManager';
 import { roleService } from '@/services/supabase/roleService';
 import { useTabVisibility } from '@/hooks/useTabVisibility';
+import { useLogoUrl } from '@/hooks/useLogoUrl';
 
 interface NavbarProps {
   email: string;
@@ -54,6 +55,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { isTabVisible } = useTabVisibility();
+  const { logoUrl } = useLogoUrl();
 
   // Verificar role na BD ao montar o componente
   useEffect(() => {
