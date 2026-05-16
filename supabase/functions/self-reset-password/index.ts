@@ -36,7 +36,7 @@ serve(async (req) => {
     // Check user exists and has telegram_chat_id
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, name, email, telegram_chat_id, active, manually_blocked')
+      .select('id, name, email, telegram_chat_id, active, manually_blocked, locked_at, failed_login_attempts')
       .eq('email', normalizedEmail)
       .single();
 
@@ -49,17 +49,10 @@ serve(async (req) => {
     }
 
     // Bloquear apenas se foi bloqueado manualmente pelo admin.
-    // Se está inativo por excesso de tentativas (locked_at preenchido), permitir reset via Telegram.
+    // Qualquer bloqueio não manual (tentativas falhadas/inativo automático) pode recuperar via Telegram.
     if (user.manually_blocked) {
       return new Response(
         JSON.stringify({ success: false, message: 'Esta conta foi bloqueada pelo administrador. Contacte o administrador.' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!user.active && !user.locked_at) {
-      return new Response(
-        JSON.stringify({ success: false, message: 'Esta conta está inativa. Contacte o administrador.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
