@@ -116,6 +116,7 @@ serve(async (req) => {
         needs_password_change: true,
         failed_login_attempts: 0,
         locked_at: null,
+        active: true,
         updated_at: new Date().toISOString(),
       })
       .eq('email', normalizedEmail);
