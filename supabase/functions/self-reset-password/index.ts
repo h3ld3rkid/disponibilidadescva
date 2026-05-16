@@ -48,9 +48,18 @@ serve(async (req) => {
       );
     }
 
-    if (!user.active || user.manually_blocked) {
+    // Bloquear apenas se foi bloqueado manualmente pelo admin.
+    // Se está inativo por excesso de tentativas (locked_at preenchido), permitir reset via Telegram.
+    if (user.manually_blocked) {
       return new Response(
-        JSON.stringify({ success: false, message: 'Esta conta está bloqueada. Contacte o administrador.' }),
+        JSON.stringify({ success: false, message: 'Esta conta foi bloqueada pelo administrador. Contacte o administrador.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!user.active && !user.locked_at) {
+      return new Response(
+        JSON.stringify({ success: false, message: 'Esta conta está inativa. Contacte o administrador.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -107,6 +116,7 @@ serve(async (req) => {
         needs_password_change: true,
         failed_login_attempts: 0,
         locked_at: null,
+        active: true,
         updated_at: new Date().toISOString(),
       })
       .eq('email', normalizedEmail);
