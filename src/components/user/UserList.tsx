@@ -40,18 +40,24 @@ const UserList: React.FC<UserListProps> = ({
   const { toast } = useToast();
 
   const sortedUsers = useMemo(() => {
+    // Grupo 0 = ativo e não bloqueado, 1 = bloqueado manualmente, 2 = inativo
+    const getGroup = (u: User) => {
+      if (!u.active) return 2;
+      if (u.manually_blocked) return 1;
+      return 0;
+    };
+
     return [...users].sort((a, b) => {
-      // Inativos vão para o fim
-      if (a.active !== b.active) {
-        return a.active ? -1 : 1;
-      }
-      
-      // Dentro do mesmo grupo (ativos ou inativos), ordenar por nome
+      const ga = getGroup(a);
+      const gb = getGroup(b);
+      if (ga !== gb) return ga - gb;
+
+      // Dentro do mesmo grupo, ordenar por nome
       if (sortOrder === 'none') return 0;
-      
+
       const nameA = a.name.toLowerCase();
       const nameB = b.name.toLowerCase();
-      
+
       if (sortOrder === 'asc') {
         return nameA.localeCompare(nameB, 'pt-PT');
       } else {
