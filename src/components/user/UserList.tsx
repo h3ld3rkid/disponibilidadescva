@@ -40,10 +40,9 @@ const UserList: React.FC<UserListProps> = ({
   const { toast } = useToast();
 
   const sortedUsers = useMemo(() => {
-    // Grupo 0 = ativo e não bloqueado, 1 = bloqueado manualmente, 2 = inativo
+    // Grupo 0 = ativo e não bloqueado; Grupo 1 = inativo ou bloqueado (vão para o fundo)
     const getGroup = (u: User) => {
-      if (!u.active) return 2;
-      if (u.manually_blocked) return 1;
+      if (!u.active || u.manually_blocked) return 1;
       return 0;
     };
 
