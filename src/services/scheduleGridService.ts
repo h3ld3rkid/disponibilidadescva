@@ -571,12 +571,10 @@ export const resolveScheduleByMech = async (
       const isGray = cellGrayByKey.get(key) || false;
 
       if (!result[mechKey]) result[mechKey] = [];
-      // Each cell with the user's mech = one entry. Do NOT deduplicate by date,
-      // because the same date may legitimately have multiple cells (e.g. a day
-      // shift AND a pernoite continuation).
       result[mechKey].push({
         date: rowDate,
         dateISO: iso,
+        startTime: timeByRow[r] || undefined,
         mechanographicNumber: userInfo.mech,
         name: userInfo.name,
         isModified,
