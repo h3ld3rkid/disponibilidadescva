@@ -558,6 +558,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                   <TableHeader>
                     <TableRow>
                       <TableHead>Data</TableHead>
+                      <TableHead>Hora</TableHead>
                       <TableHead>Número Mecanográfico</TableHead>
                       <TableHead className="hidden md:table-cell">Informação Completa</TableHead>
                       <TableHead className="w-10"></TableHead>
@@ -572,6 +573,9 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                         <TableCell className="font-medium">
                           {service.date} <span className="text-muted-foreground">({getWeekdayName(service.date)})</span>
                           {service.isGray && <span className="ml-2 text-muted-foreground">🌙</span>}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {service.startTime || <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell>{service.mechanographicNumber}</TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
