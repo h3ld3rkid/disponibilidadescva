@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface ResolvedServiceDate {
   date: string;    // DD/MM/YYYY
   dateISO: string; // YYYY-MM-DD
+  startTime?: string; // HH:MM (from column A, if present)
 }
 
 export interface ResolvedServiceEntry extends ResolvedServiceDate {
@@ -340,31 +341,69 @@ export const resolveScheduleByMech = async (
       return '';
     };
 
+    const timePattern = /(\b\d{1,2})[:hH.](\d{2})\b/;
+    const parseTimeVal = (val: any, formatted?: string): string => {
+      const tryStr = (s: string): string => {
+        const m = s.match(timePattern);
+        if (!m) return '';
+        const h = parseInt(m[1], 10);
+        const mi = parseInt(m[2], 10);
+        if (isNaN(h) || isNaN(mi) || h > 23 || mi > 59) return '';
+        return `${pad2(h)}:${pad2(mi)}`;
+      };
+      if (formatted) {
+        const r = tryStr(String(formatted));
+        if (r) return r;
+      }
+      if (typeof val === 'string') {
+        const r = tryStr(val);
+        if (r) return r;
+      }
+      if (typeof val === 'number' && val > 0 && val < 1) {
+        const totalMin = Math.round(val * 24 * 60);
+        const h = Math.floor(totalMin / 60);
+        const mi = totalMin % 60;
+        return `${pad2(h)}:${pad2(mi)}`;
+      }
+      return '';
+    };
+
     // Build dateByRow from explicit date rows in column A, then expand within the
     // same visual color block. This fixes gray overnight blocks whose weekday row
     // sits above the actual date row inside the same merged-looking section.
     const firstCol = range.s.c;
     const explicitDateByRow: Record<number, string> = {};
+    const explicitTimeByRow: Record<number, string> = {};
     const fillKeyByRow: Record<number, string> = {};
 
     for (let r = range.s.r; r <= range.e.r; r++) {
       const directCell = getDirectSheetCell(sheet, r, firstCol);
-      const styleCell = resolveSheetCell(sheet, merges, r, firstCol);
+      const mergedCell = resolveSheetCell(sheet, merges, r, firstCol);
+      const styleCell = mergedCell || directCell;
       fillKeyByRow[r] = getCellFillKey(styleCell);
 
       const parsed = parseDateVal(directCell?.v, directCell?.w);
       if (parsed) explicitDateByRow[r] = parsed;
+
+      // Time may live in the same cell text (e.g. "17/05/2026 08:00") or in
+      // the merged master when this row is a slave.
+      const timeFromDirect = parseTimeVal(directCell?.v, directCell?.w);
+      const timeFromMerged = timeFromDirect || parseTimeVal(mergedCell?.v, mergedCell?.w);
+      if (timeFromMerged) explicitTimeByRow[r] = timeFromMerged;
     }
 
     const dateByRow: Record<number, string> = {};
+    const timeByRow: Record<number, string> = {};
     const explicitRows = Object.keys(explicitDateByRow)
       .map(Number)
       .sort((a, b) => a - b);
 
     for (const row of explicitRows) {
       const parsedDate = explicitDateByRow[row];
+      const parsedTime = explicitTimeByRow[row] || '';
       const fillKey = fillKeyByRow[row];
       dateByRow[row] = parsedDate;
+      if (parsedTime) timeByRow[row] = parsedTime;
 
       if (!fillKey) continue;
 
@@ -372,25 +411,39 @@ export const resolveScheduleByMech = async (
         if (explicitDateByRow[r]) break;
         if (fillKeyByRow[r] !== fillKey) break;
         dateByRow[r] = parsedDate;
+        if (parsedTime && !timeByRow[r]) timeByRow[r] = parsedTime;
       }
 
       for (let r = row + 1; r <= range.e.r; r++) {
         if (explicitDateByRow[r]) break;
         if (fillKeyByRow[r] !== fillKey) break;
         dateByRow[r] = parsedDate;
+        if (parsedTime && !timeByRow[r]) timeByRow[r] = parsedTime;
       }
     }
     // Forward fill
     let lastKnown = '';
+    let lastKnownTime = '';
     for (let r = range.s.r; r <= range.e.r; r++) {
-      if (dateByRow[r]) lastKnown = dateByRow[r];
-      else if (lastKnown) dateByRow[r] = lastKnown;
+      if (dateByRow[r]) {
+        lastKnown = dateByRow[r];
+        lastKnownTime = timeByRow[r] || '';
+      } else if (lastKnown) {
+        dateByRow[r] = lastKnown;
+        if (lastKnownTime && !timeByRow[r]) timeByRow[r] = lastKnownTime;
+      }
     }
     // Backward fill
     let nextKnown = '';
+    let nextKnownTime = '';
     for (let r = range.e.r; r >= range.s.r; r--) {
-      if (dateByRow[r]) nextKnown = dateByRow[r];
-      else if (nextKnown) dateByRow[r] = nextKnown;
+      if (dateByRow[r]) {
+        nextKnown = dateByRow[r];
+        nextKnownTime = timeByRow[r] || nextKnownTime;
+      } else if (nextKnown) {
+        dateByRow[r] = nextKnown;
+        if (nextKnownTime && !timeByRow[r]) timeByRow[r] = nextKnownTime;
+      }
     }
 
     // Resolve cell value through merges
@@ -518,12 +571,10 @@ export const resolveScheduleByMech = async (
       const isGray = cellGrayByKey.get(key) || false;
 
       if (!result[mechKey]) result[mechKey] = [];
-      // Each cell with the user's mech = one entry. Do NOT deduplicate by date,
-      // because the same date may legitimately have multiple cells (e.g. a day
-      // shift AND a pernoite continuation).
       result[mechKey].push({
         date: rowDate,
         dateISO: iso,
+        startTime: timeByRow[r] || undefined,
         mechanographicNumber: userInfo.mech,
         name: userInfo.name,
         isModified,
