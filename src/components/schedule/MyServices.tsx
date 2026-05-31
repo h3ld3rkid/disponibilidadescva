@@ -82,6 +82,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
       const finalEntries: ServiceEntry[] = resolved
         .map(r => ({
           date: r.date,
+          startTime: r.startTime,
           mechanographicNumber: r.mechanographicNumber,
           rawText: r.name + (r.isModified ? ' (atualizado por troca)' : ''),
           isGray: r.isGray || false,
