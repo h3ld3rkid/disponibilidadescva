@@ -341,6 +341,33 @@ export const resolveScheduleByMech = async (
       return '';
     };
 
+    const timePattern = /(\b\d{1,2})[:hH.](\d{2})\b/;
+    const parseTimeVal = (val: any, formatted?: string): string => {
+      const tryStr = (s: string): string => {
+        const m = s.match(timePattern);
+        if (!m) return '';
+        const h = parseInt(m[1], 10);
+        const mi = parseInt(m[2], 10);
+        if (isNaN(h) || isNaN(mi) || h > 23 || mi > 59) return '';
+        return `${pad2(h)}:${pad2(mi)}`;
+      };
+      if (formatted) {
+        const r = tryStr(String(formatted));
+        if (r) return r;
+      }
+      if (typeof val === 'string') {
+        const r = tryStr(val);
+        if (r) return r;
+      }
+      if (typeof val === 'number' && val > 0 && val < 1) {
+        const totalMin = Math.round(val * 24 * 60);
+        const h = Math.floor(totalMin / 60);
+        const mi = totalMin % 60;
+        return `${pad2(h)}:${pad2(mi)}`;
+      }
+      return '';
+    };
+
     // Build dateByRow from explicit date rows in column A, then expand within the
     // same visual color block. This fixes gray overnight blocks whose weekday row
     // sits above the actual date row inside the same merged-looking section.
