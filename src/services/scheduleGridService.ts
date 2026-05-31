@@ -373,26 +373,37 @@ export const resolveScheduleByMech = async (
     // sits above the actual date row inside the same merged-looking section.
     const firstCol = range.s.c;
     const explicitDateByRow: Record<number, string> = {};
+    const explicitTimeByRow: Record<number, string> = {};
     const fillKeyByRow: Record<number, string> = {};
 
     for (let r = range.s.r; r <= range.e.r; r++) {
       const directCell = getDirectSheetCell(sheet, r, firstCol);
-      const styleCell = resolveSheetCell(sheet, merges, r, firstCol);
+      const mergedCell = resolveSheetCell(sheet, merges, r, firstCol);
+      const styleCell = mergedCell || directCell;
       fillKeyByRow[r] = getCellFillKey(styleCell);
 
       const parsed = parseDateVal(directCell?.v, directCell?.w);
       if (parsed) explicitDateByRow[r] = parsed;
+
+      // Time may live in the same cell text (e.g. "17/05/2026 08:00") or in
+      // the merged master when this row is a slave.
+      const timeFromDirect = parseTimeVal(directCell?.v, directCell?.w);
+      const timeFromMerged = timeFromDirect || parseTimeVal(mergedCell?.v, mergedCell?.w);
+      if (timeFromMerged) explicitTimeByRow[r] = timeFromMerged;
     }
 
     const dateByRow: Record<number, string> = {};
+    const timeByRow: Record<number, string> = {};
     const explicitRows = Object.keys(explicitDateByRow)
       .map(Number)
       .sort((a, b) => a - b);
 
     for (const row of explicitRows) {
       const parsedDate = explicitDateByRow[row];
+      const parsedTime = explicitTimeByRow[row] || '';
       const fillKey = fillKeyByRow[row];
       dateByRow[row] = parsedDate;
+      if (parsedTime) timeByRow[row] = parsedTime;
 
       if (!fillKey) continue;
 
@@ -400,25 +411,39 @@ export const resolveScheduleByMech = async (
         if (explicitDateByRow[r]) break;
         if (fillKeyByRow[r] !== fillKey) break;
         dateByRow[r] = parsedDate;
+        if (parsedTime && !timeByRow[r]) timeByRow[r] = parsedTime;
       }
 
       for (let r = row + 1; r <= range.e.r; r++) {
         if (explicitDateByRow[r]) break;
         if (fillKeyByRow[r] !== fillKey) break;
         dateByRow[r] = parsedDate;
+        if (parsedTime && !timeByRow[r]) timeByRow[r] = parsedTime;
       }
     }
     // Forward fill
     let lastKnown = '';
+    let lastKnownTime = '';
     for (let r = range.s.r; r <= range.e.r; r++) {
-      if (dateByRow[r]) lastKnown = dateByRow[r];
-      else if (lastKnown) dateByRow[r] = lastKnown;
+      if (dateByRow[r]) {
+        lastKnown = dateByRow[r];
+        lastKnownTime = timeByRow[r] || '';
+      } else if (lastKnown) {
+        dateByRow[r] = lastKnown;
+        if (lastKnownTime && !timeByRow[r]) timeByRow[r] = lastKnownTime;
+      }
     }
     // Backward fill
     let nextKnown = '';
+    let nextKnownTime = '';
     for (let r = range.e.r; r >= range.s.r; r--) {
-      if (dateByRow[r]) nextKnown = dateByRow[r];
-      else if (nextKnown) dateByRow[r] = nextKnown;
+      if (dateByRow[r]) {
+        nextKnown = dateByRow[r];
+        nextKnownTime = timeByRow[r] || nextKnownTime;
+      } else if (nextKnown) {
+        dateByRow[r] = nextKnown;
+        if (nextKnownTime && !timeByRow[r]) timeByRow[r] = nextKnownTime;
+      }
     }
 
     // Resolve cell value through merges
