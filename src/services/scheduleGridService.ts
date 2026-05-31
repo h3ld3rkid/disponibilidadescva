@@ -400,25 +400,37 @@ export const resolveScheduleByMech = async (
 
     for (const row of explicitRows) {
       const parsedDate = explicitDateByRow[row];
-      const parsedTime = explicitTimeByRow[row] || '';
       const fillKey = fillKeyByRow[row];
       dateByRow[row] = parsedDate;
-      if (parsedTime) timeByRow[row] = parsedTime;
 
-      if (!fillKey) continue;
-
+      // Collect every row that belongs to this date block (same fill colour,
+      // up/down until another explicit date row or a different fill key).
+      const blockRows: number[] = [row];
       for (let r = row - 1; r >= range.s.r; r--) {
         if (explicitDateByRow[r]) break;
-        if (fillKeyByRow[r] !== fillKey) break;
-        dateByRow[r] = parsedDate;
-        if (parsedTime && !timeByRow[r]) timeByRow[r] = parsedTime;
+        if (fillKey && fillKeyByRow[r] !== fillKey) break;
+        blockRows.push(r);
       }
-
       for (let r = row + 1; r <= range.e.r; r++) {
         if (explicitDateByRow[r]) break;
-        if (fillKeyByRow[r] !== fillKey) break;
+        if (fillKey && fillKeyByRow[r] !== fillKey) break;
+        blockRows.push(r);
+      }
+
+      // The block's start time = earliest time cell found in column A within
+      // the block (e.g. "08:00H" in a "Domingo / 07/06/26 / 08:00H / às / 13:00H"
+      // header). Falls back to the time on the date row itself.
+      let blockTime = explicitTimeByRow[row] || '';
+      if (!blockTime) {
+        const timesInBlock = blockRows
+          .filter(r => explicitTimeByRow[r])
+          .sort((a, b) => a - b);
+        if (timesInBlock.length > 0) blockTime = explicitTimeByRow[timesInBlock[0]];
+      }
+
+      for (const r of blockRows) {
         dateByRow[r] = parsedDate;
-        if (parsedTime && !timeByRow[r]) timeByRow[r] = parsedTime;
+        if (blockTime && !timeByRow[r]) timeByRow[r] = blockTime;
       }
     }
     // Forward fill
