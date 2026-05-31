@@ -341,7 +341,7 @@ export const resolveScheduleByMech = async (
       return '';
     };
 
-    const timePattern = /(\b\d{1,2})[:hH.](\d{2})\b/;
+    const timePattern = /(\d{1,2})\s*[:hH.]\s*(\d{2})/;
     const parseTimeVal = (val: any, formatted?: string): string => {
       const tryStr = (s: string): string => {
         const m = s.match(timePattern);
