@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface ResolvedServiceDate {
   date: string;    // DD/MM/YYYY
   dateISO: string; // YYYY-MM-DD
+  startTime?: string; // HH:MM (from column A, if present)
 }
 
 export interface ResolvedServiceEntry extends ResolvedServiceDate {
