@@ -28,6 +28,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 interface ServiceEntry {
   date: string;
+  startTime?: string;
   mechanographicNumber: string;
   rawText: string;
   isGray?: boolean;
