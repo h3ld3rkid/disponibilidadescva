@@ -394,32 +394,64 @@ export const resolveScheduleByMech = async (
 
     const dateByRow: Record<number, string> = {};
     const timeByRow: Record<number, string> = {};
+
+    // Build "block boundaries" using merges in column A. Each merged range in
+    // column A (or contiguous span between explicit date rows) is one shift
+    // block with its own date + start time. This separates same-day blocks
+    // like 08:00 and 13:00 on Sunday 07/06 which share the same fill colour.
+    const colAMerges = merges
+      .filter(m => m.s.c === firstCol && m.e.c === firstCol)
+      .sort((a, b) => a.s.r - b.s.r);
+
+    const findMergeFor = (row: number): XLSX.Range | null => {
+      for (const m of colAMerges) {
+        if (row >= m.s.r && row <= m.e.r) return m;
+      }
+      return null;
+    };
+
     const explicitRows = Object.keys(explicitDateByRow)
       .map(Number)
       .sort((a, b) => a - b);
 
-    for (const row of explicitRows) {
+    for (let i = 0; i < explicitRows.length; i++) {
+      const row = explicitRows[i];
       const parsedDate = explicitDateByRow[row];
       const fillKey = fillKeyByRow[row];
-      dateByRow[row] = parsedDate;
 
-      // Collect every row that belongs to this date block (same fill colour,
-      // up/down until another explicit date row or a different fill key).
-      const blockRows: number[] = [row];
-      for (let r = row - 1; r >= range.s.r; r--) {
-        if (explicitDateByRow[r]) break;
-        if (fillKey && fillKeyByRow[r] !== fillKey) break;
-        blockRows.push(r);
+      // Determine block extent:
+      //  1) If column A is merged at this row, use the merge's row span.
+      //  2) Otherwise, walk up/down stopping at next explicit date row OR a
+      //     different fill colour.
+      let blockStart = row;
+      let blockEnd = row;
+      const merge = findMergeFor(row);
+      if (merge) {
+        blockStart = merge.s.r;
+        blockEnd = merge.e.r;
+      } else {
+        for (let r = row - 1; r >= range.s.r; r--) {
+          if (explicitDateByRow[r]) break;
+          const m = findMergeFor(r);
+          if (m) break; // a different merge starts here, stop
+          if (fillKey && fillKeyByRow[r] !== fillKey) break;
+          blockStart = r;
+        }
+        for (let r = row + 1; r <= range.e.r; r++) {
+          if (explicitDateByRow[r]) break;
+          const m = findMergeFor(r);
+          if (m) break;
+          if (fillKey && fillKeyByRow[r] !== fillKey) break;
+          blockEnd = r;
+        }
       }
-      for (let r = row + 1; r <= range.e.r; r++) {
-        if (explicitDateByRow[r]) break;
-        if (fillKey && fillKeyByRow[r] !== fillKey) break;
-        blockRows.push(r);
-      }
+
+      const blockRows: number[] = [];
+      for (let r = blockStart; r <= blockEnd; r++) blockRows.push(r);
 
       // The block's start time = earliest time cell found in column A within
-      // the block (e.g. "08:00H" in a "Domingo / 07/06/26 / 08:00H / às / 13:00H"
-      // header). Falls back to the time on the date row itself.
+      // the block (e.g. "08:00H" in a "Domingo / 07/06/26 / 08:00H / às /
+      // 13:00H" header). Falls back to the time on the date row itself.
       let blockTime = explicitTimeByRow[row] || '';
       if (!blockTime) {
         const timesInBlock = blockRows
@@ -430,31 +462,28 @@ export const resolveScheduleByMech = async (
 
       for (const r of blockRows) {
         dateByRow[r] = parsedDate;
-        if (blockTime && !timeByRow[r]) timeByRow[r] = blockTime;
+        if (blockTime) timeByRow[r] = blockTime;
       }
     }
-    // Forward fill
+
+    // Forward fill ONLY the date (so service rows after a header still know
+    // their date). Do NOT forward-fill the time across block boundaries — a
+    // missing time means the row was outside any header block and should
+    // remain blank rather than inherit the previous block's time.
     let lastKnown = '';
-    let lastKnownTime = '';
     for (let r = range.s.r; r <= range.e.r; r++) {
       if (dateByRow[r]) {
         lastKnown = dateByRow[r];
-        lastKnownTime = timeByRow[r] || '';
       } else if (lastKnown) {
         dateByRow[r] = lastKnown;
-        if (lastKnownTime && !timeByRow[r]) timeByRow[r] = lastKnownTime;
       }
     }
-    // Backward fill
     let nextKnown = '';
-    let nextKnownTime = '';
     for (let r = range.e.r; r >= range.s.r; r--) {
       if (dateByRow[r]) {
         nextKnown = dateByRow[r];
-        nextKnownTime = timeByRow[r] || nextKnownTime;
       } else if (nextKnown) {
         dateByRow[r] = nextKnown;
-        if (nextKnownTime && !timeByRow[r]) timeByRow[r] = nextKnownTime;
       }
     }
 
