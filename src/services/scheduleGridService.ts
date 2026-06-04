@@ -217,6 +217,15 @@ const resolveSheetCell = (
   row: number,
   col: number
 ) => {
+  for (const m of merges) {
+    if (row >= m.s.r && row <= m.e.r && col >= m.s.c && col <= m.e.c) {
+      if (row !== m.s.r || col !== m.s.c) {
+        return getDirectSheetCell(sheet, m.s.r, m.s.c);
+      }
+      break;
+    }
+  }
+
   const direct = getDirectSheetCell(sheet, row, col);
   if (direct && (direct.v !== undefined || direct.w !== undefined || direct.s)) {
     return direct;
@@ -374,6 +383,8 @@ export const resolveScheduleByMech = async (
     const firstCol = range.s.c;
     const explicitDateByRow: Record<number, string> = {};
     const explicitTimeByRow: Record<number, string> = {};
+    const columnADateByRow: Record<number, string> = {};
+    const columnATimeByRow: Record<number, string> = {};
     const fillKeyByRow: Record<number, string> = {};
 
     for (let r = range.s.r; r <= range.e.r; r++) {
@@ -385,6 +396,14 @@ export const resolveScheduleByMech = async (
       const parsed = parseDateVal(directCell?.v, directCell?.w);
       if (parsed) explicitDateByRow[r] = parsed;
 
+      // Column A is the source of truth. If the row is inside a merged date/time
+      // header, read the merged master directly so same-day blocks keep their
+      // own start hour (e.g. 07/06 08:00 and 07/06 13:00).
+      const rowDateFromColumnA = parseDateVal(mergedCell?.v, mergedCell?.w);
+      const rowTimeFromColumnA = parseTimeVal(mergedCell?.v, mergedCell?.w);
+      if (rowDateFromColumnA) columnADateByRow[r] = rowDateFromColumnA;
+      if (rowTimeFromColumnA) columnATimeByRow[r] = rowTimeFromColumnA;
+
       // Time may live in the same cell text (e.g. "17/05/2026 08:00") or in
       // the merged master when this row is a slave.
       const timeFromDirect = parseTimeVal(directCell?.v, directCell?.w);
@@ -392,15 +411,15 @@ export const resolveScheduleByMech = async (
       if (timeFromMerged) explicitTimeByRow[r] = timeFromMerged;
     }
 
-    const dateByRow: Record<number, string> = {};
-    const timeByRow: Record<number, string> = {};
+    const dateByRow: Record<number, string> = { ...columnADateByRow };
+    const timeByRow: Record<number, string> = { ...columnATimeByRow };
 
     // Build "block boundaries" using merges in column A. Each merged range in
     // column A (or contiguous span between explicit date rows) is one shift
     // block with its own date + start time. This separates same-day blocks
     // like 08:00 and 13:00 on Sunday 07/06 which share the same fill colour.
     const colAMerges = merges
-      .filter(m => m.s.c === firstCol && m.e.c === firstCol)
+      .filter(m => m.s.c <= firstCol && m.e.c >= firstCol)
       .sort((a, b) => a.s.r - b.s.r);
 
     const findMergeFor = (row: number): XLSX.Range | null => {
@@ -628,6 +647,8 @@ export const resolveScheduleByMech = async (
       result[k].sort((a, b) => {
         const cmp = a.dateISO.localeCompare(b.dateISO);
         if (cmp !== 0) return cmp;
+        const timeCmp = (a.startTime || '99:99').localeCompare(b.startTime || '99:99');
+        if (timeCmp !== 0) return timeCmp;
         // Day entries before gray (pernoite) entries within same date
         return (a.isGray ? 1 : 0) - (b.isGray ? 1 : 0);
       });
