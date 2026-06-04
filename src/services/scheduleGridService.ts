@@ -647,6 +647,8 @@ export const resolveScheduleByMech = async (
       result[k].sort((a, b) => {
         const cmp = a.dateISO.localeCompare(b.dateISO);
         if (cmp !== 0) return cmp;
+        const timeCmp = (a.startTime || '99:99').localeCompare(b.startTime || '99:99');
+        if (timeCmp !== 0) return timeCmp;
         // Day entries before gray (pernoite) entries within same date
         return (a.isGray ? 1 : 0) - (b.isGray ? 1 : 0);
       });
