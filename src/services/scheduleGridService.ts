@@ -217,6 +217,15 @@ const resolveSheetCell = (
   row: number,
   col: number
 ) => {
+  for (const m of merges) {
+    if (row >= m.s.r && row <= m.e.r && col >= m.s.c && col <= m.e.c) {
+      if (row !== m.s.r || col !== m.s.c) {
+        return getDirectSheetCell(sheet, m.s.r, m.s.c);
+      }
+      break;
+    }
+  }
+
   const direct = getDirectSheetCell(sheet, row, col);
   if (direct && (direct.v !== undefined || direct.w !== undefined || direct.s)) {
     return direct;
