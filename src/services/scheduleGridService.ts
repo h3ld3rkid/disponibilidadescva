@@ -429,6 +429,16 @@ export const resolveScheduleByMech = async (
       return null;
     };
 
+    const isWeekdayLabelRow = (row: number): boolean => {
+      const cell = getDirectSheetCell(sheet, row, firstCol);
+      const text = String(cell?.w ?? cell?.v ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim()
+        .toLowerCase();
+      return /^(segunda|terca|quarta|quinta|sexta|sabado|domingo)$/.test(text);
+    };
+
     const explicitRows = Object.keys(explicitDateByRow)
       .map(Number)
       .sort((a, b) => a - b);
@@ -449,19 +459,30 @@ export const resolveScheduleByMech = async (
         blockStart = merge.s.r;
         blockEnd = merge.e.r;
       } else {
-        for (let r = row - 1; r >= range.s.r; r--) {
-          if (explicitDateByRow[r]) break;
-          const m = findMergeFor(r);
-          if (m) break; // a different merge starts here, stop
-          if (fillKey && fillKeyByRow[r] !== fillKey) break;
-          blockStart = r;
+        // In the current Excel layout each service block is:
+        // weekday row -> date row -> start/"às"/end rows. Column A often is
+        // visually merged by colour, not by real Excel merges, so split blocks
+        // at the weekday row before the next explicit date. This keeps same-day
+        // services separated: 08:00, 13:00, 19:30, etc.
+        if (row > range.s.r && isWeekdayLabelRow(row - 1)) {
+          blockStart = row - 1;
         }
-        for (let r = row + 1; r <= range.e.r; r++) {
-          if (explicitDateByRow[r]) break;
-          const m = findMergeFor(r);
-          if (m) break;
-          if (fillKey && fillKeyByRow[r] !== fillKey) break;
-          blockEnd = r;
+
+        const nextExplicitRow = explicitRows[i + 1];
+        if (nextExplicitRow !== undefined) {
+          const nextHeaderRow = nextExplicitRow - 1;
+          const endBeforeNextBlock = isWeekdayLabelRow(nextHeaderRow)
+            ? nextExplicitRow - 2
+            : nextExplicitRow - 1;
+          blockEnd = Math.max(row, endBeforeNextBlock);
+        } else {
+          for (let r = row + 1; r <= range.e.r; r++) {
+            if (isWeekdayLabelRow(r) || explicitDateByRow[r]) break;
+            const m = findMergeFor(r);
+            if (m) break;
+            if (fillKey && fillKeyByRow[r] !== fillKey) break;
+            blockEnd = r;
+          }
         }
       }
 
