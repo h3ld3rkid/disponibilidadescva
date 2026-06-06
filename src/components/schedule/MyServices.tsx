@@ -494,23 +494,28 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
   const syncToCalendar = (entries: ServiceEntry[]) => {
     if (entries.length === 0) return;
 
-    const icsContent = buildIcsContent(entries);
-    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', 'servicos_cva.ics');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const confirmMsg = `Vão abrir-se ${entries.length} separadores do Google Calendar (um por serviço). Certifique-se que o seu navegador permite pop-ups deste site. Continuar?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    entries.forEach((entry, idx) => {
+      setTimeout(() => {
+        const win = window.open(buildGoogleCalendarUrl(entry), '_blank');
+        if (!win && idx === 0) {
+          toast({
+            title: "Pop-ups bloqueados",
+            description: "Permita pop-ups deste site para abrir todos os eventos no Google Calendar.",
+            variant: "destructive",
+          });
+        }
+      }, idx * 400);
+    });
 
     toast({
-      title: "Ficheiro de Calendário",
-      description: `Ficheiro com ${entries.length} serviço(s) transferido. Abra-o para adicionar todos ao calendário de uma vez.`,
+      title: "A sincronizar com Google Calendar",
+      description: `A abrir ${entries.length} serviço(s) no Google Calendar.`,
     });
   };
+
 
   const addSingleToCalendar = (entry: ServiceEntry) => {
     window.open(buildGoogleCalendarUrl(entry), '_blank');
