@@ -418,12 +418,30 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
     }
   };
 
+  const getShiftTimes = (entry: ServiceEntry): { startH: number; startM: number; endH: number; endM: number; crossDay: boolean; label: string } => {
+    const start = entry.startTime || (entry.isGray ? '20:00' : '08:00');
+    const [sh, sm] = start.split(':').map(n => parseInt(n, 10));
+
+    // Defined shift durations
+    if (sh === 8 && sm === 0) return { startH: 8, startM: 0, endH: 13, endM: 0, crossDay: false, label: 'Serviço CVA' };
+    if (sh === 13 && sm === 0) return { startH: 13, startM: 0, endH: 19, endM: 30, crossDay: false, label: 'Serviço CVA' };
+    if (sh === 19 && sm === 30) return { startH: 19, startM: 30, endH: 23, endM: 59, crossDay: false, label: 'Serviço CVA' };
+    if (sh === 0 && sm === 0) return { startH: 0, startM: 0, endH: 8, endM: 0, crossDay: false, label: 'Serviço CVA' };
+
+    // Fallback: night shift behavior
+    if (entry.isGray) {
+      return { startH: sh || 20, startM: sm || 0, endH: 8, endM: 0, crossDay: true, label: 'Serviço Noturno CVA' };
+    }
+    return { startH: sh || 8, startM: sm || 0, endH: 20, endM: 0, crossDay: false, label: 'Serviço CVA' };
+  };
+
   const buildIcsContent = (entries: ServiceEntry[]) => {
     const pad = (n: number) => String(n).padStart(2, '0');
-    const formatIcsDate = (dateStr: string, hour: number, min: number) => {
+    const formatIcsDate = (dateStr: string, hour: number, min: number, addDay = 0) => {
       const parts = dateStr.split('/');
       if (parts.length !== 3) return '';
-      return `${parts[2]}${pad(parseInt(parts[1]))}${pad(parseInt(parts[0]))}T${pad(hour)}${pad(min)}00`;
+      const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]) + addDay);
+      return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(hour)}${pad(min)}00`;
     };
 
     const lines = [
@@ -434,25 +452,18 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
     ];
 
     for (const entry of entries) {
-      const isNight = entry.isGray;
-      const dtStart = isNight ? formatIcsDate(entry.date, 20, 0) : formatIcsDate(entry.date, 8, 0);
-      let dtEnd: string;
-      if (isNight) {
-        const parts = entry.date.split('/');
-        const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]) + 1);
-        dtEnd = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T080000`;
-      } else {
-        dtEnd = formatIcsDate(entry.date, 20, 0);
-      }
+      const t = getShiftTimes(entry);
+      const dtStart = formatIcsDate(entry.date, t.startH, t.startM);
+      const dtEnd = formatIcsDate(entry.date, t.endH, t.endM, t.crossDay ? 1 : 0);
       if (!dtStart || !dtEnd) continue;
 
       lines.push(
         'BEGIN:VEVENT',
         `DTSTART:${dtStart}`,
         `DTEND:${dtEnd}`,
-        `SUMMARY:${isNight ? 'Serviço Noturno CVA' : 'Serviço CVA'}`,
+        `SUMMARY:${t.label}`,
         `DESCRIPTION:Nº Mecanográfico: ${entry.mechanographicNumber}`,
-        `UID:${entry.date.replace(/\//g, '')}-${entry.mechanographicNumber}@cva`,
+        `UID:${entry.date.replace(/\//g, '')}-${t.startH}${t.startM}-${entry.mechanographicNumber}@cva`,
         'END:VEVENT'
       );
     }
@@ -466,21 +477,19 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
     const day = parseInt(parts[0], 10);
     const month = parseInt(parts[1], 10) - 1;
     const year = parseInt(parts[2], 10);
-    const isNight = entry.isGray;
+    const t = getShiftTimes(entry);
 
-    const startDate = new Date(year, month, day, isNight ? 20 : 8, 0, 0);
-    const endDate = isNight
-      ? new Date(year, month, day + 1, 8, 0, 0)
-      : new Date(year, month, day, 20, 0, 0);
+    const startDate = new Date(year, month, day, t.startH, t.startM, 0);
+    const endDate = new Date(year, month, day + (t.crossDay ? 1 : 0), t.endH, t.endM, 0);
 
     const fmt = (d: Date) =>
       `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}00`;
 
-    const title = isNight ? 'Serviço Noturno CVA' : 'Serviço CVA';
     const details = `Nº Mecanográfico: ${entry.mechanographicNumber}`;
 
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${fmt(startDate)}/${fmt(endDate)}&details=${encodeURIComponent(details)}`;
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(t.label)}&dates=${fmt(startDate)}/${fmt(endDate)}&details=${encodeURIComponent(details)}`;
   };
+
 
   const syncToCalendar = (entries: ServiceEntry[]) => {
     if (entries.length === 0) return;
