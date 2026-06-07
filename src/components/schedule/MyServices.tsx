@@ -617,20 +617,23 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                       variant="outline"
                       size="sm"
                       onClick={async () => {
+                        const webcalUrl = subscriptionUrl.replace(/^https?:\/\//, 'webcal://');
+                        const googleAddUrl = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl)}`;
                         try {
                           await navigator.clipboard.writeText(subscriptionUrl);
-                          toast({
-                            title: "Link copiado!",
-                            description: "Cola este URL no Google Calendar em 'Outros calendários' → 'Adicionar por URL'. O Google sincroniza automaticamente.",
-                          });
                         } catch {
-                          window.prompt('Copie este URL para o Google Calendar:', subscriptionUrl);
+                          // ignore clipboard errors
                         }
+                        toast({
+                          title: "A abrir Google Calendar...",
+                          description: "Confirma 'Adicionar' no Google Calendar. O link também foi copiado caso precises.",
+                        });
+                        window.open(googleAddUrl, '_blank', 'noopener,noreferrer');
                       }}
-                      title="Copiar link de subscrição automática para Google Calendar"
+                      title="Abrir Google Calendar e adicionar subscrição automática"
                     >
                       <LinkIcon className="h-4 w-4 mr-1" />
-                      Link de Subscrição
+                      Adicionar ao Google Calendar
                     </Button>
                   )}
                 </div>
