@@ -121,6 +121,29 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
 
       setServices(finalEntries);
 
+      // Update subscription cache so the .ics feed reflects latest services
+      try {
+        const userEmail = userInfo.email;
+        if (userEmail) {
+          const cachePayload = finalEntries.map(e => ({
+            date: e.date,
+            startTime: e.startTime,
+            mechanographicNumber: e.mechanographicNumber,
+            isGray: e.isGray || false,
+          }));
+          await supabase
+            .from('user_service_cache')
+            .upsert({
+              user_email: userEmail,
+              mechanographic_number: String(mechNumber),
+              services: cachePayload,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'user_email' });
+        }
+      } catch (cacheErr) {
+        console.warn('Could not update service cache (non-critical):', cacheErr);
+      }
+
       if (finalEntries.length === 0) {
         toast({
           title: "Nenhum serviço encontrado",
