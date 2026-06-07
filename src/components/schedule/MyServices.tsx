@@ -42,7 +42,31 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
   const [services, setServices] = useState<ServiceEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [subscriptionUrl, setSubscriptionUrl] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Fetch the user's calendar subscription token
+  useEffect(() => {
+    (async () => {
+      try {
+        const storedUser = localStorage.getItem('mysqlConnection');
+        if (!storedUser) return;
+        const userInfo = JSON.parse(storedUser);
+        if (!userInfo?.email) return;
+        const { data } = await supabase
+          .from('users')
+          .select('calendar_token')
+          .eq('email', userInfo.email)
+          .maybeSingle();
+        if (data?.calendar_token) {
+          const url = `https://lddfufxcrnqixfiyhrvc.supabase.co/functions/v1/calendar-feed?token=${data.calendar_token}`;
+          setSubscriptionUrl(url);
+        }
+      } catch (e) {
+        console.warn('Could not load calendar token', e);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     loadScheduleData();
