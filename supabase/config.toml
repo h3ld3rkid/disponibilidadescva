@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.self-reset-password]
 verify_jwt = false
+
+[functions.calendar-feed]
+verify_jwt = false
