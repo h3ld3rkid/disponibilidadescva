@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { systemSettingsService } from "@/services/supabase/systemSettingsService";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, CalendarDays, CalendarPlus } from "lucide-react";
+import { Loader2, CalendarDays, CalendarPlus, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
