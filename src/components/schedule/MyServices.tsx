@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { systemSettingsService } from "@/services/supabase/systemSettingsService";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, CalendarDays, CalendarPlus } from "lucide-react";
+import { Loader2, CalendarDays, CalendarPlus, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -42,7 +42,31 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
   const [services, setServices] = useState<ServiceEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [subscriptionUrl, setSubscriptionUrl] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Fetch the user's calendar subscription token
+  useEffect(() => {
+    (async () => {
+      try {
+        const storedUser = localStorage.getItem('mysqlConnection');
+        if (!storedUser) return;
+        const userInfo = JSON.parse(storedUser);
+        if (!userInfo?.email) return;
+        const { data } = await supabase
+          .from('users')
+          .select('calendar_token')
+          .eq('email', userInfo.email)
+          .maybeSingle();
+        if (data?.calendar_token) {
+          const url = `https://lddfufxcrnqixfiyhrvc.supabase.co/functions/v1/calendar-feed?token=${data.calendar_token}`;
+          setSubscriptionUrl(url);
+        }
+      } catch (e) {
+        console.warn('Could not load calendar token', e);
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     loadScheduleData();
@@ -96,6 +120,29 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
         });
 
       setServices(finalEntries);
+
+      // Update subscription cache so the .ics feed reflects latest services
+      try {
+        const userEmail = userInfo.email;
+        if (userEmail) {
+          const cachePayload = finalEntries.map(e => ({
+            date: e.date,
+            startTime: e.startTime,
+            mechanographicNumber: e.mechanographicNumber,
+            isGray: e.isGray || false,
+          }));
+          await supabase
+            .from('user_service_cache')
+            .upsert({
+              user_email: userEmail,
+              mechanographic_number: String(mechNumber),
+              services: cachePayload,
+              updated_at: new Date().toISOString(),
+            }, { onConflict: 'user_email' });
+        }
+      } catch (cacheErr) {
+        console.warn('Could not update service cache (non-critical):', cacheErr);
+      }
 
       if (finalEntries.length === 0) {
         toast({
@@ -565,6 +612,27 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                     <CalendarPlus className="h-4 w-4 mr-1" />
                     Sincronizar com Calendário
                   </Button>
+                  {subscriptionUrl && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(subscriptionUrl);
+                          toast({
+                            title: "Link copiado!",
+                            description: "Cola este URL no Google Calendar em 'Outros calendários' → 'Adicionar por URL'. O Google sincroniza automaticamente.",
+                          });
+                        } catch {
+                          window.prompt('Copie este URL para o Google Calendar:', subscriptionUrl);
+                        }
+                      }}
+                      title="Copiar link de subscrição automática para Google Calendar"
+                    >
+                      <LinkIcon className="h-4 w-4 mr-1" />
+                      Link de Subscrição
+                    </Button>
+                  )}
                 </div>
               </div>
               <div className="rounded-md border">

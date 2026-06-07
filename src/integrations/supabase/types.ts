@@ -278,9 +278,37 @@ export type Database = {
         }
         Relationships: []
       }
+      user_service_cache: {
+        Row: {
+          created_at: string
+          id: string
+          mechanographic_number: string
+          services: Json
+          updated_at: string
+          user_email: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mechanographic_number: string
+          services?: Json
+          updated_at?: string
+          user_email: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mechanographic_number?: string
+          services?: Json
+          updated_at?: string
+          user_email?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           active: boolean
+          calendar_token: string
           categoria: string | null
           created_at: string
           email: string
@@ -299,6 +327,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          calendar_token?: string
           categoria?: string | null
           created_at?: string
           email: string
@@ -317,6 +346,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          calendar_token?: string
           categoria?: string | null
           created_at?: string
           email?: string
