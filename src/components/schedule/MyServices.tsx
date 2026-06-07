@@ -612,6 +612,27 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
                     <CalendarPlus className="h-4 w-4 mr-1" />
                     Sincronizar com Calendário
                   </Button>
+                  {subscriptionUrl && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(subscriptionUrl);
+                          toast({
+                            title: "Link copiado!",
+                            description: "Cola este URL no Google Calendar em 'Outros calendários' → 'Adicionar por URL'. O Google sincroniza automaticamente.",
+                          });
+                        } catch {
+                          window.prompt('Copie este URL para o Google Calendar:', subscriptionUrl);
+                        }
+                      }}
+                      title="Copiar link de subscrição automática para Google Calendar"
+                    >
+                      <LinkIcon className="h-4 w-4 mr-1" />
+                      Link de Subscrição
+                    </Button>
+                  )}
                 </div>
               </div>
               <div className="rounded-md border">
