@@ -43,6 +43,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [subscriptionUrl, setSubscriptionUrl] = useState<string | null>(null);
+  const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
   const { toast } = useToast();
 
   // Fetch the user's calendar subscription token
