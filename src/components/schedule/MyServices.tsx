@@ -602,40 +602,29 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
                 <h3 className="text-lg font-semibold">Serviços Agendados</h3>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <p className="text-sm text-muted-foreground">
                     {services.length} serviço(s) • {services.filter(s => s.isGray).length} noturno(s)
                   </p>
-                  <Button variant="outline" size="sm" onClick={() => syncToCalendar(services)}>
-                    <CalendarPlus className="h-4 w-4 mr-1" />
-                    Sincronizar com Calendário
-                  </Button>
-                  {subscriptionUrl && (
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={async () => {
-                        const webcalUrl = subscriptionUrl.replace(/^https?:\/\//, 'webcal://');
-                        const googleAddUrl = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl)}`;
-                        try {
-                          await navigator.clipboard.writeText(subscriptionUrl);
-                        } catch {
-                          // ignore clipboard errors
-                        }
-                        toast({
-                          title: "A abrir Google Calendar...",
-                          description: "Confirma 'Adicionar' no Google Calendar. O link também foi copiado caso precises.",
-                        });
-                        window.open(googleAddUrl, '_blank', 'noopener,noreferrer');
-                      }}
-                      title="Abrir Google Calendar e adicionar subscrição automática"
+                      onClick={() => setShowSubscriptionDialog(true)}
+                      disabled={!subscriptionUrl}
+                      title={subscriptionUrl ? "Mostrar link de subscrição do calendário" : "Link de subscrição indisponível"}
                     >
                       <LinkIcon className="h-4 w-4 mr-1" />
-                      Adicionar ao Google Calendar
+                      Sincronizar com Calendário
                     </Button>
-                  )}
+                    <Button variant="ghost" size="sm" onClick={() => syncToCalendar(services)} title="Transferir ficheiro .ics">
+                      <CalendarPlus className="h-4 w-4 mr-1" />
+                      <span className="hidden sm:inline">Transferir .ics</span>
+                      <span className="sm:hidden">.ics</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
               <div className="rounded-md border">
