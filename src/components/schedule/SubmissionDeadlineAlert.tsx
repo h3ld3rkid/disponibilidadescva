@@ -72,11 +72,11 @@ const SubmissionDeadlineAlert: React.FC<SubmissionDeadlineAlertProps> = ({ userE
     <Alert className="mb-3 border-indigo-200 bg-indigo-50">
       <CalendarRange className="h-4 w-4 text-indigo-600" />
       <AlertDescription className="text-indigo-900">
-        <strong>Submissão da escala de {targetMonthLabel}:</strong>{' '}
+        <strong>A escala de {targetMonthLabel} é de:</strong>{' '}
         {period.start && period.end ? (
-          <>aberta de <strong>{formatPt(period.start)}</strong> a <strong>{formatPt(period.end)}</strong>.</>
+          <><strong>{formatPt(period.start)}</strong> a <strong>{formatPt(period.end)}</strong>.</>
         ) : period.start ? (
-          <>abre a <strong>{formatPt(period.start)}</strong>.</>
+          <><strong>{formatPt(period.start)}</strong>.</>
         ) : (
           <>termina a <strong>{formatPt(period.end)}</strong>.</>
         )}
