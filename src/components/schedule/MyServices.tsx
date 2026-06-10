@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, CalendarDays, CalendarPlus, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import * as XLSX from 'xlsx';
@@ -43,6 +44,7 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [subscriptionUrl, setSubscriptionUrl] = useState<string | null>(null);
+  const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
   const { toast } = useToast();
 
   // Fetch the user's calendar subscription token
@@ -602,40 +604,29 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-3 gap-2">
                 <h3 className="text-lg font-semibold">Serviços Agendados</h3>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                   <p className="text-sm text-muted-foreground">
                     {services.length} serviço(s) • {services.filter(s => s.isGray).length} noturno(s)
                   </p>
-                  <Button variant="outline" size="sm" onClick={() => syncToCalendar(services)}>
-                    <CalendarPlus className="h-4 w-4 mr-1" />
-                    Sincronizar com Calendário
-                  </Button>
-                  {subscriptionUrl && (
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={async () => {
-                        const webcalUrl = subscriptionUrl.replace(/^https?:\/\//, 'webcal://');
-                        const googleAddUrl = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl)}`;
-                        try {
-                          await navigator.clipboard.writeText(subscriptionUrl);
-                        } catch {
-                          // ignore clipboard errors
-                        }
-                        toast({
-                          title: "A abrir Google Calendar...",
-                          description: "Confirma 'Adicionar' no Google Calendar. O link também foi copiado caso precises.",
-                        });
-                        window.open(googleAddUrl, '_blank', 'noopener,noreferrer');
-                      }}
-                      title="Abrir Google Calendar e adicionar subscrição automática"
+                      onClick={() => setShowSubscriptionDialog(true)}
+                      disabled={!subscriptionUrl}
+                      title={subscriptionUrl ? "Mostrar link de subscrição do calendário" : "Link de subscrição indisponível"}
                     >
                       <LinkIcon className="h-4 w-4 mr-1" />
-                      Adicionar ao Google Calendar
+                      Sincronizar com Calendário
                     </Button>
-                  )}
+                    <Button variant="ghost" size="sm" onClick={() => syncToCalendar(services)} title="Transferir ficheiro .ics">
+                      <CalendarPlus className="h-4 w-4 mr-1" />
+                      <span className="hidden sm:inline">Transferir .ics</span>
+                      <span className="sm:hidden">.ics</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
               <div className="rounded-md border">
@@ -685,6 +676,53 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={showSubscriptionDialog} onOpenChange={setShowSubscriptionDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Link de Subscrição do Calendário</DialogTitle>
+            <DialogDescription>
+              Copia este link e cola-o no teu Google Calendar (ou outra app) em "Adicionar calendário → A partir de URL".
+              Os teus serviços serão atualizados automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border bg-muted/50 p-2 text-xs break-all font-mono select-all">
+              {subscriptionUrl}
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                className="w-full sm:w-auto"
+                onClick={async () => {
+                  if (!subscriptionUrl) return;
+                  try {
+                    await navigator.clipboard.writeText(subscriptionUrl);
+                    toast({ title: "Link copiado", description: "Cola no Google Calendar → Outros calendários → A partir de URL." });
+                  } catch {
+                    toast({ title: "Não foi possível copiar", description: "Seleciona o link manualmente e copia.", variant: "destructive" });
+                  }
+                }}
+              >
+                <LinkIcon className="h-4 w-4 mr-1" />
+                Copiar link
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => window.open('https://calendar.google.com/calendar/u/0/r/settings/addbyurl', '_blank', 'noopener,noreferrer')}
+              >
+                Abrir Google Calendar
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              No telemóvel Android, depois de adicionar no browser, vai a{' '}
+              <a href="https://calendar.google.com/calendar/syncselect" target="_blank" rel="noopener noreferrer" className="underline">
+                calendar.google.com/calendar/syncselect
+              </a>{' '}e ativa a sincronização do calendário "Serviços CVA".
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
