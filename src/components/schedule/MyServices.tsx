@@ -675,6 +675,53 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={showSubscriptionDialog} onOpenChange={setShowSubscriptionDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Link de Subscrição do Calendário</DialogTitle>
+            <DialogDescription>
+              Copia este link e cola-o no teu Google Calendar (ou outra app) em "Adicionar calendário → A partir de URL".
+              Os teus serviços serão atualizados automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-md border bg-muted/50 p-2 text-xs break-all font-mono select-all">
+              {subscriptionUrl}
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                className="w-full sm:w-auto"
+                onClick={async () => {
+                  if (!subscriptionUrl) return;
+                  try {
+                    await navigator.clipboard.writeText(subscriptionUrl);
+                    toast({ title: "Link copiado", description: "Cola no Google Calendar → Outros calendários → A partir de URL." });
+                  } catch {
+                    toast({ title: "Não foi possível copiar", description: "Seleciona o link manualmente e copia.", variant: "destructive" });
+                  }
+                }}
+              >
+                <LinkIcon className="h-4 w-4 mr-1" />
+                Copiar link
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => window.open('https://calendar.google.com/calendar/u/0/r/settings/addbyurl', '_blank', 'noopener,noreferrer')}
+              >
+                Abrir Google Calendar
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              No telemóvel Android, depois de adicionar no browser, vai a{' '}
+              <a href="https://calendar.google.com/calendar/syncselect" target="_blank" rel="noopener noreferrer" className="underline">
+                calendar.google.com/calendar/syncselect
+              </a>{' '}e ativa a sincronização do calendário "Serviços CVA".
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
