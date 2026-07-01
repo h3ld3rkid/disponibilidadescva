@@ -35,7 +35,7 @@ interface AcceptedExchange {
 // Also hide anything beyond column G (index 6) to keep layout responsive
 const HIDDEN_COLS = new Set([3, 6]);
 const MAX_VISIBLE_COL_INDEX = 6; // A..G
-const isHiddenCol = (colIdx: number) => isHiddenCol(colIdx) || colIdx > MAX_VISIBLE_COL_INDEX;
+const isHiddenCol = (colIdx: number) => HIDDEN_COLS.has(colIdx) || colIdx > MAX_VISIBLE_COL_INDEX;
 
 const UpdatedSchedule: React.FC = () => {
   const [grid, setGrid] = useState<ExcelCell[][]>([]);
