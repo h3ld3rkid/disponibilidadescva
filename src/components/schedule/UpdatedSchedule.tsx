@@ -32,7 +32,10 @@ interface AcceptedExchange {
 }
 
 // Columns to hide (0-indexed from sheet start): D=3, G=6
+// Also hide anything beyond column G (index 6) to keep layout responsive
 const HIDDEN_COLS = new Set([3, 6]);
+const MAX_VISIBLE_COL_INDEX = 6; // A..G
+const isHiddenCol = (colIdx: number) => HIDDEN_COLS.has(colIdx) || colIdx > MAX_VISIBLE_COL_INDEX;
 
 const UpdatedSchedule: React.FC = () => {
   const [grid, setGrid] = useState<ExcelCell[][]>([]);
@@ -510,7 +513,7 @@ const UpdatedSchedule: React.FC = () => {
       const rowSwapMap = new Map<string, string>(); // oldName(upper) -> newName(upper)
       for (let c = range.s.c; c <= range.e.c; c++) {
         const colIdx = c - range.s.c;
-        if (HIDDEN_COLS.has(colIdx)) continue;
+        if (isHiddenCol(colIdx)) continue;
 
         const key = `${r},${c}`;
         const mergeInfo = visibleMergeMap.get(key);
@@ -640,7 +643,7 @@ const UpdatedSchedule: React.FC = () => {
         if (mergeInfo?.master && adjustedColSpan && adjustedColSpan > 1) {
           let hidden = 0;
           for (let cc = c; cc < c + mergeInfo.colSpan; cc++) {
-            if (HIDDEN_COLS.has(cc - range.s.c)) hidden++;
+            if (isHiddenCol(cc - range.s.c)) hidden++;
           }
           adjustedColSpan = adjustedColSpan - hidden;
           if (adjustedColSpan < 1) adjustedColSpan = 1;
