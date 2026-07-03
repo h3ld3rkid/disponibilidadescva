@@ -26,6 +26,8 @@ import SubmissionPeriodsConfig from '@/pages/SubmissionPeriodsConfig';
 import { sessionManager } from '@/services/sessionManager';
 import { roleService } from '@/services/supabase/roleService';
 import { useLogoUrl } from '@/hooks/useLogoUrl';
+import { syncUserServiceCache } from '@/services/serviceCacheSync';
+
 
 interface UserInfo {
   email: string;
