@@ -103,8 +103,26 @@ const Dashboard = () => {
     const init = async () => {
       await updateUserInfo();
       setLoading(false);
+
+      // Background: refresh calendar/service cache once per session so that
+      // when a new XLSX is uploaded, the user's .ics feed picks up the new
+      // services WITHOUT the user needing to open "Meus Serviços" first.
+      try {
+        const stored = localStorage.getItem('mysqlConnection');
+        if (stored) {
+          const info = JSON.parse(stored);
+          const syncKey = `svc-cache-sync-${info?.email}`;
+          if (info?.email && info?.mechanographic_number && !sessionStorage.getItem(syncKey)) {
+            sessionStorage.setItem(syncKey, '1');
+            syncUserServiceCache(info.email, String(info.mechanographic_number));
+          }
+        }
+      } catch (e) {
+        console.warn('Could not trigger service cache sync:', e);
+      }
     };
     init();
+
     
     const handleRoleChange = async () => {
       await updateUserInfo();
