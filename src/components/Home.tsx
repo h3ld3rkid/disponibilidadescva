@@ -20,7 +20,8 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
       description: 'Ver escala atual',
       icon: Calendar,
       path: '/dashboard/current-schedule',
-      color: 'bg-blue-500 hover:bg-blue-600',
+      gradient: 'from-sky-400 to-blue-600',
+      iconBg: 'bg-white/20',
       tabKey: 'current-schedule',
     },
     {
@@ -28,7 +29,8 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
       description: 'Submeter disponibilidade',
       icon: ClipboardList,
       path: '/dashboard/schedule',
-      color: 'bg-green-500 hover:bg-green-600',
+      gradient: 'from-emerald-400 to-green-600',
+      iconBg: 'bg-white/20',
       tabKey: 'schedule',
     },
     {
@@ -36,7 +38,8 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
       description: 'Ver os meus serviços',
       icon: Briefcase,
       path: '/dashboard/my-services',
-      color: 'bg-purple-500 hover:bg-purple-600',
+      gradient: 'from-fuchsia-400 to-purple-600',
+      iconBg: 'bg-white/20',
       tabKey: 'my-services',
     },
     {
@@ -44,7 +47,8 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
       description: 'Gerir pedidos de troca',
       icon: RefreshCw,
       path: '/dashboard/exchanges',
-      color: 'bg-orange-500 hover:bg-orange-600',
+      gradient: 'from-orange-400 to-red-500',
+      iconBg: 'bg-white/20',
       tabKey: 'exchanges',
     },
     {
@@ -52,7 +56,8 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
       description: 'Editar perfil',
       icon: User,
       path: '/dashboard/profile',
-      color: 'bg-slate-500 hover:bg-slate-600',
+      gradient: 'from-slate-400 to-slate-700',
+      iconBg: 'bg-white/20',
       tabKey: 'profile',
     },
     {
@@ -60,7 +65,8 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
       description: 'Ver avisos',
       icon: Bell,
       path: '/dashboard/announcements',
-      color: 'bg-red-500 hover:bg-red-600',
+      gradient: 'from-rose-400 to-red-600',
+      iconBg: 'bg-white/20',
       adminOnly: true,
       tabKey: 'announcements',
     }
@@ -73,26 +79,27 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
   });
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-6 sm:py-8">
       <Card className="w-full">
-        <CardHeader>
+        <CardHeader className="pb-3 sm:pb-6">
           <CardTitle>Acesso Rápido</CardTitle>
-          <CardDescription>Navegue rapidamente para as funcionalidades principais</CardDescription>
+          <CardDescription>Navegue rapidamente para as funcionalidades principais.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap justify-center gap-4">
+        <CardContent className="px-3 sm:px-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
             {visibleActions.map((action) => (
-                <Button
-                  key={action.path}
-                  variant="outline"
-                  className={`h-auto flex flex-col items-center justify-center gap-2 p-4 text-white border-0 w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.75rem)] lg:w-[calc(16.666%-0.875rem)] min-w-[140px] ${action.color}`}
-                  onClick={() => navigate(action.path)}
-                >
-                  <action.icon className="h-8 w-8" />
-                  <span className="font-medium text-sm">{action.title}</span>
-                  <span className="text-xs opacity-80 text-center">{action.description}</span>
-                </Button>
-              ))}
+              <button
+                key={action.path}
+                onClick={() => navigate(action.path)}
+                className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${action.gradient} p-4 text-white shadow-md transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background focus:ring-primary aspect-square sm:aspect-auto sm:min-h-[130px] flex flex-col items-center justify-center gap-2 text-center`}
+              >
+                <div className={`${action.iconBg} rounded-full p-2.5 backdrop-blur-sm transition-transform group-hover:scale-110`}>
+                  <action.icon className="h-6 w-6 sm:h-7 sm:w-7" strokeWidth={2.25} />
+                </div>
+                <span className="font-semibold text-sm sm:text-base leading-tight">{action.title}</span>
+                <span className="text-[11px] sm:text-xs opacity-90 leading-tight px-1 line-clamp-2">{action.description}</span>
+              </button>
+            ))}
           </div>
         </CardContent>
       </Card>
