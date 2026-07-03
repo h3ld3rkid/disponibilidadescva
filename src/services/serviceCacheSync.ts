@@ -78,7 +78,7 @@ export const syncUserServiceCache = async (
     await supabase.from('user_service_cache').upsert(
       {
         user_email: userEmail,
-        mechanographic_number: String(mechNumber),
+        mechanographic_number: mech,
         services: merged,
         updated_at: new Date().toISOString(),
       },
