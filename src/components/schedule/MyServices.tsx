@@ -123,28 +123,62 @@ const MyServices: React.FC<MyServicesProps> = ({ userMechanographicNumber }) => 
 
       setServices(finalEntries);
 
-      // Update subscription cache so the .ics feed reflects latest services
+      // Update subscription cache so the .ics feed reflects latest services.
+      // MERGE with existing cache: keep entries from months NOT present in the
+      // new upload so that previously-imported months (past schedules) are
+      // preserved instead of being wiped every time a new XLSX is uploaded.
       try {
         const userEmail = userInfo.email;
         if (userEmail) {
-          const cachePayload = finalEntries.map(e => ({
-            date: e.date,
-            startTime: e.startTime,
-            mechanographicNumber: e.mechanographicNumber,
-            isGray: e.isGray || false,
-          }));
+          // Months (YYYY-MM) covered by the new upload
+          const newMonths = new Set<string>();
+          for (const e of finalEntries) {
+            const [, mm, yyyy] = e.date.split('/');
+            if (mm && yyyy) newMonths.add(`${yyyy}-${mm}`);
+          }
+
+          // Load existing cache to preserve entries from other months
+          const { data: existing } = await supabase
+            .from('user_service_cache')
+            .select('services')
+            .eq('user_email', userEmail)
+            .maybeSingle();
+
+          const previous: any[] = Array.isArray(existing?.services) ? (existing!.services as any[]) : [];
+          const preserved = previous.filter(p => {
+            if (!p?.date) return false;
+            const [, mm, yyyy] = String(p.date).split('/');
+            const key = `${yyyy}-${mm}`;
+            return !newMonths.has(key); // keep months not touched by this upload
+          });
+
+          const merged = [
+            ...preserved,
+            ...finalEntries.map(e => ({
+              date: e.date,
+              startTime: e.startTime,
+              mechanographicNumber: e.mechanographicNumber,
+              isGray: e.isGray || false,
+            })),
+          ].sort((a, b) => {
+            const [da, ma, ya] = String(a.date).split('/').map(Number);
+            const [db, mb, yb] = String(b.date).split('/').map(Number);
+            return new Date(ya, ma - 1, da).getTime() - new Date(yb, mb - 1, db).getTime();
+          });
+
           await supabase
             .from('user_service_cache')
             .upsert({
               user_email: userEmail,
               mechanographic_number: String(mechNumber),
-              services: cachePayload,
+              services: merged,
               updated_at: new Date().toISOString(),
             }, { onConflict: 'user_email' });
         }
       } catch (cacheErr) {
         console.warn('Could not update service cache (non-critical):', cacheErr);
       }
+
 
       if (finalEntries.length === 0) {
         toast({
