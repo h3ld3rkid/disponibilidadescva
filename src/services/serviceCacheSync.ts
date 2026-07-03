@@ -17,12 +17,24 @@ interface CachedService {
  */
 export const syncUserServiceCache = async (
   userEmail: string,
-  mechNumber: string
+  mechNumber?: string
 ): Promise<void> => {
-  if (!userEmail || !mechNumber) return;
+  if (!userEmail) return;
 
   try {
-    const resolved = await getResolvedServicesForMech(String(mechNumber));
+    let mech = mechNumber ? String(mechNumber) : '';
+    if (!mech) {
+      const { data } = await supabase
+        .from('users')
+        .select('mechanographic_number')
+        .eq('email', userEmail)
+        .maybeSingle();
+      mech = String(data?.mechanographic_number || '');
+    }
+    if (!mech) return;
+
+    const resolved = await getResolvedServicesForMech(mech);
+
 
     const newEntries: CachedService[] = resolved.map(r => ({
       date: r.date,
