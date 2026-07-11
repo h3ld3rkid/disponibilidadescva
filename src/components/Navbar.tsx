@@ -19,7 +19,8 @@ import {
   ChevronDown,
   CalendarDays,
   CalendarRange,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Send
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -146,6 +147,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
     { path: '/dashboard/user-schedules', icon: UserCheck, label: 'Escalas Recebidas' },
     { path: '/dashboard/announcements', icon: Megaphone, label: 'Avisos' },
     { path: '/dashboard/config/submission-periods', icon: CalendarRange, label: 'Períodos de Submissão' },
+    { path: '/dashboard/config/telegram-test', icon: Send, label: 'Teste Notificação Telegram' },
     { path: '/dashboard/config/database', icon: Settings, label: 'Configurações' },
   ];
 
