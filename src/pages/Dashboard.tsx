@@ -222,6 +222,7 @@ const Dashboard = () => {
             <Route path="/config/xlsx" element={checkAdminRoute(<XLSXConfig />)} />
             <Route path="/config/monthly-schedule" element={checkAdminRoute(<MonthlyScheduleConfig />)} />
             <Route path="/config/submission-periods" element={checkAdminRoute(<SubmissionPeriodsConfig />)} />
+            <Route path="/config/telegram-test" element={checkAdminRoute(<TelegramNotificationTest />)} />
             
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
