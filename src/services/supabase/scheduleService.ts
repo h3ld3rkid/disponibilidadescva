@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { systemSettingsService } from "./systemSettingsService";
+import { formatScheduleTelegramMessage } from "@/services/telegramScheduleFormatter";
 
 // Auto-check and reset monthly counters when a new month starts
 const checkMonthlyReset = async () => {
@@ -220,7 +221,7 @@ export const scheduleService = {
         console.error('Failed to send Telegram notifications:', telegramError);
       }
 
-      // Send Telegram notification to user about successful submission
+      // Send Telegram notification to user about successful submission (detailed)
       try {
         const { data: user, error: userError } = await supabase
           .from('users')
@@ -232,14 +233,20 @@ export const scheduleService = {
           console.error('Error fetching user for Telegram notification:', userError);
         } else if (user && user.telegram_chat_id) {
           const finalEditCount = existing ? (existing.edit_count || 0) + 1 : 1;
-          
+          const detailedMessage = formatScheduleTelegramMessage(
+            userName,
+            month,
+            scheduleData || {},
+            finalEditCount,
+          );
+
           await supabase.functions.invoke('send-telegram-notification', {
             body: {
               chatId: user.telegram_chat_id,
-              message: `✅ <b>Escala Submetida com Sucesso!</b>\n\n📅 <b>Mês:</b> ${month}\n🔄 <b>Tentativa:</b> ${finalEditCount}ª\n\nA sua disponibilidade foi registada no sistema.`
+              message: detailedMessage,
             }
           });
-          console.log(`Telegram notification sent to user ${userName}`);
+          console.log(`Detailed Telegram notification sent to user ${userName}`);
         }
       } catch (userTelegramError) {
         console.error('Failed to send Telegram notification to user:', userTelegramError);
