@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { systemSettingsService } from "./systemSettingsService";
+import { formatScheduleTelegramMessage } from "@/services/telegramScheduleFormatter";
 
 // Auto-check and reset monthly counters when a new month starts
 const checkMonthlyReset = async () => {
