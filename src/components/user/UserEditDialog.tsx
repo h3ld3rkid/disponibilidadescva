@@ -47,6 +47,7 @@ const userEditSchema = z.object({
     message: "Por favor, selecione um nível de acesso.",
   }),
   categoria: z.union([z.literal("Condutor"), z.literal("Socorrista"), z.literal("Estagiario"), z.literal(""), z.null()]).optional(),
+  telegramChatId: z.string().trim().regex(/^-?\d*$/, { message: "Chat ID deve conter apenas números (pode começar com -)." }).optional(),
 });
 
 type UserEditValues = z.infer<typeof userEditSchema>;
