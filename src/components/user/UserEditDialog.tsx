@@ -62,6 +62,7 @@ interface User {
   active: boolean;
   needs_password_change?: boolean;
   categoria?: 'Condutor' | 'Socorrista' | 'Estagiario' | null;
+  telegram_chat_id?: string | null;
 }
 
 interface UserEditDialogProps {
