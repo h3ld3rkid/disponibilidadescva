@@ -98,6 +98,7 @@ const UserEditDialog = ({ user, open, onClose, onUserUpdated }: UserEditDialogPr
         mechanographic_number: data.mechanographicNumber,
         role: data.role,
         categoria: data.categoria === '' ? null : data.categoria,
+        telegram_chat_id: data.telegramChatId?.trim() ? data.telegramChatId.trim() : null,
       });
       
       onUserUpdated(updatedUser);
