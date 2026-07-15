@@ -220,6 +220,29 @@ const UserEditDialog = ({ user, open, onClose, onUserUpdated }: UserEditDialogPr
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="telegramChatId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Telegram Chat ID</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Ex: 123456789 (fornecido pelo utilizador)"
+                      inputMode="numeric"
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    O utilizador obtém o Chat ID no bot @userinfobot no Telegram. Deixe vazio para remover.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>
