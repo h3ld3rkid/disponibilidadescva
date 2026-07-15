@@ -84,6 +84,7 @@ const UserEditDialog = ({ user, open, onClose, onUserUpdated }: UserEditDialogPr
       mechanographicNumber: user.mechanographic_number,
       role: user.role,
       categoria: user.categoria || '',
+      telegramChatId: user.telegram_chat_id || '',
     },
   });
   
