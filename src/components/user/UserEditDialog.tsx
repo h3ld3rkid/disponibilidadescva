@@ -47,6 +47,7 @@ const userEditSchema = z.object({
     message: "Por favor, selecione um nível de acesso.",
   }),
   categoria: z.union([z.literal("Condutor"), z.literal("Socorrista"), z.literal("Estagiario"), z.literal(""), z.null()]).optional(),
+  telegramChatId: z.string().trim().regex(/^-?\d*$/, { message: "Chat ID deve conter apenas números (pode começar com -)." }).optional(),
 });
 
 type UserEditValues = z.infer<typeof userEditSchema>;
@@ -61,6 +62,7 @@ interface User {
   active: boolean;
   needs_password_change?: boolean;
   categoria?: 'Condutor' | 'Socorrista' | 'Estagiario' | null;
+  telegram_chat_id?: string | null;
 }
 
 interface UserEditDialogProps {
@@ -82,6 +84,7 @@ const UserEditDialog = ({ user, open, onClose, onUserUpdated }: UserEditDialogPr
       mechanographicNumber: user.mechanographic_number,
       role: user.role,
       categoria: user.categoria || '',
+      telegramChatId: user.telegram_chat_id || '',
     },
   });
   
@@ -95,6 +98,7 @@ const UserEditDialog = ({ user, open, onClose, onUserUpdated }: UserEditDialogPr
         mechanographic_number: data.mechanographicNumber,
         role: data.role,
         categoria: data.categoria === '' ? null : data.categoria,
+        telegram_chat_id: data.telegramChatId?.trim() ? data.telegramChatId.trim() : null,
       });
       
       onUserUpdated(updatedUser);
@@ -216,6 +220,29 @@ const UserEditDialog = ({ user, open, onClose, onUserUpdated }: UserEditDialogPr
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="telegramChatId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Telegram Chat ID</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Ex: 123456789 (fornecido pelo utilizador)"
+                      inputMode="numeric"
+                      {...field}
+                      value={field.value ?? ''}
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    O utilizador obtém o Chat ID no bot @userinfobot no Telegram. Deixe vazio para remover.
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose}>
