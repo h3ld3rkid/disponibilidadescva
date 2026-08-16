@@ -100,7 +100,7 @@ const UserScheduleList: React.FC<UserScheduleListProps> = ({
             return (
               <div key={email} className="p-4 border rounded-lg hover:bg-gray-50">
                 {/* Mobile Layout */}
-                <div className="flex flex-col gap-3 md:hidden">
+                <div className="flex flex-col gap-3 xl:hidden">
                   <div className="flex items-start gap-3">
                     {isAdmin && (
                       <Checkbox
@@ -219,8 +219,8 @@ const UserScheduleList: React.FC<UserScheduleListProps> = ({
                 </div>
 
                 {/* Desktop Layout */}
-                <div className="hidden md:flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
+                <div className="hidden xl:flex items-center justify-between gap-4">
+                  <div className="flex items-center space-x-4 min-w-0 flex-1">
                     {isAdmin && (
                       <Checkbox
                         checked={isSelected}
@@ -228,13 +228,13 @@ const UserScheduleList: React.FC<UserScheduleListProps> = ({
                       />
                     )}
                     
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <User className="h-4 w-4 text-gray-500" />
                         <span className="font-medium">{displayName}</span>
                       </div>
                       
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <Mail className="h-3 w-3" />
                           {email}
@@ -261,7 +261,7 @@ const UserScheduleList: React.FC<UserScheduleListProps> = ({
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     {isAdmin && userSchedule && (
                       <SchedulePrintButton
                         userEmail={email}
