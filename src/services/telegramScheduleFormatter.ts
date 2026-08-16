@@ -115,12 +115,17 @@ export function formatScheduleTelegramMessage(
       ? data.overnightNotes.trim()
       : undefined;
 
-  if (globalShiftNote || globalOvernightNote) {
-    lines.push(`📝 <b>Observações</b>`);
-    if (globalShiftNote) lines.push(globalShiftNote);
-    if (globalOvernightNote) lines.push(globalOvernightNote);
+  if (globalShiftNote) {
+    lines.push(`📝 <b>Observações — Turnos</b>`);
+    lines.push(globalShiftNote);
     lines.push('');
   }
+  if (globalOvernightNote) {
+    lines.push(`📝 <b>Observações — Pernoites</b>`);
+    lines.push(globalOvernightNote);
+    lines.push('');
+  }
+
 
   lines.push(`📊 <b>Total:</b> ${shifts.length + overnights.length} dia(s)`);
   return lines.join('\n').trimEnd();
