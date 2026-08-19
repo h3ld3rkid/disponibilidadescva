@@ -704,6 +704,7 @@ const UpdatedSchedule: React.FC = () => {
       resultGrid.push(rowCells);
       if (rowHasOpcom) opcomRows.add(gridRowIdx);
       if (rowIsYellow) yellowRows.add(gridRowIdx);
+      if (rowIsGray && !rowIsYellow) grayRows.add(gridRowIdx);
     }
 
     // Build thick border sets
@@ -715,10 +716,11 @@ const UpdatedSchedule: React.FC = () => {
 
     // Yellow rows: thick top and bottom, but NOT between consecutive yellow rows
     for (const ri of yellowRows) {
-      // Only add thick top if the row above is NOT yellow
-      if (!yellowRows.has(ri - 1)) {
+      // Only add thick top if the row above is NOT yellow and NOT gray (same pernoite block)
+      if (!yellowRows.has(ri - 1) && !grayRows.has(ri - 1)) {
         topSet.add(ri);
       }
+
       // Only add thick bottom if the row below is NOT yellow
       if (!yellowRows.has(ri + 1)) {
         bottomSet.add(ri);
