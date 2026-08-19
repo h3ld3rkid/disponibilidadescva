@@ -503,12 +503,15 @@ const UpdatedSchedule: React.FC = () => {
     const resultGrid: ExcelCell[][] = [];
     const opcomRows = new Set<number>();
     const yellowRows = new Set<number>();
+    const grayRows = new Set<number>();
 
     for (let r = startRow; r <= range.e.r; r++) {
       const gridRowIdx = r - startRow;
       const rowCells: ExcelCell[] = [];
       let rowHasOpcom = false;
       let rowIsYellow = false;
+      let rowIsGray = false;
+
       // Track name swaps in this row so PROCV columns also get updated
       const rowSwapMap = new Map<string, string>(); // oldName(upper) -> newName(upper)
       for (let c = range.s.c; c <= range.e.c; c++) {
@@ -679,8 +682,13 @@ const UpdatedSchedule: React.FC = () => {
             const isYellowLike = isYellowHue && sat >= 0.15 && max >= 150;
 
             if (isYellowLike) rowIsYellow = true;
+
+            // Detect gray background (pernoite block header rows)
+            const isGrayLike = sat <= 0.12 && max >= 100 && max <= 225;
+            if (isGrayLike) rowIsGray = true;
           }
         }
+
 
         rowCells.push({
           value: displayValue,
@@ -696,6 +704,7 @@ const UpdatedSchedule: React.FC = () => {
       resultGrid.push(rowCells);
       if (rowHasOpcom) opcomRows.add(gridRowIdx);
       if (rowIsYellow) yellowRows.add(gridRowIdx);
+      if (rowIsGray && !rowIsYellow) grayRows.add(gridRowIdx);
     }
 
     // Build thick border sets
@@ -707,10 +716,11 @@ const UpdatedSchedule: React.FC = () => {
 
     // Yellow rows: thick top and bottom, but NOT between consecutive yellow rows
     for (const ri of yellowRows) {
-      // Only add thick top if the row above is NOT yellow
-      if (!yellowRows.has(ri - 1)) {
+      // Only add thick top if the row above is NOT yellow and NOT gray (same pernoite block)
+      if (!yellowRows.has(ri - 1) && !grayRows.has(ri - 1)) {
         topSet.add(ri);
       }
+
       // Only add thick bottom if the row below is NOT yellow
       if (!yellowRows.has(ri + 1)) {
         bottomSet.add(ri);
