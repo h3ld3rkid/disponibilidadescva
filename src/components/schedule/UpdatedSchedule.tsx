@@ -297,6 +297,27 @@ const UpdatedSchedule: React.FC = () => {
     }
 
     // Preencher datas em linhas sem data explícita (layout com "dia da semana" e data em linhas separadas)
+    // 0) Linhas com o nome do dia da semana (ex.: "Domingo") pertencem ao bloco cuja data está
+    //    logo ABAIXO. Sem isto, um bloco de pernoite herdava a data do dia anterior.
+    const weekdayRe = /^(segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|domingo)/i;
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      if (dateByRow[r]) continue;
+      const addr = XLSX.utils.encode_cell({ r, c: range.s.c });
+      const cell = (sheet as any)[addr];
+      const text = String(cell?.w ?? cell?.v ?? '').trim();
+      if (!weekdayRe.test(text)) continue;
+      for (let rr = r + 1; rr <= Math.min(r + 4, range.e.r); rr++) {
+        const nextAddr = XLSX.utils.encode_cell({ r: rr, c: range.s.c });
+        const nextCell = (sheet as any)[nextAddr];
+        const nextText = String(nextCell?.w ?? nextCell?.v ?? '').trim();
+        if (weekdayRe.test(nextText)) break; // novo bloco começou
+        if (dateByRow[rr]) {
+          dateByRow[r] = dateByRow[rr];
+          break;
+        }
+      }
+    }
+
     // 1) Forward fill: usa a última data conhecida acima
     let lastKnownDate = '';
     for (let r = range.s.r; r <= range.e.r; r++) {
@@ -306,6 +327,7 @@ const UpdatedSchedule: React.FC = () => {
         dateByRow[r] = lastKnownDate;
       }
     }
+
 
     // 2) Backward fill: cobre linhas imediatamente acima da primeira ocorrência de data do bloco
     let nextKnownDate = '';
@@ -419,7 +441,46 @@ const UpdatedSchedule: React.FC = () => {
     const shiftColIndex = range.s.c + 3; // Coluna D no ficheiro original
     const rowShiftByRow: Record<number, ExchangeShiftKey> = {};
 
+    // Turno pelo bloco: a coluna A do bloco tem o horário (ex.: "00:00H às 08:00H")
+    const weekdayRowRe = /^(segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|domingo)/i;
+    const shiftFromStartTime = (time: string): ExchangeShiftKey | '' => {
+      if (time.startsWith('00:00')) return 'overnight';
+      if (time.startsWith('08:00')) return 'morning';
+      if (time.startsWith('13:00')) return 'afternoon';
+      if (time.startsWith('19:30')) return 'night';
+      return '';
+    };
+
+    const blockShiftByRow: Record<number, ExchangeShiftKey> = {};
     for (let r = startRow; r <= range.e.r; r++) {
+      const text = getCellDisplayText(r, range.s.c);
+      if (!weekdayRowRe.test(text)) continue;
+      // limites do bloco
+      let end = r;
+      for (let rr = r + 1; rr <= range.e.r; rr++) {
+        if (weekdayRowRe.test(getCellDisplayText(rr, range.s.c))) break;
+        end = rr;
+      }
+      let blockShift: ExchangeShiftKey | '' = '';
+      for (let rr = r; rr <= end; rr++) {
+        const t = getCellDisplayText(rr, range.s.c).replace(/\s+/g, '');
+        const m = t.match(/^(\d{1,2}:\d{2})/);
+        if (m) {
+          blockShift = shiftFromStartTime(m[1].padStart(5, '0'));
+          if (blockShift) break;
+        }
+      }
+      if (blockShift) {
+        for (let rr = r; rr <= end; rr++) blockShiftByRow[rr] = blockShift;
+      }
+    }
+
+    for (let r = startRow; r <= range.e.r; r++) {
+      if (blockShiftByRow[r]) {
+        rowShiftByRow[r] = blockShiftByRow[r];
+        continue;
+      }
+
       const fromHiddenShiftCol = normalizeShiftKey(getCellDisplayText(r, shiftColIndex));
       if (fromHiddenShiftCol) {
         rowShiftByRow[r] = fromHiddenShiftCol;
@@ -434,6 +495,7 @@ const UpdatedSchedule: React.FC = () => {
         }
       }
     }
+
 
     const { data: usersData } = await supabase.from('users').select('email, name, mechanographic_number');
     const usersByEmail = new Map<string, { name: string; mech: string }>();
