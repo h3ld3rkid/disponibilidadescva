@@ -679,8 +679,13 @@ const UpdatedSchedule: React.FC = () => {
             const isYellowLike = isYellowHue && sat >= 0.15 && max >= 150;
 
             if (isYellowLike) rowIsYellow = true;
+
+            // Detect gray background (pernoite block header rows)
+            const isGrayLike = sat <= 0.12 && max >= 100 && max <= 225;
+            if (isGrayLike) rowIsGray = true;
           }
         }
+
 
         rowCells.push({
           value: displayValue,
