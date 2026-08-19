@@ -441,7 +441,46 @@ const UpdatedSchedule: React.FC = () => {
     const shiftColIndex = range.s.c + 3; // Coluna D no ficheiro original
     const rowShiftByRow: Record<number, ExchangeShiftKey> = {};
 
+    // Turno pelo bloco: a coluna A do bloco tem o horário (ex.: "00:00H às 08:00H")
+    const weekdayRowRe = /^(segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|domingo)/i;
+    const shiftFromStartTime = (time: string): ExchangeShiftKey | '' => {
+      if (time.startsWith('00:00')) return 'overnight';
+      if (time.startsWith('08:00')) return 'morning';
+      if (time.startsWith('13:00')) return 'afternoon';
+      if (time.startsWith('19:30')) return 'night';
+      return '';
+    };
+
+    const blockShiftByRow: Record<number, ExchangeShiftKey> = {};
     for (let r = startRow; r <= range.e.r; r++) {
+      const text = getCellDisplayText(r, range.s.c);
+      if (!weekdayRowRe.test(text)) continue;
+      // limites do bloco
+      let end = r;
+      for (let rr = r + 1; rr <= range.e.r; rr++) {
+        if (weekdayRowRe.test(getCellDisplayText(rr, range.s.c))) break;
+        end = rr;
+      }
+      let blockShift: ExchangeShiftKey | '' = '';
+      for (let rr = r; rr <= end; rr++) {
+        const t = getCellDisplayText(rr, range.s.c).replace(/\s+/g, '');
+        const m = t.match(/^(\d{1,2}:\d{2})/);
+        if (m) {
+          blockShift = shiftFromStartTime(m[1].padStart(5, '0'));
+          if (blockShift) break;
+        }
+      }
+      if (blockShift) {
+        for (let rr = r; rr <= end; rr++) blockShiftByRow[rr] = blockShift;
+      }
+    }
+
+    for (let r = startRow; r <= range.e.r; r++) {
+      if (blockShiftByRow[r]) {
+        rowShiftByRow[r] = blockShiftByRow[r];
+        continue;
+      }
+
       const fromHiddenShiftCol = normalizeShiftKey(getCellDisplayText(r, shiftColIndex));
       if (fromHiddenShiftCol) {
         rowShiftByRow[r] = fromHiddenShiftCol;
@@ -456,6 +495,7 @@ const UpdatedSchedule: React.FC = () => {
         }
       }
     }
+
 
     const { data: usersData } = await supabase.from('users').select('email, name, mechanographic_number');
     const usersByEmail = new Map<string, { name: string; mech: string }>();
