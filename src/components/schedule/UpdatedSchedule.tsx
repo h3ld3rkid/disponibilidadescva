@@ -503,12 +503,15 @@ const UpdatedSchedule: React.FC = () => {
     const resultGrid: ExcelCell[][] = [];
     const opcomRows = new Set<number>();
     const yellowRows = new Set<number>();
+    const grayRows = new Set<number>();
 
     for (let r = startRow; r <= range.e.r; r++) {
       const gridRowIdx = r - startRow;
       const rowCells: ExcelCell[] = [];
       let rowHasOpcom = false;
       let rowIsYellow = false;
+      let rowIsGray = false;
+
       // Track name swaps in this row so PROCV columns also get updated
       const rowSwapMap = new Map<string, string>(); // oldName(upper) -> newName(upper)
       for (let c = range.s.c; c <= range.e.c; c++) {
