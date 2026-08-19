@@ -297,6 +297,27 @@ const UpdatedSchedule: React.FC = () => {
     }
 
     // Preencher datas em linhas sem data explícita (layout com "dia da semana" e data em linhas separadas)
+    // 0) Linhas com o nome do dia da semana (ex.: "Domingo") pertencem ao bloco cuja data está
+    //    logo ABAIXO. Sem isto, um bloco de pernoite herdava a data do dia anterior.
+    const weekdayRe = /^(segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|domingo)/i;
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      if (dateByRow[r]) continue;
+      const addr = XLSX.utils.encode_cell({ r, c: range.s.c });
+      const cell = (sheet as any)[addr];
+      const text = String(cell?.w ?? cell?.v ?? '').trim();
+      if (!weekdayRe.test(text)) continue;
+      for (let rr = r + 1; rr <= Math.min(r + 4, range.e.r); rr++) {
+        const nextAddr = XLSX.utils.encode_cell({ r: rr, c: range.s.c });
+        const nextCell = (sheet as any)[nextAddr];
+        const nextText = String(nextCell?.w ?? nextCell?.v ?? '').trim();
+        if (weekdayRe.test(nextText)) break; // novo bloco começou
+        if (dateByRow[rr]) {
+          dateByRow[r] = dateByRow[rr];
+          break;
+        }
+      }
+    }
+
     // 1) Forward fill: usa a última data conhecida acima
     let lastKnownDate = '';
     for (let r = range.s.r; r <= range.e.r; r++) {
@@ -306,6 +327,7 @@ const UpdatedSchedule: React.FC = () => {
         dateByRow[r] = lastKnownDate;
       }
     }
+
 
     // 2) Backward fill: cobre linhas imediatamente acima da primeira ocorrência de data do bloco
     let nextKnownDate = '';
