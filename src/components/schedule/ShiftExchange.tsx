@@ -116,24 +116,10 @@ const ShiftExchange = () => {
     }
   };
 
-  const getShiftOptions = (date: string) => {
+  // Só permite selecionar turnos em que o utilizador está mesmo escalado nesse dia
+  const getShiftOptions = (date: string, entries: ParsedServiceDate[]) => {
     if (!date) return [];
-    
-    const dayType = getDayType(date);
-    
-    if (dayType === 'weekday') {
-      return [
-        { value: 'day', label: 'Turno Diurno' },
-        { value: 'overnight', label: 'Pernoite' },
-      ];
-    } else {
-      return [
-        { value: 'morning', label: 'Turno Manhã' },
-        { value: 'afternoon', label: 'Turno Tarde' },
-        { value: 'night', label: 'Turno Noite' },
-        { value: 'overnight', label: 'Pernoite' },
-      ];
-    }
+    return getAvailableShiftsForDate(entries, date, getDayType(date));
   };
 
   const getDayTypeLabel = (date: string) => {
