@@ -13,7 +13,7 @@ import { ArrowLeftRight, Send, Check, X, Search, Info, Users, Ban } from 'lucide
 import { getDayType } from '@/utils/dateUtils';
 import ExchangeSuccessSplash from './ExchangeSuccessSplash';
 import BroadcastExchangeDialog from './BroadcastExchangeDialog';
-import { parseScheduleXlsx, ParsedServiceDate } from '@/services/scheduleParsingService';
+import { parseScheduleXlsx, ParsedServiceDate, dedupeServiceDates, getAvailableShiftsForDate } from '@/services/scheduleParsingService';
 
 interface User {
   id: string;
