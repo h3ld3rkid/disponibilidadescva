@@ -91,17 +91,17 @@ const BroadcastExchangeDialog: React.FC<BroadcastExchangeDialogProps> = ({
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={userServiceDates.length === 0 ? "Sem datas disponíveis" : "Selecionar data"} />
+                    <SelectValue placeholder={dateOptions.length === 0 ? "Sem datas disponíveis" : "Selecionar data"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {userServiceDates.map((d) => (
+                    {dateOptions.map((d) => (
                       <SelectItem key={`${d.dateISO}-${d.isGray ? 'g' : 'n'}`} value={d.dateISO}>
                         {d.date} ({getDayTypeLabel(d.dateISO)}){d.isGray ? ' 🌙 Pernoite' : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {userServiceDates.length === 0 && (
+                {dateOptions.length === 0 && (
                   <p className="text-xs text-amber-600 mt-1">
                     Não foram encontrados serviços seus na escala.
                   </p>
