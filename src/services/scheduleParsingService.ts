@@ -4,6 +4,7 @@ export interface ParsedServiceDate {
   date: string;    // DD/MM/YYYY
   dateISO: string; // YYYY-MM-DD
   isGray?: boolean; // pernoite (gray cell in XLSX)
+  startTime?: string; // HH:MM (coluna A)
 }
 
 /**
