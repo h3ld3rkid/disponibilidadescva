@@ -23,6 +23,7 @@ export const parseScheduleXlsx = async (): Promise<Record<string, ParsedServiceD
       date: e.date,
       dateISO: e.dateISO,
       isGray: e.isGray || false,
+      startTime: e.startTime,
     }));
     out[mechKey] = dates;
     if (entries.length > 0) {
