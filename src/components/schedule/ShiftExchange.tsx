@@ -526,7 +526,7 @@ const ShiftExchange = () => {
                           <SelectValue placeholder="Selecionar" />
                         </SelectTrigger>
                         <SelectContent>
-                          {getShiftOptions(requestedDate).map((option) => (
+                          {getShiftOptions(requestedDate, targetUserRaw).map((option) => (
                             <SelectItem key={option.value} value={option.value}>
                               {option.label}
                             </SelectItem>
