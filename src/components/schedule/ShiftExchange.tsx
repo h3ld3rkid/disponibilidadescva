@@ -398,7 +398,7 @@ const ShiftExchange = () => {
         onOpenChange={setShowBroadcastDialog}
         onSubmit={handleBroadcastRequest}
         isSubmitting={isSubmitting}
-        userServiceDates={currentUserDates}
+        userServiceDates={currentUserRaw}
       />
       
       <div className="container mx-auto px-4 py-8">
