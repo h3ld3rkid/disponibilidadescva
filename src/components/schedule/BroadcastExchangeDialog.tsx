@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, Info } from 'lucide-react';
 import { getDayType } from '@/utils/dateUtils';
-import { ParsedServiceDate } from '@/services/scheduleParsingService';
+import { ParsedServiceDate, dedupeServiceDates, getAvailableShiftsForDate } from '@/services/scheduleParsingService';
 
 interface BroadcastExchangeDialogProps {
   open: boolean;
@@ -33,24 +33,12 @@ const BroadcastExchangeDialog: React.FC<BroadcastExchangeDialogProps> = ({
   const [offeredShift, setOfferedShift] = useState('');
   const [message, setMessage] = useState('');
 
+  const dateOptions = dedupeServiceDates(userServiceDates);
+
+  // Só turnos em que o utilizador está mesmo escalado nesse dia
   const getShiftOptions = (date: string) => {
     if (!date) return [];
-    
-    const dayType = getDayType(date);
-    
-    if (dayType === 'weekday') {
-      return [
-        { value: 'day', label: 'Turno Diurno' },
-        { value: 'overnight', label: 'Pernoite' },
-      ];
-    } else {
-      return [
-        { value: 'morning', label: 'Turno Manhã' },
-        { value: 'afternoon', label: 'Turno Tarde' },
-        { value: 'night', label: 'Turno Noite' },
-        { value: 'overnight', label: 'Pernoite' },
-      ];
-    }
+    return getAvailableShiftsForDate(userServiceDates, date, getDayType(date));
   };
 
   const getDayTypeLabel = (date: string) => {
@@ -103,17 +91,17 @@ const BroadcastExchangeDialog: React.FC<BroadcastExchangeDialogProps> = ({
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={userServiceDates.length === 0 ? "Sem datas disponíveis" : "Selecionar data"} />
+                    <SelectValue placeholder={dateOptions.length === 0 ? "Sem datas disponíveis" : "Selecionar data"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {userServiceDates.map((d) => (
+                    {dateOptions.map((d) => (
                       <SelectItem key={`${d.dateISO}-${d.isGray ? 'g' : 'n'}`} value={d.dateISO}>
                         {d.date} ({getDayTypeLabel(d.dateISO)}){d.isGray ? ' 🌙 Pernoite' : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {userServiceDates.length === 0 && (
+                {dateOptions.length === 0 && (
                   <p className="text-xs text-amber-600 mt-1">
                     Não foram encontrados serviços seus na escala.
                   </p>

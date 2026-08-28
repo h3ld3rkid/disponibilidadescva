@@ -13,7 +13,7 @@ import { ArrowLeftRight, Send, Check, X, Search, Info, Users, Ban } from 'lucide
 import { getDayType } from '@/utils/dateUtils';
 import ExchangeSuccessSplash from './ExchangeSuccessSplash';
 import BroadcastExchangeDialog from './BroadcastExchangeDialog';
-import { parseScheduleXlsx, ParsedServiceDate } from '@/services/scheduleParsingService';
+import { parseScheduleXlsx, ParsedServiceDate, dedupeServiceDates, getAvailableShiftsForDate } from '@/services/scheduleParsingService';
 
 interface User {
   id: string;
@@ -81,28 +81,21 @@ const ShiftExchange = () => {
 
   // Dedupe service dates by ISO date — if any entry for that date is overnight (gray cell),
   // mark the merged entry as Pernoite so users can identify night shifts in the dropdowns.
-  const dedupeDates = (list: ParsedServiceDate[]): ParsedServiceDate[] => {
-    const map = new Map<string, ParsedServiceDate>();
-    for (const d of list) {
-      const existing = map.get(d.dateISO);
-      if (!existing) {
-        map.set(d.dateISO, { ...d });
-      } else if (d.isGray) {
-        existing.isGray = true;
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-  };
+  const dedupeDates = dedupeServiceDates;
+
+  // Raw entries (uma por serviço) — usadas para saber que turnos existem em cada dia
+  const currentUserRaw = userInfo?.mechanographic_number
+    ? (allScheduleDates[userInfo.mechanographic_number] || [])
+    : [];
+  const targetUserRaw = selectedUser?.mechanographic_number
+    ? (allScheduleDates[selectedUser.mechanographic_number] || [])
+    : [];
 
   // Get service dates for current user (what they can offer)
-  const currentUserDates = userInfo?.mechanographic_number 
-    ? dedupeDates(allScheduleDates[userInfo.mechanographic_number] || [])
-    : [];
+  const currentUserDates = dedupeDates(currentUserRaw);
 
   // Get service dates for target user (what requester can ask for)
-  const targetUserDates = selectedUser?.mechanographic_number
-    ? dedupeDates(allScheduleDates[selectedUser.mechanographic_number] || [])
-    : [];
+  const targetUserDates = dedupeDates(targetUserRaw);
 
 
   const loadUsers = async () => {
@@ -123,24 +116,10 @@ const ShiftExchange = () => {
     }
   };
 
-  const getShiftOptions = (date: string) => {
+  // Só permite selecionar turnos em que o utilizador está mesmo escalado nesse dia
+  const getShiftOptions = (date: string, entries: ParsedServiceDate[]) => {
     if (!date) return [];
-    
-    const dayType = getDayType(date);
-    
-    if (dayType === 'weekday') {
-      return [
-        { value: 'day', label: 'Turno Diurno' },
-        { value: 'overnight', label: 'Pernoite' },
-      ];
-    } else {
-      return [
-        { value: 'morning', label: 'Turno Manhã' },
-        { value: 'afternoon', label: 'Turno Tarde' },
-        { value: 'night', label: 'Turno Noite' },
-        { value: 'overnight', label: 'Pernoite' },
-      ];
-    }
+    return getAvailableShiftsForDate(entries, date, getDayType(date));
   };
 
   const getDayTypeLabel = (date: string) => {
@@ -419,7 +398,7 @@ const ShiftExchange = () => {
         onOpenChange={setShowBroadcastDialog}
         onSubmit={handleBroadcastRequest}
         isSubmitting={isSubmitting}
-        userServiceDates={currentUserDates}
+        userServiceDates={currentUserRaw}
       />
       
       <div className="container mx-auto px-4 py-8">
@@ -547,7 +526,7 @@ const ShiftExchange = () => {
                           <SelectValue placeholder="Selecionar" />
                         </SelectTrigger>
                         <SelectContent>
-                          {getShiftOptions(requestedDate).map((option) => (
+                          {getShiftOptions(requestedDate, targetUserRaw).map((option) => (
                             <SelectItem key={option.value} value={option.value}>
                               {option.label}
                             </SelectItem>
@@ -601,7 +580,7 @@ const ShiftExchange = () => {
                           <SelectValue placeholder="Selecionar" />
                         </SelectTrigger>
                         <SelectContent>
-                          {getShiftOptions(offeredDate).map((option) => (
+                          {getShiftOptions(offeredDate, currentUserRaw).map((option) => (
                             <SelectItem key={option.value} value={option.value}>
                               {option.label}
                             </SelectItem>
