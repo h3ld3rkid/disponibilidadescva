@@ -4,11 +4,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { systemSettingsService } from '@/services/supabase/systemSettingsService';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { syncAllUsersServiceCache } from '@/services/serviceCacheSync';
 
 const XLSXLinkConfig = () => {
   const [xlsxUrl, setXlsxUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const runSync = async () => {
+    setIsSyncing(true);
+    try {
+      const r = await syncAllUsersServiceCache();
+      toast({ title: "Calendários atualizados", description: `Serviços sincronizados para ${r.synced} utilizadores.` });
+    } catch {
+      toast({ title: "Erro", description: "Erro ao sincronizar calendários", variant: "destructive" });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
   const { toast } = useToast();
 
   useEffect(() => {
@@ -69,8 +83,9 @@ const XLSXLinkConfig = () => {
       if (success) {
         toast({
           title: "Sucesso",
-          description: "Link do ficheiro XLSX guardado com sucesso",
+          description: "Link guardado. A sincronizar calendários...",
         });
+        runSync();
       } else {
         throw new Error('Failed to save XLSX link');
       }
@@ -92,7 +107,7 @@ const XLSXLinkConfig = () => {
         <h2 className="text-xl font-semibold mb-2">Link do Ficheiro XLSX da Escala</h2>
         <p className="text-sm text-muted-foreground">
           Configure o link para o ficheiro Excel (.xlsx) da escala atual. 
-          Este ficheiro será usado para análise mais precisa dos serviços.
+          Este ficheiro alimenta "Meus Serviços", "Escala Atualizada", as trocas e os calendários subscritos. Ao guardar, os calendários de todos os utilizadores são atualizados.
         </p>
       </div>
 
@@ -116,6 +131,10 @@ const XLSXLinkConfig = () => {
       >
         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         Guardar Link
+      </Button>
+      <Button variant="outline" onClick={runSync} disabled={isSyncing} className="ml-2">
+        {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+        {isSyncing ? 'A sincronizar...' : 'Sincronizar calendários'}
       </Button>
     </div>
   );

@@ -88,3 +88,22 @@ export const syncUserServiceCache = async (
     console.warn('[serviceCacheSync] Failed to refresh cache:', err);
   }
 };
+
+/**
+ * Refresh the service cache for ALL users (used after the admin updates the
+ * schedule XLSX) so calendar subscriptions pick up the new services.
+ */
+export const syncAllUsersServiceCache = async (): Promise<{ total: number; synced: number }> => {
+  const { resolveScheduleByMech } = await import('@/services/scheduleGridService');
+  await resolveScheduleByMech(true);
+  const { data: users } = await supabase
+    .from('users')
+    .select('email, mechanographic_number');
+  const list = (users || []).filter(u => u.email && u.mechanographic_number);
+  let synced = 0;
+  for (const u of list) {
+    await syncUserServiceCache(u.email, String(u.mechanographic_number));
+    synced++;
+  }
+  return { total: list.length, synced };
+};
