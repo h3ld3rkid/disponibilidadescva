@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { systemSettingsService } from '@/services/supabase/systemSettingsService';
-import { Loader2, Save, Check } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2, Save, Check, Send } from 'lucide-react';
 
 const MONTHS = [
   { key: 'january', label: 'Janeiro' },
@@ -26,6 +27,7 @@ const MonthlyScheduleLinksConfig = () => {
   const [links, setLinks] = useState<Record<string, string>>({});
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set());
+  const [notifyingKey, setNotifyingKey] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -70,6 +72,33 @@ const MonthlyScheduleLinksConfig = () => {
     }
   };
 
+  const handleNotify = async (key: string) => {
+    const label = MONTHS.find(m => m.key === key)?.label || '';
+    if (!window.confirm(`Enviar aviso por Telegram a todos: "Nova Escala do Mês de ${label} já disponível"?`)) return;
+    setNotifyingKey(key);
+    try {
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('telegram_chat_id')
+        .eq('active', true)
+        .eq('manually_blocked', false)
+        .not('telegram_chat_id', 'is', null);
+      if (error) throw error;
+      const chats = Array.from(new Set((users || []).map(u => String(u.telegram_chat_id || '').trim()).filter(Boolean)));
+      const message = `📅 <b>Nova Escala do Mês de ${label} já disponível.</b>\n\nAss: a Equipa das Escalas`;
+      let sent = 0;
+      for (const chatId of chats) {
+        const { error: e } = await supabase.functions.invoke('send-telegram-notification', { body: { chatId, message } });
+        if (!e) sent++;
+      }
+      toast({ title: "Aviso enviado", description: `Mensagem enviada a ${sent} de ${chats.length} utilizadores.` });
+    } catch {
+      toast({ title: "Erro", description: "Não foi possível enviar o aviso.", variant: "destructive" });
+    } finally {
+      setNotifyingKey(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -106,6 +135,21 @@ const MonthlyScheduleLinksConfig = () => {
               ) : (
                 <Save className="h-4 w-4" />
               )}
+            </Button>
+            <Button
+              onClick={() => handleNotify(month.key)}
+              disabled={notifyingKey === month.key || !links[month.key]?.trim()}
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              title="Avisar todos por Telegram"
+            >
+              {notifyingKey === month.key ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              <span className="ml-1">Avisar</span>
             </Button>
           </div>
         ))}
