@@ -47,6 +47,33 @@ const UserScheduleList: React.FC<UserScheduleListProps> = ({
 
   const isAdmin = userInfo?.role === 'admin';
 
+  const exportScheduleJson = (email: string) => {
+    const schedule = getUserSchedule(email);
+    if (!schedule) return;
+
+    const payload = {
+      email: schedule.email,
+      name: schedule.user,
+      month: schedule.month,
+      dates: schedule.dates,
+      editCount: schedule.editCount,
+      printedAt: schedule.printedAt,
+      createdAt: schedule.createdAt,
+      exportedAt: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const safeName = (schedule.user || email).replace(/[^\w\-]+/g, '_');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `escala_${safeName}_${schedule.month || 'mes'}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   if (isLoading) {
     return (
       <Card>
