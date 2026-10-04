@@ -186,6 +186,12 @@ const UserSchedules = () => {
     return email;
   };
 
+  // Get mechanographic number for export (fallback: email prefix)
+  const getUserMechanographicNumber = (email: string): string => {
+    const user = allUsers.find(u => u.email === email);
+    return user?.mechanographic_number || email.split('@')[0];
+  };
+
   const handleExportPDF = async () => {
     await exportSchedulesToPDF(selectedUsers, schedules, toast);
   };
