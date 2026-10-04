@@ -320,6 +320,17 @@ const UserScheduleList: React.FC<UserScheduleListProps> = ({
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
+
+                    {isAdmin && userSchedule && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => exportScheduleJson(email)}
+                        title="Exportar escala em JSON"
+                      >
+                        <FileJson className="h-4 w-4" />
+                      </Button>
+                    )}
                     
                     {isAdmin && (
                       <>
