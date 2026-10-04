@@ -19,6 +19,7 @@ interface UserScheduleListProps {
   onDeleteSchedule: (email: string) => void;
   onResetEditCounter: (email: string) => void;
   getUserNameFromEmail: (email: string) => string;
+  getUserMechanographicNumber: (email: string) => string;
 }
 
 const UserScheduleList: React.FC<UserScheduleListProps> = ({
@@ -31,7 +32,8 @@ const UserScheduleList: React.FC<UserScheduleListProps> = ({
   onViewSchedule,
   onDeleteSchedule,
   onResetEditCounter,
-  getUserNameFromEmail
+  getUserNameFromEmail,
+  getUserMechanographicNumber
 }) => {
   const getUserSchedule = (email: string) => {
     return schedules.find(schedule => schedule.email === email);
@@ -54,6 +56,7 @@ const UserScheduleList: React.FC<UserScheduleListProps> = ({
     const payload = {
       email: schedule.email,
       name: schedule.user,
+      mechanographicNumber: getUserMechanographicNumber(schedule.email),
       month: schedule.month,
       dates: schedule.dates,
       editCount: schedule.editCount,
