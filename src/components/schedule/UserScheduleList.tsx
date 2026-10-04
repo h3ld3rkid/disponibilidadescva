@@ -192,6 +192,18 @@ const UserScheduleList: React.FC<UserScheduleListProps> = ({
                       <Eye className="h-4 w-4 mr-2" />
                       Ver
                     </Button>
+
+                    {isAdmin && userSchedule && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => exportScheduleJson(email)}
+                        className="flex-1"
+                      >
+                        <FileJson className="h-4 w-4 mr-2" />
+                        JSON
+                      </Button>
+                    )}
                     
                     {isAdmin && (
                       <>
