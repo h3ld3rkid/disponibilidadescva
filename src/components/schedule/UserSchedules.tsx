@@ -280,6 +280,7 @@ const UserSchedules = () => {
           onDeleteSchedule={deleteUserSchedules}
           onResetEditCounter={resetEditCounter}
           getUserNameFromEmail={getUserDisplayName}
+          getUserMechanographicNumber={getUserMechanographicNumber}
         />
       )}
     </div>
