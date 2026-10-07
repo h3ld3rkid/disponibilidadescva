@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Eye, Trash2, RotateCcw, User, Mail, Hash, Calendar, FileJson } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import SchedulePrintButton from './SchedulePrintButton';
+import { exportScheduleJson as exportScheduleJsonFile } from './UserScheduleUtils';
 
 interface UserScheduleListProps {
   isLoading: boolean;
@@ -52,29 +53,7 @@ const UserScheduleList: React.FC<UserScheduleListProps> = ({
   const exportScheduleJson = (email: string) => {
     const schedule = getUserSchedule(email);
     if (!schedule) return;
-
-    const payload = {
-      email: schedule.email,
-      name: schedule.user,
-      mechanographicNumber: getUserMechanographicNumber(schedule.email),
-      month: schedule.month,
-      dates: schedule.dates,
-      editCount: schedule.editCount,
-      printedAt: schedule.printedAt,
-      createdAt: schedule.createdAt,
-      exportedAt: new Date().toISOString(),
-    };
-
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    const safeName = (schedule.user || email).replace(/[^\w\-]+/g, '_');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `escala_${safeName}_${schedule.month || 'mes'}.json`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    exportScheduleJsonFile(schedule, getUserMechanographicNumber(schedule.email));
   };
 
   if (isLoading) {
