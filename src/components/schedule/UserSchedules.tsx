@@ -6,7 +6,7 @@ import UserSchedulesHeader from './UserSchedulesHeader';
 import MigrationStatus from './MigrationStatus';
 import UserScheduleViewer from './UserScheduleViewer';
 import UserScheduleList from './UserScheduleList';
-import { exportSchedulesToPDF, exportSchedulesToIndividualPDFs } from './UserScheduleUtils';
+import { exportSchedulesToPDF, exportSchedulesToIndividualPDFs, exportSchedulesToJSONZip } from './UserScheduleUtils';
 
 const UserSchedules = () => {
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -200,6 +200,10 @@ const UserSchedules = () => {
     await exportSchedulesToIndividualPDFs(selectedUsers, schedules, toast);
   };
 
+  const handleExportJSONZip = async () => {
+    await exportSchedulesToJSONZip(selectedUsers, schedules, toast, getUserMechanographicNumber);
+  };
+
   const handleDeleteSelected = async () => {
     try {
       for (const email of selectedUsers) {
@@ -247,6 +251,7 @@ const UserSchedules = () => {
           migrationDone={false}
           onExportPDF={handleExportPDF}
           onExportIndividualPDFs={handleExportIndividualPDFs}
+          onExportJSONZip={handleExportJSONZip}
           onMigrateData={() => {}} // Removed migration functionality
           onRefresh={loadAllSchedules}
           onDeleteSelected={handleDeleteSelected}
