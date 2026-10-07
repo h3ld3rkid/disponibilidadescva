@@ -1,6 +1,7 @@
 
 import { format } from "date-fns";
 import { jsPDF } from "jspdf";
+import JSZip from "jszip";
 
 // Weekday order for sorting
 const weekdayOrder = [
@@ -411,6 +412,118 @@ export const exportSchedulesToIndividualPDFs = async (
     toast({
       title: "Erro na exportação",
       description: "Ocorreu um erro ao exportar as escalas",
+      variant: "destructive",
+    });
+  }
+};
+
+// ============= JSON export =============
+
+const safeFileNamePart = (value: string): string =>
+  (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\-]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+export const buildScheduleJsonPayload = (schedule: any, mechanographicNumber: string) => ({
+  email: schedule.email,
+  name: schedule.user,
+  mechanographicNumber,
+  month: schedule.month,
+  dates: schedule.dates,
+  editCount: schedule.editCount,
+  printedAt: schedule.printedAt,
+  createdAt: schedule.createdAt,
+  exportedAt: new Date().toISOString(),
+});
+
+export const scheduleJsonFileName = (schedule: any): string => {
+  const safeName = safeFileNamePart(schedule.user || schedule.email);
+  const safeMonth = safeFileNamePart(schedule.month || 'mes');
+  return `escala_${safeName}_${safeMonth}.json`;
+};
+
+const downloadBlob = (blob: Blob, fileName: string) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', fileName);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+export const exportScheduleJson = (schedule: any, mechanographicNumber: string) => {
+  const payload = buildScheduleJsonPayload(schedule, mechanographicNumber);
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+  downloadBlob(blob, scheduleJsonFileName(schedule));
+};
+
+export const exportSchedulesToJSONZip = async (
+  selectedUsers: string[],
+  schedules: any[],
+  toast: any,
+  getUserMechanographicNumber: (email: string) => string
+) => {
+  if (selectedUsers.length === 0) {
+    toast({
+      title: "Nenhum utilizador selecionado",
+      description: "Por favor, selecione pelo menos um utilizador para exportar.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  const filteredSchedules = schedules
+    .filter(schedule => selectedUsers.includes(schedule.user_email || schedule.email))
+    .sort((a, b) => {
+      const nameA = (a.user_name || a.user || '').toLowerCase();
+      const nameB = (b.user_name || b.user || '').toLowerCase();
+      return nameA.localeCompare(nameB, 'pt');
+    });
+
+  if (filteredSchedules.length === 0) {
+    toast({
+      title: "Sem escalas",
+      description: "Nenhuma escala encontrada para os utilizadores selecionados.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  try {
+    const zip = new JSZip();
+    const usedNames = new Map<string, number>();
+
+    filteredSchedules.forEach(schedule => {
+      let fileName = scheduleJsonFileName(schedule);
+      const seen = usedNames.get(fileName) || 0;
+      usedNames.set(fileName, seen + 1);
+      if (seen > 0) {
+        fileName = fileName.replace(/\.json$/, `_${seen + 1}.json`);
+      }
+
+      const payload = buildScheduleJsonPayload(
+        schedule,
+        getUserMechanographicNumber(schedule.user_email || schedule.email)
+      );
+      zip.file(fileName, JSON.stringify(payload, null, 2));
+    });
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    downloadBlob(blob, `escalas_json_${format(new Date(), 'yyyy-MM-dd')}.zip`);
+
+    toast({
+      title: "Exportação concluída",
+      description: `${filteredSchedules.length} escala(s) exportada(s) em JSON (ficheiro .zip).`,
+    });
+  } catch (error) {
+    console.error("Erro ao exportar JSON em zip:", error);
+    toast({
+      title: "Erro na exportação",
+      description: "Ocorreu um erro ao exportar as escalas em JSON",
       variant: "destructive",
     });
   }
