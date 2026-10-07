@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Printer, Trash2, RotateCcw, CheckSquare, XSquare, Files } from "lucide-react";
+import { Printer, Trash2, RotateCcw, CheckSquare, XSquare, Files, FileJson } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -12,6 +12,7 @@ interface UserSchedulesHeaderProps {
   migrationDone: boolean;
   onExportPDF: () => void;
   onExportIndividualPDFs: () => void;
+  onExportJSONZip: () => void;
   onMigrateData: () => void;
   onRefresh: () => void;
   onDeleteSelected: () => void;
@@ -26,6 +27,7 @@ const UserSchedulesHeader: React.FC<UserSchedulesHeaderProps> = ({
   migrationDone,
   onExportPDF,
   onExportIndividualPDFs,
+  onExportJSONZip,
   onMigrateData,
   onRefresh,
   onDeleteSelected,
@@ -70,6 +72,20 @@ const UserSchedulesHeader: React.FC<UserSchedulesHeaderProps> = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Exportar Ficheiros Individuais</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={onExportJSONZip}
+                    disabled={selectedUsers.length === 0}
+                    size="icon"
+                    variant="outline"
+                  >
+                    <FileJson className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Exportar JSON dos selecionados (.zip)</TooltipContent>
               </Tooltip>
               
               <AlertDialog>
@@ -174,6 +190,20 @@ const UserSchedulesHeader: React.FC<UserSchedulesHeaderProps> = ({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Exportar Ficheiros Individuais</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  onClick={onExportJSONZip}
+                  disabled={selectedUsers.length === 0}
+                  size="icon"
+                  variant="outline"
+                >
+                  <FileJson className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Exportar JSON dos selecionados (.zip)</TooltipContent>
             </Tooltip>
             
             <AlertDialog>
