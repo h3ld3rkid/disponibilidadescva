@@ -15,6 +15,7 @@ import Announcements from '@/components/announcements/Announcements';
 import AnnouncementBanner from '@/components/announcements/AnnouncementBanner';
 import ShiftExchange from '@/components/schedule/ShiftExchange';
 import ExchangeSplashScreen from '@/components/schedule/ExchangeSplashScreen';
+import EventsCalendar from '@/components/events/EventsCalendar';
 import MyServices from '@/components/schedule/MyServices';
 import UpdatedSchedule from '@/components/schedule/UpdatedSchedule';
 import Footer from '@/components/ui/footer';
@@ -212,6 +213,7 @@ const Dashboard = () => {
             <Route path="/profile" element={<ProfileEdit />} />
             <Route path="/exchanges" element={<ShiftExchange />} />
             <Route path="/updated-schedule" element={<UpdatedSchedule />} />
+            <Route path="/events" element={<EventsCalendar isAdmin={verifiedAdmin} userEmail={userInfo.email} />} />
             
             <Route path="/users" element={checkAdminRoute(<UserManagement key={`user-management-${forceUpdate}`} />)} />
             <Route path="/user-schedules" element={checkAdminRoute(<UserSchedules key={`user-schedules-${forceUpdate}`} />)} />

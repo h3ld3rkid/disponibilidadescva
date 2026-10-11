@@ -20,7 +20,8 @@ import {
   CalendarDays,
   CalendarRange,
   FileSpreadsheet,
-  Send
+  Send,
+  PartyPopper
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -123,6 +124,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
     '/dashboard/current-schedule': 'current-schedule',
     '/dashboard/schedule': 'schedule',
     '/dashboard/profile': 'profile',
+    '/dashboard/events': 'events',
   };
 
   const allUserNavItems = [
@@ -132,6 +134,7 @@ const Navbar: React.FC<NavbarProps> = ({ email, role }) => {
     { path: '/dashboard/my-services', icon: CalendarDays, label: 'Meus Serviços' },
     { path: '/dashboard/current-schedule', icon: CalendarCheck, label: 'Escala' },
     { path: '/dashboard/exchanges', icon: ArrowLeftRight, label: 'Trocas' },
+    { path: '/dashboard/events', icon: PartyPopper, label: 'Eventos' },
     { path: '/dashboard/profile', icon: User, label: 'Perfil' },
   ];
 
