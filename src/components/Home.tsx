@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from 'react-router-dom';
-import { Calendar, ClipboardList, Briefcase, User, Bell, RefreshCw } from 'lucide-react';
+import { Calendar, ClipboardList, Briefcase, User, Bell, RefreshCw, PartyPopper } from 'lucide-react';
 import { useTabVisibility } from '@/hooks/useTabVisibility';
 
 interface HomeProps {
@@ -50,6 +50,15 @@ const Home: React.FC<HomeProps> = ({ userEmail, isAdmin }) => {
       gradient: 'from-orange-400 to-red-500',
       iconBg: 'bg-white/20',
       tabKey: 'exchanges',
+    },
+    {
+      title: 'Eventos',
+      description: 'Calendário de eventos',
+      icon: PartyPopper,
+      path: '/dashboard/events',
+      gradient: 'from-amber-400 to-orange-600',
+      iconBg: 'bg-white/20',
+      tabKey: 'events',
     },
     {
       title: 'Perfil',
