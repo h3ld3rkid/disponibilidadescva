@@ -71,6 +71,48 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          all_day: boolean
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          end_at: string
+          id: string
+          location: string | null
+          start_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          all_day?: boolean
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          end_at: string
+          id?: string
+          location?: string | null
+          start_at: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          all_day?: boolean
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          end_at?: string
+          id?: string
+          location?: string | null
+          start_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       password_reset_requests: {
         Row: {
           email: string
