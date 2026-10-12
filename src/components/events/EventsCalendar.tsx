@@ -166,6 +166,38 @@ const EventsCalendar: React.FC<{ isAdmin: boolean; userEmail: string }> = ({ isA
     toast({ title: editingId ? 'Evento atualizado' : 'Evento criado' });
     setFormOpen(false);
     load();
+    if (!editingId) notifyNewEvent(payload.title, start, end, form.allDay, payload.location);
+  };
+
+  const notifyNewEvent = async (title: string, start: Date, end: Date, allDay: boolean, location: string | null) => {
+    try {
+      const { data: users } = await supabase
+        .from('users')
+        .select('telegram_chat_id')
+        .eq('active', true)
+        .eq('manually_blocked', false)
+        .not('telegram_chat_id', 'is', null);
+      const chats = Array.from(new Set((users || []).map((u: any) => String(u.telegram_chat_id || '').trim()).filter(Boolean)));
+      if (chats.length === 0) return;
+      const sameDay = isSameDay(start, end);
+      const when = allDay
+        ? (sameDay ? format(start, 'dd/MM/yyyy') : `${format(start, 'dd/MM/yyyy')} – ${format(end, 'dd/MM/yyyy')}`) + ' (dia inteiro)'
+        : sameDay
+          ? `${format(start, 'dd/MM/yyyy')} · ${format(start, 'HH:mm')} – ${format(end, 'HH:mm')}`
+          : `${format(start, 'dd/MM/yyyy HH:mm')} – ${format(end, 'dd/MM/yyyy HH:mm')}`;
+      const lines = [`📅 <b>Novo Evento: ${title}</b>`, '', `🗓 ${when}`];
+      if (location) lines.push(`📍 ${location}`);
+      lines.push('', 'Ass: a Equipa das Escalas');
+      const message = lines.join('\n');
+      let sent = 0;
+      for (const chatId of chats) {
+        const { error: e } = await supabase.functions.invoke('send-telegram-notification', { body: { chatId, message } });
+        if (!e) sent++;
+      }
+      toast({ title: 'Aviso Telegram enviado', description: `Mensagem enviada a ${sent} de ${chats.length} utilizadores.` });
+    } catch (err) {
+      console.error('Erro ao notificar evento no Telegram:', err);
+    }
   };
 
   const remove = async (e: EventRow) => {
